@@ -1,7 +1,12 @@
 <template>
-  <div>
+  <div class="bg-white dark:bg-neutral-900 dark:text-white h-screen">
     <header class="flex items-center justify-between p-4 border-b">
-      <h1>Maxwell CRM</h1>
+      <div>
+        <h1>Maxwell CRM</h1>
+      </div>
+      <div>
+        <ColorMode />
+      </div>
     </header>
     <slot />
   </div>
