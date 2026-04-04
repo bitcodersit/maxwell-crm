@@ -1,3 +1,5 @@
+import type { TUser } from '@@/shared/types'
+
 export const userToSession = (user: TUser) => {
   return {
     id: user.id,
