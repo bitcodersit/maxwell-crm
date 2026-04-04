@@ -8,15 +8,15 @@ const zPermission = z.object({
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
-  if (!can(session, ['create-any-permission'])) {
-    throw err.denied()
-  }
 
   const body = await readBody(event)
   const input = await validate(body, zPermission)
 
   try {
     if (input.id) {
+      if (!can(session, ['update-any-permission'])) {
+        throw err.denied()
+      }
       return await prisma.permission.update({
         where: {
           id: input.id,
@@ -48,6 +48,9 @@ export default defineEventHandler(async (event) => {
         },
       })
     }
+    if (!can(session, ['create-any-permission'])) {
+      throw err.denied()
+    }
     return await prisma.permission.create({
       data: {
         name: input.name,
@@ -69,8 +72,20 @@ export default defineEventHandler(async (event) => {
     })
   } catch (error: any) {
     const message = error.message
-    if (message.includes('not found')) {
-      throw err.notFound()
+    if (message.includes('not found')) throw err.notFound()
+    if (message.includes('permissions_slug_key')) {
+      throw err.unprocessable({
+        slug: {
+          errors: ['Slug must be unique'],
+        },
+      })
+    }
+    if (message.includes('permissions_name_key')) {
+      throw err.unprocessable({
+        slug: {
+          errors: ['Name must be unique'],
+        },
+      })
     }
     throw error
   }

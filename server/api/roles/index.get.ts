@@ -23,8 +23,15 @@ export default defineEventHandler(async (event) => {
       orderBy,
       include: {
         rolePermissions: {
-          include: {
-            permission: true,
+          select: {
+            id: true,
+            permission: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
           },
         },
       },

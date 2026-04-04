@@ -25,4 +25,12 @@ export const err = {
       message: 'The requested resource was not found',
     })
   },
+  unprocessable(properties: Record<string, { errors: string[] }>) {
+    return createError({
+      statusCode: 422,
+      data: {
+        properties,
+      },
+    })
+  },
 }

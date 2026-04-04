@@ -28,7 +28,7 @@ model Role {
     id Int @id @default(autoincrement())
 
     name        String  @unique
-    description String?
+    description String? @db.Text
 
     userRoles       UserRole[]
     rolePermissions RolePermission[]
@@ -42,7 +42,7 @@ model Permission {
 
     name        String  @unique
     slug        String  @unique
-    description String?
+    description String? @db.Text
 
     rolePermissions RolePermission[]
 

@@ -21,6 +21,19 @@ export default defineEventHandler(async (event) => {
       take,
       where,
       orderBy,
+      include: {
+        rolePermissions: {
+          select: {
+            id: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
     }),
   ])
 
