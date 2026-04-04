@@ -14,4 +14,13 @@ export const err = {
       data: z.treeifyError(error),
     })
   },
+  denied() {
+    return createError({
+      statusCode: 403,
+      message: 'Permission denied',
+      data: {
+        message: 'You are not authorized to access this resource',
+      },
+    })
+  },
 }

@@ -1,4 +1,9 @@
 export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+  if (!can(session, ['read-any-user'])) {
+    throw err.denied()
+  }
+
   const users = await prisma.user.findMany({
     include: {
       userRoles: {
