@@ -9,7 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare && npm run prisma-generate",
     "prisma-generate": "prisma generate",
-    "migrate": "prisma migrate dev"
+    "migrate": "prisma migrate dev && prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.6.0",
