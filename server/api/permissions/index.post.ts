@@ -1,0 +1,77 @@
+const zPermission = z.object({
+  id: z.number().optional(),
+  name: z.string().min(1),
+  slug: z.string().min(1),
+  description: z.string().nullish(),
+  roleIds: z.array(z.number()).nullish(),
+})
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+  if (!can(session, ['create-any-permission'])) {
+    throw err.denied()
+  }
+
+  const body = await readBody(event)
+  const input = await validate(body, zPermission)
+
+  try {
+    if (input.id) {
+      return await prisma.permission.update({
+        where: {
+          id: input.id,
+        },
+        data: {
+          name: input.name,
+          slug: input.slug,
+          description: input.description,
+          rolePermissions: input.roleIds
+            ? {
+                createMany: {
+                  data: input.roleIds.map((roleId) => ({ roleId })),
+                  skipDuplicates: true,
+                },
+                deleteMany: {
+                  roleId: {
+                    notIn: input.roleIds,
+                  },
+                },
+              }
+            : undefined,
+        },
+        include: {
+          rolePermissions: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      })
+    }
+    return await prisma.permission.create({
+      data: {
+        name: input.name,
+        slug: input.slug,
+        description: input.description,
+        rolePermissions: {
+          createMany: {
+            data: (input.roleIds || []).map((roleId) => ({ roleId })),
+          },
+        },
+      },
+      include: {
+        rolePermissions: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    })
+  } catch (error: any) {
+    const message = error.message
+    if (message.includes('not found')) {
+      throw err.notFound()
+    }
+    throw error
+  }
+})
