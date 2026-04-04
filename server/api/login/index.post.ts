@@ -4,12 +4,30 @@ const zLogin = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const session = await getUserSession(event)
+  if (session.user) return session
+
   const body = await readBody(event)
   const input = await validate(body, zLogin)
 
   const user = await prisma.user.findUnique({
     where: {
       email: input.email,
+    },
+    include: {
+      userRoles: {
+        include: {
+          role: {
+            include: {
+              rolePermissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   })
 
@@ -23,6 +41,10 @@ export default defineEventHandler(async (event) => {
       id: user.id,
       name: user.name,
       email: user.email,
+      roles: user.userRoles.map((ur) => ur.role.name),
+      permissions: user.userRoles.flatMap((ur) =>
+        ur.role.rolePermissions.map((rp) => rp.permission.slug)
+      ),
     },
   })
 

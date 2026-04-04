@@ -34,7 +34,7 @@ async function main() {
   const modules = ['user', 'role', 'permission']
   const subjects = ['any', 'own']
 
-  const permissions = operations.flatMap((operation) =>
+  const permissionsData = operations.flatMap((operation) =>
     modules.flatMap((module) =>
       subjects.map((subject) => ({
         slug: `${operation}-${subject}-${module}`,
@@ -43,14 +43,41 @@ async function main() {
     )
   )
 
-  for (const permission of permissions) {
-    await prisma.permission.upsert({
-      where: {
-        slug: permission.slug,
-      },
-      update: {},
-      create: permission,
-    })
+  const permissions = await Promise.all(
+    permissionsData.map((permission) =>
+      prisma.permission.upsert({
+        where: {
+          slug: permission.slug,
+        },
+        update: {},
+        create: permission,
+      })
+    )
+  )
+
+  const superAdminRole = await prisma.role.findUnique({
+    where: {
+      name: 'Super Admin',
+    },
+  })
+  if (superAdminRole) {
+    await Promise.all(
+      permissions.map((permission) =>
+        prisma.rolePermission.upsert({
+          where: {
+            roleId_permissionId: {
+              roleId: superAdminRole.id,
+              permissionId: permission.id,
+            },
+          },
+          update: {},
+          create: {
+            roleId: superAdminRole.id,
+            permissionId: permission.id,
+          },
+        })
+      )
+    )
   }
 }
 main()
