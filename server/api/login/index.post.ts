@@ -37,15 +37,7 @@ export default defineEventHandler(async (event) => {
   if (!verified) throw err.unauth()
 
   await setUserSession(event, {
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      roles: user.userRoles.map((ur) => ur.role.name),
-      permissions: user.userRoles.flatMap((ur) =>
-        ur.role.rolePermissions.map((rp) => rp.permission.slug)
-      ),
-    },
+    user: userToSession(user),
   })
 
   return getUserSession(event)
