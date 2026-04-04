@@ -58,21 +58,21 @@ const deleteUser = (id: number) => {
         v-model="name"
         name="name"
         placeholder="Name"
-        class="border rounded-md p-2"
+        class="border rounded-md p-2 dark:bg-neutral-800"
       />
       <input
         type="email"
         v-model="email"
         name="email"
         placeholder="Email"
-        class="border rounded-md p-2"
+        class="border rounded-md p-2 dark:bg-neutral-800"
       />
       <input
         type="password"
         v-model="password"
         name="password"
         placeholder="Password"
-        class="border rounded-md p-2"
+        class="border rounded-md p-2 dark:bg-neutral-800"
       />
       <button type="submit" class="bg-blue-500 text-white px-4 rounded-md">
         {{ id ? 'Update User' : 'Create User' }}

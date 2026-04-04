@@ -13,6 +13,7 @@ const prisma = new PrismaClient({
     password: process.env.NUXT_DATABASE_PASSWORD,
     database: process.env.NUXT_DATABASE_NAME,
     port: Number(process.env.NUXT_DATABASE_PORT),
+    allowPublicKeyRetrieval: true,
   }),
 })
 
