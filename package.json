@@ -17,6 +17,9 @@
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.6.0",
     "@prisma/client": "^7.6.0",
+    "@vue-email/components": "^0.0.21",
+    "@vue-email/render": "^0.0.9",
+    "nodemailer": "^8.0.4",
     "nuxt": "^4.4.2",
     "vue": "^3.5.31",
     "vue-router": "^5.0.4",
@@ -25,6 +28,7 @@
   "devDependencies": {
     "@nuxtjs/color-mode": "^4.0.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
+    "@types/nodemailer": "^8.0.0",
     "dotenv": "^17.4.0",
     "nuxt-auth-utils": "^0.5.29",
     "prisma": "^7.6.0",

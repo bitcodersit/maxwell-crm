@@ -1,7 +1,8 @@
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
 import { PrismaClient } from '@@/prisma/client/client'
+import { createSingleton } from './singleton'
 
-const prismaClientSingleton = () => {
+export const prisma = createSingleton('prisma', () => {
   return new PrismaClient({
     adapter: new PrismaMariaDb({
       host: process.env.NUXT_DATABASE_HOST,
@@ -12,14 +13,4 @@ const prismaClientSingleton = () => {
       allowPublicKeyRetrieval: true,
     }),
   })
-}
-
-type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientSingleton | undefined
-}
-
-export const prisma = globalForPrisma.prisma ?? prismaClientSingleton()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+})
