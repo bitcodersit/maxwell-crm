@@ -5,14 +5,29 @@ export default defineEventHandler(async (event) => {
   // }
 
   const users = await prisma.user.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      updatedAt: true,
+      deletedAt: true,
       userRoles: {
-        include: {
+        select: {
+          id: true,
           role: {
-            include: {
+            select: {
+              id: true,
+              name: true,
               rolePermissions: {
-                include: {
-                  permission: true,
+                select: {
+                  id: true,
+                  permission: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
                 },
               },
             },
