@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
         data: {
           name: input.name,
           description: input.description,
-          members: input.members
+          members: input.members?.length
             ? {
                 deleteMany: {
                   userId: {
