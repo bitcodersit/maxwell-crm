@@ -1,7 +1,7 @@
 import { Prisma } from '~~/prisma/client/client'
 
 const zUser = z.object({
-  id: z.number().optional(),
+  id: z.number().nullish(),
   name: z.string().min(1),
   email: z.email(),
   password: z.string().min(8).nullish(),
