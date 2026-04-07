@@ -5,7 +5,12 @@ const zLogin = z.object({
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
-  if (session.user) return session
+  if (session.user) {
+    throw createError({
+      statusCode: 400,
+      message: 'Already logged in, please logout first',
+    })
+  }
 
   const body = await readBody(event)
   const input = await validate(body, zLogin)
@@ -31,7 +36,23 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  if (!user) throw err.unauth()
+  if (!user)
+    throw err.unprocessable({
+      email: {
+        errors: ['Invalid email or password'],
+      },
+    })
+
+  if (user.deletedAt)
+    throw createError({
+      message: 'Account deleted, please contact support',
+    })
+
+  if (!user.password) {
+    throw createError({
+      message: 'Account not created with password, please contact support',
+    })
+  }
 
   const verified = await verifyPassword(user.password, input.password)
   if (!verified) throw err.unauth()
