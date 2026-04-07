@@ -1,6 +1,6 @@
 import type { UserSession } from '#auth-utils'
 
-type TModule = 'user' | 'role' | 'permission' | 'team' | 'team-member'
+type TModule = 'user' | 'role' | 'permission' | 'team'
 type TOperation = 'create' | 'read' | 'update' | 'delete'
 type TSubject = 'any' | 'own'
 

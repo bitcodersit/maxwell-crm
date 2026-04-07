@@ -18,11 +18,24 @@ export default defineEventHandler(async (event) => {
         id: 'desc',
       },
       include: {
-        members: {
+        creator: {
           select: {
             id: true,
+            name: true,
+            email: true,
+          },
+        },
+        members: {
+          select: {
             role: true,
             user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            assigner: {
               select: {
                 id: true,
                 name: true,

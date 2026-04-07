@@ -11,11 +11,13 @@ model User {
     id Int @id @default(autoincrement())
 
     name     String
-    email    String @unique
+    email    String  @unique
     password String?
 
-    userRoles   UserRole[]
-    members TeamMember[]
+    teams               Team[]
+    userRoles           UserRole[]
+    teamMembers         TeamMember[]
+    teamMembersAssigned TeamMember[] @relation("TeamMemberAssigner")
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
@@ -30,7 +32,9 @@ model Team {
 
     name        String  @unique
     description String? @db.Text
+    creatorId   Int?
 
+    creator User?        @relation(fields: [creatorId], references: [id], onDelete: SetNull)
     members TeamMember[]
 
     createdAt DateTime  @default(now())
@@ -38,6 +42,7 @@ model Team {
     deletedAt DateTime?
 
     @@index([name])
+    @@index([creatorId])
     @@map("teams")
 }
 
@@ -49,18 +54,21 @@ enum TeamMemberRole {
 model TeamMember {
     id Int @id @default(autoincrement())
 
-    teamId Int
-    userId Int
-    role   TeamMemberRole @default(MEMBER)
+    teamId     Int
+    userId     Int
+    assignerId Int?
+    role       TeamMemberRole @default(MEMBER)
 
-    team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    team     Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+    user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+    assigner User? @relation("TeamMemberAssigner", fields: [assignerId], references: [id], onDelete: SetNull)
 
     createdAt DateTime @default(now())
 
     @@unique([teamId, userId])
     @@index([teamId])
     @@index([userId])
+    @@index([assignerId])
     @@map("team_members")
 }
 

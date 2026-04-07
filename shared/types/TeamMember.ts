@@ -6,4 +6,5 @@ export type TTeamMember = TeamMember &
   Partial<{
     team: TTeam
     user: TUser
+    assigner: TUser
   }>

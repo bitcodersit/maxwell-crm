@@ -32,7 +32,7 @@ async function main() {
   }
 
   const operations = ['create', 'read', 'update', 'delete']
-  const modules = ['user', 'role', 'permission', 'team', 'team-member']
+  const modules = ['user', 'role', 'permission', 'team']
   const subjects = ['any', 'own']
 
   const permissionsData = operations.flatMap((operation) =>
