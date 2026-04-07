@@ -1,8 +1,8 @@
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  if (!can(session, ['read-any-role'])) {
-    throw err.denied()
-  }
+  // const session = await requireUserSession(event)
+  // if (!can(session, ['read-any-role'])) {
+  //   throw err.denied()
+  // }
 
   const query = getQuery(event)
 
@@ -37,5 +37,6 @@ export default defineEventHandler(async (event) => {
       },
     }),
   ])
+
   return paginate(roles, total)
 })
