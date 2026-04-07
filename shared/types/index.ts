@@ -3,6 +3,8 @@ export * from './Role'
 export * from './UserRole'
 export * from './RolePermission'
 export * from './Permission'
+export * from './Team'
+export * from './TeamMember'
 
 export type TPaginated<T> = {
   page: number
