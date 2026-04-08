@@ -1,46 +1,60 @@
 import { TeamMemberRole } from '~~/prisma/client/enums'
 
-const zTeam = z.object({
-  id: z.number().nullish(),
-  name: z.string().min(1),
-  description: z.string().nullish(),
-  members: z
-    .array(
-      z.object({
-        userId: z.number(),
-        role: z.enum(TeamMemberRole).default(TeamMemberRole.MEMBER),
-      })
-    )
-    .nullish(),
-})
-
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-
-  const body = await readBody(event)
-  const input = await validate(body, zTeam)
-
   try {
+    const session = await requireUserSession(event)
+
+    const body = await readBody(event)
+    const input = await validate(body, zTeam)
+
     if (input.id) {
-      if (!can(session, ['update-any-team'])) {
-        if (!can(session, ['update-own-team'])) {
-          throw err.denied()
+      const canUpdateAnyTeam = can(session, ['update-any-team'])
+      const canUpdateOwnTeam = can(session, ['update-own-team'])
+      const shouldFindLeader = !!input.members?.length || (!canUpdateAnyTeam && canUpdateOwnTeam)
+
+      const leader = shouldFindLeader
+        ? await prisma.teamMember.findFirst({
+            where: {
+              teamId: input.id,
+              userId: session.user.id,
+              role: TeamMemberRole.LEADER,
+            },
+            select: {
+              id: true,
+              role: true,
+            },
+          })
+        : null
+
+      if (!canUpdateAnyTeam) {
+        if (!canUpdateOwnTeam) throw err.denied()
+        if (!leader) throw err.denied()
+      }
+
+      if (input.members?.length && leader) {
+        const currentUserInMembers = input.members.find(
+          (member) => member.userId === session.user.id
+        )
+
+        if (!currentUserInMembers) {
+          throw err.unprocessable({
+            members: {
+              errors: ['Team leader cannot remove themselves from the team'],
+            },
+          })
         }
-        const isTeamLeader = await prisma.teamMember.findFirst({
-          where: {
-            teamId: input.id,
-            userId: session.user.id,
-            role: TeamMemberRole.LEADER,
-          },
-          select: {
-            id: true,
-          },
-        })
-        if (!isTeamLeader) {
-          throw err.denied()
+
+        if (currentUserInMembers.role !== TeamMemberRole.LEADER) {
+          throw err.unprocessable({
+            members: {
+              errors: ['Team leader cannot change their own role'],
+            },
+          })
         }
       }
+
       const team = await prisma.team.update({
+        include,
         where: {
           id: input.id,
         },
@@ -73,33 +87,6 @@ export default defineEventHandler(async (event) => {
               }
             : undefined,
         },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          members: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              assigner: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-        },
       })
       return team
     }
@@ -109,6 +96,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const team = await prisma.team.create({
+      include,
       data: {
         name: input.name,
         creatorId: session.user.id,
@@ -118,28 +106,8 @@ export default defineEventHandler(async (event) => {
             data: (input.members || []).map((member) => ({
               userId: member.userId,
               role: member.role,
+              assignerId: session.user.id,
             })),
-          },
-        },
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        members: {
-          include: {
-            user: true,
-            assigner: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
           },
         },
       },
@@ -157,4 +125,40 @@ export default defineEventHandler(async (event) => {
     }
     throw error
   }
+})
+
+const selectUser = {
+  id: true,
+  name: true,
+  email: true,
+}
+
+const include = {
+  creator: {
+    select: selectUser,
+  },
+  members: {
+    include: {
+      user: {
+        select: selectUser,
+      },
+      assigner: {
+        select: selectUser,
+      },
+    },
+  },
+}
+
+const zTeam = z.object({
+  id: z.number().nullish(),
+  name: z.string().min(1),
+  description: z.string().nullish(),
+  members: z
+    .array(
+      z.object({
+        userId: z.number(),
+        role: z.enum(TeamMemberRole).default(TeamMemberRole.MEMBER),
+      })
+    )
+    .nullish(),
 })
