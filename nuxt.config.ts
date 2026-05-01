@@ -10,12 +10,13 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
     optimizeDeps: {
       include: [
-        '@vue/devtools-core',
-        '@vue/devtools-kit',
-        'class-variance-authority',
-        'reka-ui',
         'clsx',
+        'reka-ui',
+        '@vueuse/core',
         'tailwind-merge',
+        '@vue/devtools-kit',
+        '@vue/devtools-core',
+        'class-variance-authority',
       ],
     },
   },
