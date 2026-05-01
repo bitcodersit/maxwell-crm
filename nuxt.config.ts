@@ -4,18 +4,21 @@ import vue from '@vitejs/plugin-vue'
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  css: ['~/assets/css/main.css'],
   modules: [
-    '@nuxtjs/tailwindcss',
-    '@nuxtjs/color-mode',
+    '@nuxt/ui',
     'nuxt-auth-utils',
   ],
   colorMode: {
     storage: 'cookie',
   },
-  tailwindcss: {
-    config: {
-      darkMode: 'class',
-    },
+  vite:{
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+      ]
+    }
   },
   nitro: {
     rollupConfig: {
