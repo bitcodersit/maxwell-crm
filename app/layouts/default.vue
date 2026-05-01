@@ -138,6 +138,8 @@ onMounted(async () => {
     ],
   })
 })
+
+useUiColors()
 </script>
 
 <template>

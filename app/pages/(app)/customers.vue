@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import { upperFirst } from 'scule'
 import { getPaginationRowModel } from '@tanstack/table-core'
 import type { Row } from '@tanstack/table-core'
 import type { User } from '~/types'
@@ -14,22 +13,24 @@ const UCheckbox = resolveComponent('UCheckbox')
 const toast = useToast()
 const table = useTemplateRef('table')
 
-const columnFilters = ref([{
-  id: 'email',
-  value: ''
-}])
+const columnFilters = ref([
+  {
+    id: 'email',
+    value: '',
+  },
+])
 const columnVisibility = ref()
 const rowSelection = ref({ 1: true })
 
 const { data, status } = await useFetch<User[]>('/api/customers', {
-  lazy: true
+  lazy: true,
 })
 
 function getRowItems(row: Row<User>) {
   return [
     {
       type: 'label',
-      label: 'Actions'
+      label: 'Actions',
     },
     {
       label: 'Copy customer ID',
@@ -38,23 +39,23 @@ function getRowItems(row: Row<User>) {
         navigator.clipboard.writeText(row.original.id.toString())
         toast.add({
           title: 'Copied to clipboard',
-          description: 'Customer ID copied to clipboard'
+          description: 'Customer ID copied to clipboard',
         })
-      }
+      },
     },
     {
-      type: 'separator'
+      type: 'separator',
     },
     {
       label: 'View customer details',
-      icon: 'i-lucide-list'
+      icon: 'i-lucide-list',
     },
     {
       label: 'View customer payments',
-      icon: 'i-lucide-wallet'
+      icon: 'i-lucide-wallet',
     },
     {
-      type: 'separator'
+      type: 'separator',
     },
     {
       label: 'Delete customer',
@@ -63,10 +64,10 @@ function getRowItems(row: Row<User>) {
       onSelect() {
         toast.add({
           title: 'Customer deleted',
-          description: 'The customer has been deleted.'
+          description: 'The customer has been deleted.',
         })
-      }
-    }
+      },
+    },
   ]
 }
 
@@ -75,23 +76,23 @@ const columns: TableColumn<User>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        'modelValue': table.getIsSomePageRowsSelected()
+        modelValue: table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'ariaLabel': 'Select all'
+        ariaLabel: 'Select all',
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        'modelValue': row.getIsSelected(),
+        modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'ariaLabel': 'Select row'
-      })
+        ariaLabel: 'Select row',
+      }),
   },
   {
     accessorKey: 'id',
-    header: 'ID'
+    header: 'ID',
   },
   {
     accessorKey: 'name',
@@ -100,14 +101,14 @@ const columns: TableColumn<User>[] = [
       return h('div', { class: 'flex items-center gap-3' }, [
         h(UAvatar, {
           ...row.original.avatar,
-          size: 'lg'
+          size: 'lg',
         }),
         h('div', undefined, [
           h('p', { class: 'font-medium text-highlighted' }, row.original.name),
-          h('p', { class: '' }, `@${row.original.name}`)
-        ])
+          h('p', { class: '' }, `@${row.original.name}`),
+        ]),
       ])
-    }
+    },
   },
   {
     accessorKey: 'email',
@@ -124,14 +125,14 @@ const columns: TableColumn<User>[] = [
             : 'i-lucide-arrow-down-wide-narrow'
           : 'i-lucide-arrow-up-down',
         class: '-mx-2.5',
-        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
       })
-    }
+    },
   },
   {
     accessorKey: 'location',
     header: 'Location',
-    cell: ({ row }) => row.original.location
+    cell: ({ row }) => row.original.location,
   },
   {
     accessorKey: 'status',
@@ -141,13 +142,11 @@ const columns: TableColumn<User>[] = [
       const color = {
         subscribed: 'success' as const,
         unsubscribed: 'error' as const,
-        bounced: 'warning' as const
+        bounced: 'warning' as const,
       }[row.original.status]
 
-      return h(UBadge, { class: 'capitalize', variant: 'subtle', color }, () =>
-        row.original.status
-      )
-    }
+      return h(UBadge, { class: 'capitalize', variant: 'subtle', color }, () => row.original.status)
+    },
   },
   {
     id: 'actions',
@@ -159,37 +158,40 @@ const columns: TableColumn<User>[] = [
           UDropdownMenu,
           {
             content: {
-              align: 'end'
+              align: 'end',
             },
-            items: getRowItems(row)
+            items: getRowItems(row),
           },
           () =>
             h(UButton, {
               icon: 'i-lucide-ellipsis-vertical',
               color: 'neutral',
               variant: 'ghost',
-              class: 'ml-auto'
+              class: 'ml-auto',
             })
         )
       )
-    }
-  }
+    },
+  },
 ]
 
 const statusFilter = ref('all')
 
-watch(() => statusFilter.value, (newVal) => {
-  if (!table?.value?.tableApi) return
+watch(
+  () => statusFilter.value,
+  (newVal) => {
+    if (!table?.value?.tableApi) return
 
-  const statusColumn = table.value.tableApi.getColumn('status')
-  if (!statusColumn) return
+    const statusColumn = table.value.tableApi.getColumn('status')
+    if (!statusColumn) return
 
-  if (newVal === 'all') {
-    statusColumn.setFilterValue(undefined)
-  } else {
-    statusColumn.setFilterValue(newVal)
+    if (newVal === 'all') {
+      statusColumn.setFilterValue(undefined)
+    } else {
+      statusColumn.setFilterValue(newVal)
+    }
   }
-})
+)
 
 const email = computed({
   get: (): string => {
@@ -197,12 +199,12 @@ const email = computed({
   },
   set: (value: string) => {
     table.value?.tableApi?.getColumn('email')?.setFilterValue(value || undefined)
-  }
+  },
 })
 
 const pagination = ref({
   pageIndex: 0,
-  pageSize: 10
+  pageSize: 10,
 })
 </script>
 
@@ -252,9 +254,11 @@ const pagination = ref({
               { label: 'All', value: 'all' },
               { label: 'Subscribed', value: 'subscribed' },
               { label: 'Unsubscribed', value: 'unsubscribed' },
-              { label: 'Bounced', value: 'bounced' }
+              { label: 'Bounced', value: 'bounced' },
             ]"
-            :ui="{ trailingIcon: 'group-data-[state=open]:rotate-180 transition-transform duration-200' }"
+            :ui="{
+              trailingIcon: 'group-data-[state=open]:rotate-180 transition-transform duration-200',
+            }"
             placeholder="Filter status"
             class="min-w-28"
           />
@@ -264,7 +268,7 @@ const pagination = ref({
                 ?.getAllColumns()
                 .filter((column: any) => column.getCanHide())
                 .map((column: any) => ({
-                  label: upperFirst(column.id),
+                  label: column.id.charAt(0).toUpperCase() + column.id.slice(1),
                   type: 'checkbox' as const,
                   checked: column.getIsVisible(),
                   onUpdateChecked(checked: boolean) {
@@ -294,7 +298,7 @@ const pagination = ref({
         v-model:row-selection="rowSelection"
         v-model:pagination="pagination"
         :pagination-options="{
-          getPaginationRowModel: getPaginationRowModel()
+          getPaginationRowModel: getPaginationRowModel(),
         }"
         class="shrink-0"
         :data="data"
@@ -306,7 +310,7 @@ const pagination = ref({
           tbody: '[&>tr]:last:[&>td]:border-b-0',
           th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
           td: 'border-b border-default',
-          separator: 'h-0'
+          separator: 'h-0',
         }"
       />
 
