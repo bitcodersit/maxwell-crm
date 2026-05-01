@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({
     where: {
-      id: session.user.id,
+      id: session.user.id
     },
     include: {
       userRoles: {
@@ -16,14 +16,14 @@ export default defineEventHandler(async (event) => {
             include: {
               rolePermissions: {
                 include: {
-                  permission: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+                  permission: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   })
 
   if (!user) {

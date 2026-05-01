@@ -13,12 +13,12 @@ export default defineEventHandler(async (event) => {
           role: {
             select: {
               id: true,
-              name: true,
-            },
-          },
-        },
-      },
-    },
+              name: true
+            }
+          }
+        }
+      }
+    }
   })
 
   if (!permission) throw err.notFound()

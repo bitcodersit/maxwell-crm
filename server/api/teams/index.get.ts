@@ -12,13 +12,13 @@ export default defineEventHandler(async (event) => {
 
   const search = {
     OR: [{ name: { contains: q } }, { description: { contains: q } }],
-    deletedAt: null,
+    deletedAt: null
   }
 
   const where = can(session, ['read-any-team'])
     ? search
     : {
-        AND: [{ members: { some: { userId: session.user.id } } }, search],
+        AND: [{ members: { some: { userId: session.user.id } } }, search]
       }
 
   const [total, teams] = await prisma.$transaction([
@@ -28,15 +28,15 @@ export default defineEventHandler(async (event) => {
       skip,
       take,
       orderBy: {
-        id: 'desc',
+        id: 'desc'
       },
       include: {
         creator: {
           select: {
             id: true,
             name: true,
-            email: true,
-          },
+            email: true
+          }
         },
         members: {
           select: {
@@ -45,20 +45,20 @@ export default defineEventHandler(async (event) => {
               select: {
                 id: true,
                 name: true,
-                email: true,
-              },
+                email: true
+              }
             },
             assigner: {
               select: {
                 id: true,
                 name: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
-    }),
+                email: true
+              }
+            }
+          }
+        }
+      }
+    })
   ])
 
   return paginate(teams, total)

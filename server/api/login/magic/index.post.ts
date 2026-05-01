@@ -2,7 +2,7 @@ import MagicLink from '@/components/emails/MagicLink.vue'
 import { render } from '@vue-email/render'
 
 const zMagic = z.object({
-  email: z.email(),
+  email: z.email()
 })
 
 export default defineEventHandler(async (event) => {
@@ -11,8 +11,8 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({
     where: {
-      email: input.email,
-    },
+      email: input.email
+    }
   })
 
   if (!user) throw err.notFound()
@@ -26,10 +26,10 @@ export default defineEventHandler(async (event) => {
   await sendMail({
     to: input.email,
     subject: 'Magic Link',
-    html,
+    html
   })
 
   return {
-    message: 'Magic link sent to email',
+    message: 'Magic link sent to email'
   }
 })

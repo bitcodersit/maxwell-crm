@@ -10,7 +10,7 @@ export const prisma = createSingleton('prisma', () => {
       password: process.env.NUXT_DATABASE_PASSWORD,
       database: process.env.NUXT_DATABASE_NAME,
       port: Number(process.env.NUXT_DATABASE_PORT),
-      allowPublicKeyRetrieval: true,
-    }),
+      allowPublicKeyRetrieval: true
+    })
   })
 })

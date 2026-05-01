@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const q = (query.q || '').toString().trim()
   const where = {
-    OR: [{ name: { contains: q } }, { slug: { contains: q } }],
+    OR: [{ name: { contains: q } }, { slug: { contains: q } }]
   }
 
   const [total, permissions] = await prisma.$transaction([
@@ -28,13 +28,13 @@ export default defineEventHandler(async (event) => {
             role: {
               select: {
                 id: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
-    }),
+                name: true
+              }
+            }
+          }
+        }
+      }
+    })
   ])
 
   return paginate(permissions, total)

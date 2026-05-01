@@ -1,6 +1,6 @@
 <template>
   <div>
-    <button @click="toggleColorMode" class="bg-blue-500 text-white px-4 rounded-md">
+    <button class="bg-blue-500 text-white px-4 rounded-md" @click="toggleColorMode">
       {{ colorMode.preference === 'dark' ? 'Light Mode' : 'Dark Mode' }}
     </button>
   </div>

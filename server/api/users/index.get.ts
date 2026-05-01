@@ -25,19 +25,19 @@ export default defineEventHandler(async (event) => {
                   permission: {
                     select: {
                       id: true,
-                      name: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+                      name: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     orderBy: {
-      createdAt: 'desc',
-    },
+      createdAt: 'desc'
+    }
   })
   return users
 })
