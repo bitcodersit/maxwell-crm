@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'app-layout',
+  layout: 'default-layout',
 })
 
 const { data: users, refresh } = useAsyncData('users', () => $fetch('/api/users'), {

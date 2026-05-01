@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'app-layout',
+  layout: 'default-layout',
 })
 </script>
 
