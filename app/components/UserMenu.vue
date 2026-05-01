@@ -1,14 +1,4 @@
-<script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui'
-
-defineProps<{
-  collapsed?: boolean
-}>()
-
-const colorMode = useColorMode()
-
-const { primary, neutral } = useUiColors()
-
+<script lang="ts">
 const colors = [
   'red',
   'orange',
@@ -29,19 +19,37 @@ const colors = [
   'rose',
 ]
 const neutrals = ['slate', 'gray', 'zinc', 'neutral', 'stone']
+</script>
 
-const user = ref({
-  name: 'Benjamin Canac',
-  avatar: {
-    src: 'https://github.com/benjamincanac.png',
-    alt: 'Benjamin Canac',
-  },
+<script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
+defineProps<{
+  collapsed?: boolean
+}>()
+
+const colorMode = useColorMode()
+
+const { user: userSession } = useUserSession()
+const { primary, neutral } = useUiColors()
+
+const user = computed(() => {
+  return {
+    name: userSession.value?.name,
+    avatar: {
+      // src: userSession.value.avatar,
+      alt: userSession.value?.name,
+    },
+  }
 })
+
+const { isLoggingOut, logout } = useLogout()
 
 const items = computed<DropdownMenuItem[][]>(() => [
   [
     {
       type: 'label',
+
       label: user.value.name,
       avatar: user.value.avatar,
     },
@@ -119,7 +127,6 @@ const items = computed<DropdownMenuItem[][]>(() => [
           checked: colorMode.value === 'light',
           onSelect(e: Event) {
             e.preventDefault()
-
             colorMode.preference = 'light'
           },
         },
@@ -199,6 +206,8 @@ const items = computed<DropdownMenuItem[][]>(() => [
     {
       label: 'Log out',
       icon: 'i-lucide-log-out',
+      loading: isLoggingOut.value,
+      onClick: logout,
     },
   ],
 ])
