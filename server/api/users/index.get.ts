@@ -1,8 +1,8 @@
 export default defineEventHandler(async (event) => {
-  // const session = await requireUserSession(event)
-  // if (!can(session, ['read-any-user'])) {
-  //   throw err.denied()
-  // }
+  const { user } = await requireUserSession(event)
+  if (!can(user, ['read-any-user'])) {
+    throw err.denied()
+  }
 
   const users = await prisma.user.findMany({
     select: {
@@ -25,19 +25,19 @@ export default defineEventHandler(async (event) => {
                   permission: {
                     select: {
                       id: true,
-                      name: true
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     orderBy: {
-      createdAt: 'desc'
-    }
+      createdAt: 'desc',
+    },
   })
   return users
 })

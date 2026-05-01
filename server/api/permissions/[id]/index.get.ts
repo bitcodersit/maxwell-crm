@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
-  if (!can(session, ['read-any-permission'])) {
+  const { user } = await requireUserSession(event)
+  if (!can(user, ['read-any-permission'])) {
     throw err.denied()
   }
   const id = getRouterParam(event, 'id')
@@ -13,12 +13,12 @@ export default defineEventHandler(async (event) => {
           role: {
             select: {
               id: true,
-              name: true
-            }
-          }
-        }
-      }
-    }
+              name: true,
+            },
+          },
+        },
+      },
+    },
   })
 
   if (!permission) throw err.notFound()

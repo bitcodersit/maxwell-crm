@@ -7,13 +7,13 @@ const zRole = z.object({
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event)
+    const { user } = await requireUserSession(event)
 
     const body = await readBody(event)
     const input = await validate(body, zRole)
 
     if (input.id) {
-      if (!can(session, ['update-any-role'])) {
+      if (!can(user, ['update-any-role'])) {
         throw err.denied()
       }
       const role = await prisma.role.update({
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
       return role
     }
 
-    if (!can(session, ['create-any-role'])) {
+    if (!can(user, ['create-any-role'])) {
       throw err.denied()
     }
     const role = await prisma.role.create({

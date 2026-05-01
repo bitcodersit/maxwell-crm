@@ -1,8 +1,8 @@
 export default defineEventHandler(async (event) => {
-  // const session = await requireUserSession(event)
-  // if (!can(session, ['read-any-role'])) {
-  //   throw err.denied()
-  // }
+  const { user } = await requireUserSession(event)
+  if (!can(user, ['read-any-role'])) {
+    throw err.denied()
+  }
 
   const query = getQuery(event)
 
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   const q = (query.q || '').toString().trim()
   const where = {
-    OR: [{ name: { contains: q } }]
+    OR: [{ name: { contains: q } }],
   }
 
   const [total, roles] = await prisma.$transaction([
@@ -29,13 +29,13 @@ export default defineEventHandler(async (event) => {
               select: {
                 id: true,
                 name: true,
-                slug: true
-              }
-            }
-          }
-        }
-      }
-    })
+                slug: true,
+              },
+            },
+          },
+        },
+      },
+    }),
   ])
 
   return paginate(roles, total)

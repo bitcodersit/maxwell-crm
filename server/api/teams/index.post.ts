@@ -2,21 +2,21 @@ import { TeamMemberRole } from '~~/prisma/client/enums'
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event)
+    const { user } = await requireUserSession(event)
 
     const body = await readBody(event)
     const input = await validate(body, zTeam)
 
     if (input.id) {
-      const canUpdateAnyTeam = can(session, ['update-any-team'])
-      const canUpdateOwnTeam = can(session, ['update-own-team'])
+      const canUpdateAnyTeam = can(user, ['update-any-team'])
+      const canUpdateOwnTeam = can(user, ['update-own-team'])
       const shouldFindLeader = !!input.members?.length || (!canUpdateAnyTeam && canUpdateOwnTeam)
 
       const leader = shouldFindLeader
         ? await prisma.teamMember.findFirst({
             where: {
               teamId: input.id,
-              userId: session.user.id,
+              userId: user.id,
               role: TeamMemberRole.LEADER,
             },
             select: {
@@ -32,9 +32,7 @@ export default defineEventHandler(async (event) => {
       }
 
       if (input.members?.length && leader) {
-        const currentUserInMembers = input.members.find(
-          (member) => member.userId === session.user.id
-        )
+        const currentUserInMembers = input.members.find((member) => member.userId === user.id)
 
         if (!currentUserInMembers) {
           throw err.unprocessable({
@@ -81,7 +79,7 @@ export default defineEventHandler(async (event) => {
                   create: {
                     role: member.role,
                     userId: member.userId,
-                    assignerId: session.user.id,
+                    assignerId: user.id,
                   },
                 })),
               }
@@ -91,7 +89,7 @@ export default defineEventHandler(async (event) => {
       return team
     }
 
-    if (!can(session, ['create-any-team'])) {
+    if (!can(user, ['create-any-team'])) {
       throw err.denied()
     }
 
@@ -99,14 +97,14 @@ export default defineEventHandler(async (event) => {
       include,
       data: {
         name: input.name,
-        creatorId: session.user.id,
+        creatorId: user.id,
         description: input.description,
         members: {
           createMany: {
             data: (input.members || []).map((member) => ({
               userId: member.userId,
               role: member.role,
-              assignerId: session.user.id,
+              assignerId: user.id,
             })),
           },
         },
