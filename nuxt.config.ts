@@ -2,36 +2,39 @@
 import vue from '@vitejs/plugin-vue'
 
 export default defineNuxtConfig({
-
+  compatibilityDate: '2025-07-15',
+  css: ['~/assets/css/main.css'],
   modules: ['@nuxt/eslint', '@nuxt/ui', '@vueuse/nuxt', 'nuxt-auth-utils', '@nuxt/image'],
   devtools: {
-    enabled: true
+    enabled: true,
   },
-  css: ['~/assets/css/main.css'],
   colorMode: {
-    storage: 'cookie'
+    storage: 'cookie',
   },
   routeRules: {
     '/api/**': {
-      cors: true
-    }
-  }, compatibilityDate: '2025-07-15',
+      cors: true,
+    },
+  },
   nitro: {
     rollupConfig: {
-      plugins: [vue()]
-    }
+      plugins: [vue()],
+    },
+    experimental: {
+      openAPI: true,
+    },
   },
   vite: {
     optimizeDeps: {
-      include: ['@vue/devtools-core', '@vue/devtools-kit']
-    }
+      include: ['@vue/devtools-core', '@vue/devtools-kit'],
+    },
   },
   eslint: {
     config: {
       stylistic: {
         commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
-    }
-  }
+        braceStyle: '1tbs',
+      },
+    },
+  },
 })
