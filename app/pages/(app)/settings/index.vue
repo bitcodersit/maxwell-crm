@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import { z } from 'zod'
 
 const fileRef = ref<HTMLInputElement>()
 const pendingFile = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)
 const clearAvatar = ref(false)
+const loading = ref(false)
 
 const { user, fetch: fetchSession } = useUserSession()
 
@@ -61,6 +62,7 @@ const toast = useToast()
 
 async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
   try {
+    loading.value = true
     let newAvatarId: number | undefined
     if (pendingFile.value) {
       const fd = new FormData()
@@ -102,6 +104,8 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
       description: error.data.message ?? error.message ?? 'Update failed',
       color: 'error',
     })
+  } finally {
+    loading.value = false
   }
 }
 
@@ -135,6 +139,8 @@ function onClearAvatar() {
       class="mb-4"
     >
       <UButton
+        :loading="loading"
+        :disabled="loading"
         form="settings"
         label="Save changes"
         color="neutral"
