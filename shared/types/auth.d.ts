@@ -6,6 +6,7 @@ declare module '#auth-utils' {
     email: string
     roles: string[]
     permissions: string[]
+    avatarId?: number | null
   }
 
   interface UserSession {

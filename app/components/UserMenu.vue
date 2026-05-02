@@ -33,11 +33,13 @@ const colorMode = useColorMode()
 const { user: userSession } = useUserSession()
 const { primary, neutral } = useUiColors()
 
+const { getAttachment } = useGetAttachment()
+
 const user = computed(() => {
   return {
     name: userSession.value?.name,
     avatar: {
-      // src: userSession.value.avatar,
+      src: getAttachment(userSession.value?.avatarId),
       alt: userSession.value?.name,
     },
   }
@@ -220,6 +222,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
     :ui="{ content: collapsed ? 'w-48' : 'w-(--reka-dropdown-menu-trigger-width)' }"
   >
     <UButton
+      :key="userSession?.avatarId ?? 'no-avatar'"
       v-bind="{
         ...user,
         label: collapsed ? undefined : user?.name,

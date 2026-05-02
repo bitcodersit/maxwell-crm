@@ -1,6 +1,6 @@
 const zLogin = z.object({
   email: z.email(),
-  password: z.string().min(8)
+  password: z.string().min(8),
 })
 
 export default defineEventHandler(async (event) => {
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (session.user) {
     throw createError({
       statusCode: 400,
-      message: 'Already logged in, please logout first'
+      message: 'Already logged in, please logout first',
     })
   }
 
@@ -17,48 +17,49 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({
     where: {
-      email: input.email
+      email: input.email,
     },
     include: {
+      avatar: true,
       userRoles: {
         include: {
           role: {
             include: {
               rolePermissions: {
                 include: {
-                  permission: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
 
   if (!user)
     throw err.unprocessable({
       email: {
-        errors: ['Invalid email or password']
-      }
+        errors: ['Invalid email or password'],
+      },
     })
 
   if (user.deletedAt)
     throw createError({
-      message: 'Account deleted, please contact support'
+      message: 'Account deleted, please contact support',
     })
 
   if (!user.password) {
     throw createError({
-      message: 'Account not created with password, please contact support'
+      message: 'Account not created with password, please contact support',
     })
   }
 
   const verified = await verifyPassword(user.password, input.password)
   if (!verified) throw err.unauth()
 
-  await setUserSession(event, {
-    user: userToSession(user)
+  await replaceUserSession(event, {
+    user: userToSession(user),
   })
 
   return getUserSession(event)

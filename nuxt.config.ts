@@ -3,8 +3,17 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
+  runtimeConfig: {
+    storageUrl: '', // NUXT_STORAGE_URL
+    public: {
+      siteUrl: '', // NUXT_PUBLIC_SITE_URL
+    },
+  },
   css: ['~/assets/css/main.css'],
   modules: ['@nuxt/eslint', '@nuxt/ui', '@vueuse/nuxt', 'nuxt-auth-utils', '@nuxt/image'],
+  image: {
+    format: ['webp'],
+  },
   app: {
     head: {
       link: [
