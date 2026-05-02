@@ -1,4 +1,6 @@
 <script setup lang="ts">
+useHead({ title: 'Roles' })
+
 const { data: roles, refresh } = useAsyncData(
   'roles',
   () => $fetch('/api/roles') as unknown as Promise<TPaginated<TRole>>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+useHead({ title: 'Users' })
+
 const { data: users, refresh } = useAsyncData('users', () => $fetch('/api/users'))
 
 const id = ref<number | null>(null)

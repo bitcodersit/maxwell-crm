@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { FormSubmitEvent, AuthFormField } from '@nuxt/ui'
 
-definePageMeta({
-  layout: 'auth',
-})
+useHead({ title: 'Login' })
+definePageMeta({ layout: 'auth' })
 
 const auth = ref()
 const fields: AuthFormField[] = [

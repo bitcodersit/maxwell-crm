@@ -5,6 +5,14 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   css: ['~/assets/css/main.css'],
   modules: ['@nuxt/eslint', '@nuxt/ui', '@vueuse/nuxt', 'nuxt-auth-utils', '@nuxt/image'],
+  app: {
+    head: {
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
+        { rel: 'icon', type: 'image/png', href: '/favicon-192.png', sizes: '192x192' },
+      ],
+    },
+  },
   devtools: {
     enabled: true,
   },
@@ -26,7 +34,13 @@ export default defineNuxtConfig({
   },
   vite: {
     optimizeDeps: {
-      include: ['@vue/devtools-core', '@vue/devtools-kit'],
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        'date-fns',
+        '@internationalized/date',
+        '@unovis/vue',
+      ],
     },
   },
   eslint: {
