@@ -1,3 +1,5 @@
+import { Prisma } from '~~/prisma/client/client'
+
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['read-any-permission'])) {
@@ -5,14 +7,33 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event)
+  const where: Prisma.PermissionWhereInput = {}
 
   const { take, skip, paginate } = getPagination(query)
-  const { orderBy } = getOrderBy(query, 'id', 'desc')
+  const { orderBy } = getOrderBy(query)
 
-  const q = (query.q || '').toString().trim()
-  const where = {
-    OR: [{ name: { contains: q } }, { slug: { contains: q } }],
-  }
+  // filter by ids
+  const { ids } = getQueryId(query)
+  if (ids.length) where.id = { in: ids }
+
+  // filter by search text
+  const { contains } = getQueryQ(query)
+  if (contains) where.OR = [{ name: { contains } }, { slug: { contains } }]
+
+  // filter by name
+  const name = (query.name || '').toString().trim()
+  const nameMode = (query.nameMode || 'contains').toString().trim()
+  if (name) where.name = nameMode === 'contains' ? { contains: name } : name
+
+  // filter by slug
+  const slug = (query.slug || '').toString().trim()
+  const slugMode = (query.slugMode || 'contains').toString().trim()
+  if (slug) where.slug = slugMode === 'contains' ? { contains: slug } : slug
+
+  // filter by description
+  const desc = (query.description || '').toString().trim()
+  const descMode = (query.descriptionMode || 'contains').toString().trim()
+  if (desc) where.description = descMode === 'contains' ? { contains: desc } : desc
 
   const [total, permissions] = await prisma.$transaction([
     prisma.permission.count({ where }),

@@ -34,14 +34,24 @@ function onSubmit(event: FormSubmitEvent<any>) {
     })
     .catch((error) => {
       const properties: any = error.data?.data?.properties || {}
-      auth.value.formRef.setErrors(
-        Object.entries(properties).map(([name, value]: any) => {
-          return {
-            name,
-            message: value?.errors?.[0],
-          }
-        })
-      )
+      const entries = Object.entries(properties)
+      if (!entries.length) {
+        auth.value.formRef.setErrors([
+          {
+            name: 'email',
+            message: error.data?.message || error.message || 'Error while logging in',
+          },
+        ])
+      } else {
+        auth.value.formRef.setErrors(
+          Object.entries(properties).map(([name, value]: any) => {
+            return {
+              name,
+              message: value?.errors?.[0],
+            }
+          })
+        )
+      }
     })
     .finally(() => {
       loading.value = false

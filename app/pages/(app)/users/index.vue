@@ -1,6 +1,4 @@
 <script setup lang="ts">
-useHead({ title: 'Users' })
-
 const { data: users, refresh } = useAsyncData('users', () => $fetch('/api/users'))
 
 const id = ref<number | null>(null)
@@ -89,7 +87,9 @@ const deleteUser = (id: number) => {
             class="border border-neutral-200 dark:border-neutral-800"
           >
             <td class="border border-neutral-200 dark:border-neutral-800 p-2">{{ user.name }}</td>
-            <td class="border border-neutral-200 dark:border-neutral-800 p-2">{{ user.email }}</td>
+            <td class="border border-neutral-200 dark:border-neutral-800 p-2">
+              {{ user.email }}
+            </td>
             <td class="border border-neutral-200 dark:border-neutral-800 p-2 flex gap-2">
               <button @click="openEditUser(user)" class="bg-blue-500 text-white px-2 rounded-md">
                 Edit

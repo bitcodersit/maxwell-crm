@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "nuxt dev --host",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare && prisma generate",
@@ -40,12 +40,14 @@
     "@nuxt/image": "^2.0.0",
     "@types/nodemailer": "^8.0.0",
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/language-core": "^3.2.7",
     "@vueuse/nuxt": "^14.3.0",
     "dotenv": "^17.4.0",
     "eslint": "^10.2.1",
     "nuxt-auth-utils": "^0.5.29",
     "prisma": "^7.8.0",
     "tailwindcss": "^4.2.4",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "vue-tsc": "^3.2.7"
   }
 }

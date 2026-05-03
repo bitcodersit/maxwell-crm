@@ -84,6 +84,10 @@ model Role {
     userRoles       UserRole[]
     rolePermissions RolePermission[]
 
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
     @@index([name])
     @@map("roles")
 }
@@ -96,6 +100,10 @@ model Permission {
     description String? @db.Text
 
     rolePermissions RolePermission[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
 
     @@index([slug])
     @@index([name])

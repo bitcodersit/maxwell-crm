@@ -9,6 +9,9 @@ export default defineNuxtConfig({
       siteUrl: '', // NUXT_PUBLIC_SITE_URL
     },
   },
+  devServer: {
+    port: 5173,
+  },
   css: ['~/assets/css/main.css'],
   modules: ['@nuxt/eslint', '@nuxt/ui', '@vueuse/nuxt', 'nuxt-auth-utils', '@nuxt/image'],
   image: {
