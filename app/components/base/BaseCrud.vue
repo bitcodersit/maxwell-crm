@@ -1,9 +1,22 @@
 <script setup lang="ts" generic="T extends object">
 import type { TableColumn, TableData, DropdownMenuItem } from '@nuxt/ui'
+import type { TInputFilterProps } from './BaseInputFilter.vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
-  sortable?: boolean
   pinned?: 'left' | 'right'
+  sortBy?: string
+}
+
+export type TFilter = { id: string } & (
+  | ({ type: 'input' } & TInputFilterProps)
+  | ({ type: 'select' } & { options: [] })
+)
+
+export type TQuery = {
+  page: number
+  perPage: number
+  orderBy: Record<string, 'asc' | 'desc'>
+  [key: string]: any
 }
 
 const props = withDefaults(
@@ -11,6 +24,7 @@ const props = withDefaults(
     getUrl: string
     sticky?: boolean
     columns?: TColumn<T>[]
+    filters?: TFilter[]
     perPageOptions?: number[]
     enableRowSelection?: boolean
     actions?: (item: T) => DropdownMenuItem[][]
@@ -18,6 +32,7 @@ const props = withDefaults(
   {
     sticky: true,
     enableRowSelection: true,
+    filters: () => [],
     columns: () => [],
     actions: () => [],
     perPageOptions: () => [5, 10, 20, 30, 40, 50, 100],
@@ -25,24 +40,29 @@ const props = withDefaults(
 )
 
 const def = toPaginated<T>()
-const page = ref(def.page)
-const perPage = ref(def.perPage)
 const table = useTemplateRef('table')
 const rowSelection = ref<Record<string, boolean>>({})
 
-const { getUrl, columns } = toRefs(props)
+const initialQuery = {
+  page: def.page,
+  perPage: def.perPage,
+  orderBy: {},
+}
+
+const initialKeys = Object.keys(initialQuery)
+const query = reactive<TQuery>({
+  ...initialQuery,
+})
+
+const { getUrl, columns, filters } = toRefs(props)
 const { data, status } = useFetch<TPaginated<T>>(getUrl, {
+  query,
   default: () => def,
-  query: {
-    page,
-    perPage,
-  },
 })
 
 const UButton = resolveComponent('UButton')
-
 const mColumns = computed<TableColumn<T>[]>(() => {
-  return columns.value.map(({ pinned, sortable, header, ...item }) => {
+  return columns.value.map(({ pinned, sortBy, header, ...item }) => {
     return {
       ...item,
       header({ column, ...rest }) {
@@ -52,19 +72,30 @@ const mColumns = computed<TableColumn<T>[]>(() => {
         if (typeof header === 'function') {
           return header({ column, ...rest })
         }
-        if (sortable) {
-          const isSorted = column.getIsSorted()
+        if (sortBy) {
+          const v = query.orderBy[sortBy]
           return h(UButton, {
             color: 'neutral',
             variant: 'ghost',
             label: header,
-            icon: isSorted
-              ? isSorted === 'asc'
+            icon: v
+              ? v === 'asc'
                 ? 'i-lucide-arrow-up-narrow-wide'
                 : 'i-lucide-arrow-down-wide-narrow'
               : 'i-lucide-arrow-up-down',
             class: '-mx-2.5',
-            onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+            ui: {
+              leadingIcon: 'size-4',
+            },
+            onClick() {
+              if (!v) {
+                query.orderBy[sortBy] = 'asc'
+              } else if (v === 'asc') {
+                query.orderBy[sortBy] = 'desc'
+              } else {
+                delete query.orderBy[sortBy]
+              }
+            },
           })
         }
         return header
@@ -72,9 +103,50 @@ const mColumns = computed<TableColumn<T>[]>(() => {
     } as TableColumn<T>
   })
 })
+
+const isClearable = computed(() => {
+  return Object.keys(query).some((key) => !initialKeys.includes(key))
+})
+
+const onClearFilters = () => {
+  const queryKeys = Object.keys(query)
+  queryKeys.forEach((key) => {
+    if (!initialKeys.includes(key)) {
+      delete query[key]
+    }
+  })
+  Object.entries(initialQuery).forEach(([key, value]) => {
+    query[key] = value
+  })
+}
 </script>
 
 <template>
+  <div class="flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <template v-for="row in filters" :key="row.id">
+        <BaseInputFilter
+          v-if="row.type === 'input'"
+          v-bind="row"
+          v-model="query[row.id]"
+          v-model:mode="query[row.id + 'Mode']"
+        />
+      </template>
+      <UButton
+        v-if="isClearable"
+        icon="i-lucide-x"
+        size="sm"
+        color="error"
+        variant="ghost"
+        @click="onClearFilters"
+      >
+        Clear
+      </UButton>
+    </div>
+    <div class="flex items-center gap-2">
+      <UButton size="sm" icon="i-lucide-plus" color="primary" variant="solid">Add New</UButton>
+    </div>
+  </div>
   <UTable
     ref="table"
     v-model:row-selection="rowSelection"
@@ -84,7 +156,7 @@ const mColumns = computed<TableColumn<T>[]>(() => {
     :loading="status === 'pending'"
     :ui="{
       base: 'table-fixed border-separate border-spacing-0',
-      thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
+      thead: '[&>tr]:after:content-none',
       tbody: '[&>tr]:last:[&>td]:border-b-0',
       th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
       td: 'border-b border-default',
@@ -130,12 +202,12 @@ const mColumns = computed<TableColumn<T>[]>(() => {
       {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} row(s) selected.
     </div>
     <div v-else class="text-sm text-muted">
-      Showing {{ perPage }} of {{ data.total }} row(s) total
+      Showing {{ query.perPage }} of {{ data.total }} row(s) total
     </div>
 
     <div class="flex items-center gap-3">
-      <USelect v-model="perPage" :items="perPageOptions" class="min-w-20" />
-      <UPagination v-model:page="page" :items-per-page="perPage" :total="data.total" />
+      <USelect v-model="query.perPage" :items="perPageOptions" class="min-w-20" />
+      <UPagination v-model:page="query.page" :items-per-page="query.perPage" :total="data.total" />
     </div>
   </div>
 </template>

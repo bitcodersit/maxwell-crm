@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
-import type { TColumn } from '@/components/base/BaseCrud.vue'
+import type { TColumn, TFilter } from '@/components/base/BaseCrud.vue'
+
+const UBadge = resolveComponent('UBadge')
 
 const columns = computed<TColumn<TPermission>[]>(() => [
   {
@@ -11,36 +13,40 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     accessorKey: 'id',
     header: 'ID',
     pinned: 'left',
-    sortable: true,
+    sortBy: 'id',
     size: 48,
   },
   {
     accessorKey: 'name',
     header: 'Name',
-    sortable: true,
+    sortBy: 'name',
   },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'name', header: 'Name' },
-  { accessorKey: 'slug', header: 'Slug' },
+  {
+    accessorKey: 'slug',
+    header: 'Slug',
+    sortBy: 'slug',
+  },
   {
     accessorKey: 'description',
     header: 'Description',
+    sortBy: 'description',
     cell: ({ row }) => row.original.description || '—',
   },
   {
     accessorKey: 'roles',
     header: 'Roles',
     cell: ({ row }) =>
-      row.original.rolePermissions?.map((rp) => rp.role?.name ?? '—').join(', ') || '—',
+      row.original.rolePermissions
+        ?.map((rp) => rp.role?.name)
+        .filter(Boolean)
+        .map((name) =>
+          h(UBadge, {
+            class: 'mr-1',
+            color: 'neutral',
+            variant: 'subtle',
+            label: name,
+          })
+        ) || '—',
   },
   {
     id: 'action',
@@ -76,8 +82,44 @@ const actions = (item: TPermission): DropdownMenuItem[][] => [
     },
   ],
 ]
+
+const filters: TFilter[] = [
+  {
+    id: 'q',
+    type: 'input',
+    label: 'Search',
+    placeholder: 'Search...',
+  },
+  {
+    id: 'id',
+    type: 'input',
+    label: 'ID',
+    placeholder: 'Search by id (eg 1 or 1,2,3)',
+  },
+  {
+    id: 'name',
+    type: 'input',
+    label: 'Name',
+    modeable: true,
+    placeholder: 'Search by name',
+  },
+  {
+    id: 'slug',
+    type: 'input',
+    label: 'Slug',
+    modeable: true,
+    placeholder: 'Search by slug',
+  },
+  {
+    id: 'description',
+    type: 'input',
+    label: 'Description',
+    modeable: true,
+    placeholder: 'Search by description',
+  },
+]
 </script>
 
 <template>
-  <BaseCrud get-url="/api/permissions" :columns="columns" :actions="actions" />
+  <BaseCrud get-url="/api/permissions" :columns="columns" :actions="actions" :filters="filters" />
 </template>

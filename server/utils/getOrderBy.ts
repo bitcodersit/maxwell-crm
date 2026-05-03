@@ -1,13 +1,7 @@
-export const getOrderBy = (
-  query: any,
-  defaultOrderBy: string = 'createdAt',
-  defaultOrderDirection: 'asc' | 'desc' = 'desc'
-) => {
-  const orderBy = (query.orderBy || defaultOrderBy).toString().trim()
-  const orderDirection = (query.orderDirection || defaultOrderDirection).toString().trim()
+export const getOrderBy = (query: any) => {
   return {
-    orderBy: {
-      [orderBy]: orderDirection,
-    },
+    orderBy: Object.entries(JSON.parse(query.orderBy || '{}')).map(([key, value]) => ({
+      [key]: value,
+    })),
   }
 }

@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
 
   const { take, skip, paginate } = getPagination(query)
-  const { orderBy } = getOrderBy(query, 'id', 'desc')
+  const { orderBy } = getOrderBy(query)
 
   const q = (query.q || '').toString().trim()
   const where = {
