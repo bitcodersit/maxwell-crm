@@ -2,11 +2,6 @@
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { z } from 'zod'
 
-const title = 'General Settings'
-
-useHead({ title })
-useDashboardNavbar({ title })
-
 const fileRef = ref<HTMLInputElement>()
 const pendingFile = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)

@@ -2,11 +2,6 @@
 import * as z from 'zod'
 import type { FormError, FormSubmitEvent } from '@nuxt/ui'
 
-const title = 'Security Settings'
-
-useHead({ title })
-useDashboardNavbar({ title })
-
 const passwordSchema = z
   .object({
     current: z.string().min(8, 'Must be at least 8 characters'),

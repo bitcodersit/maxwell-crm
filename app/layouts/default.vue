@@ -3,13 +3,11 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 
 const route = useRoute()
 const toast = useToast()
-const navbar = useDashboardNavbar()
 
 const open = ref(false)
-const searchOpen = ref(false)
 
 const { user } = useUserSession()
-const { isNotificationsSlideoverOpen } = useDashboard()
+const { title, links: panelLinks, isSearchOpen, isNotificationsOpen } = useDashboard()
 
 const links = computed(() => {
   return [
@@ -173,6 +171,7 @@ onMounted(async () => {
   })
 })
 
+useHead({ title })
 useUiColors()
 </script>
 
@@ -189,10 +188,8 @@ useUiColors()
       <template #header="{ collapsed }">
         <TeamsMenu :collapsed="collapsed" />
       </template>
-
       <template #default="{ collapsed }">
         <UDashboardSearchButton :collapsed="collapsed" class="bg-transparent ring-default" />
-
         <UNavigationMenu
           :collapsed="collapsed"
           :items="links[0]"
@@ -200,7 +197,6 @@ useUiColors()
           tooltip
           popover
         />
-
         <UNavigationMenu
           :collapsed="collapsed"
           :items="links[1]"
@@ -209,43 +205,51 @@ useUiColors()
           class="mt-auto"
         />
       </template>
-
       <template #footer="{ collapsed }">
         <UserMenu :collapsed="collapsed" />
       </template>
     </UDashboardSidebar>
-
-    <UDashboardSearch v-model:open="searchOpen" :groups="groups" />
-
     <UDashboardPanel>
       <template #header>
-        <UDashboardNavbar :title="navbar.title">
+        <UDashboardNavbar :title="title">
           <template #leading>
             <UDashboardSidebarCollapse />
           </template>
           <template #right>
-            <UButton
-              icon="i-lucide-search"
-              color="neutral"
-              variant="ghost"
-              @click="searchOpen = true"
-            />
-            <UButton
-              icon="i-lucide-bell"
-              color="neutral"
-              variant="ghost"
-              @click="isNotificationsSlideoverOpen = true"
-            />
-            <UColorModeButton />
+            <!-- Search -->
+            <UTooltip text="Search" :shortcuts="['S']">
+              <UButton color="neutral" variant="ghost" square @click="isSearchOpen = true">
+                <UIcon name="i-lucide-search" class="size-5 shrink-0" />
+              </UButton>
+            </UTooltip>
+
+            <!-- Notifications -->
+            <UTooltip text="Notifications" :shortcuts="['N']">
+              <UButton color="neutral" variant="ghost" square @click="isNotificationsOpen = true">
+                <UChip color="error" inset>
+                  <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
+                </UChip>
+              </UButton>
+            </UTooltip>
+
+            <!-- Appearance -->
+            <UTooltip text="Appearance" :shortcuts="['C']">
+              <UColorModeButton />
+            </UTooltip>
+
+            <!-- Current user menu-->
             <UserMenu />
           </template>
         </UDashboardNavbar>
+        <UDashboardToolbar v-if="!!panelLinks.length">
+          <UNavigationMenu :items="panelLinks" highlight class="-mx-1 flex-1" />
+        </UDashboardToolbar>
       </template>
       <template #body>
         <slot />
       </template>
     </UDashboardPanel>
-
     <NotificationsSlideover />
+    <UDashboardSearch v-model:open="isSearchOpen" :groups="groups" />
   </UDashboardGroup>
 </template>

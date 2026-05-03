@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
 
-const title = 'Permissions'
-
-useHead({ title })
-useDashboardNavbar({ title })
-
 const columns = computed<TableColumn<TPermission>[]>(() => [
   {
     id: 'select',

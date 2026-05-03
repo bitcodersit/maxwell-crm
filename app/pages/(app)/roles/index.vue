@@ -3,11 +3,6 @@ import type { TableColumn } from '@nuxt/ui'
 import { z } from 'zod'
 import { h } from 'vue'
 
-const title = 'Roles'
-
-useHead({ title })
-useDashboardNavbar({ title })
-
 const roleFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
