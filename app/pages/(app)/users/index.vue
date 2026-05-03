@@ -1,5 +1,8 @@
 <script setup lang="ts">
-useHead({ title: 'Users' })
+const title = 'Users'
+
+useHead({ title })
+useDashboardNavbar({ title })
 
 const { data: users, refresh } = useAsyncData('users', () => $fetch('/api/users'))
 

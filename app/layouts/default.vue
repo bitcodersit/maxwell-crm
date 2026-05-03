@@ -3,10 +3,13 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 
 const route = useRoute()
 const toast = useToast()
+const navbar = useDashboardNavbar()
 
 const open = ref(false)
+const searchOpen = ref(false)
 
 const { user } = useUserSession()
+const { isNotificationsSlideoverOpen } = useDashboard()
 
 const links = computed(() => {
   return [
@@ -212,9 +215,36 @@ useUiColors()
       </template>
     </UDashboardSidebar>
 
-    <UDashboardSearch :groups="groups" />
+    <UDashboardSearch v-model:open="searchOpen" :groups="groups" />
 
-    <slot />
+    <UDashboardPanel>
+      <template #header>
+        <UDashboardNavbar :title="navbar.title">
+          <template #leading>
+            <UDashboardSidebarCollapse />
+          </template>
+          <template #right>
+            <UButton
+              icon="i-lucide-search"
+              color="neutral"
+              variant="ghost"
+              @click="searchOpen = true"
+            />
+            <UButton
+              icon="i-lucide-bell"
+              color="neutral"
+              variant="ghost"
+              @click="isNotificationsSlideoverOpen = true"
+            />
+            <UColorModeButton />
+            <UserMenu />
+          </template>
+        </UDashboardNavbar>
+      </template>
+      <template #body>
+        <slot />
+      </template>
+    </UDashboardPanel>
 
     <NotificationsSlideover />
   </UDashboardGroup>

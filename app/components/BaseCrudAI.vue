@@ -39,7 +39,7 @@ const props = withDefaults(
     perPageOptions: () => [10, 25, 50],
     createButtonLabel: 'Add',
     saveMethod: 'POST',
-  },
+  }
 )
 
 const emit = defineEmits<{
@@ -48,10 +48,7 @@ const emit = defineEmits<{
 }>()
 
 defineSlots<{
-  form: (props: {
-    state: Record<string, unknown>
-    mode: 'create' | 'update'
-  }) => void
+  form: (props: { state: Record<string, unknown>; mode: 'create' | 'update' }) => void
   'bulk-actions': (props: {
     selectedIds: number[]
     selectedRows: CrudRow[]
@@ -120,14 +117,14 @@ watch(
     const size = Math.max(len, 1)
     pagination.value = { pageIndex: 0, pageSize: size }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 watch(
   () => [page.value, perPage.value, debouncedQ.value] as const,
   () => {
     rowSelection.value = {}
-  },
+  }
 )
 
 const UCheckbox = resolveComponent('UCheckbox')
@@ -151,8 +148,7 @@ const mergedColumns = computed((): TableColumn<CrudRow>[] => {
     cell: ({ row }) =>
       h(UCheckbox, {
         modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          row.toggleSelected(!!value),
+        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
         ariaLabel: 'Select row',
       }),
   }
@@ -221,8 +217,8 @@ async function onSubmit(event: FormSubmitEvent<unknown>) {
     const body = props.transformBody
       ? props.transformBody(data, formMode.value, editingId.value)
       : formMode.value === 'update' && editingId.value != null
-        ? { ...data, id: editingId.value }
-        : { ...data }
+      ? { ...data, id: editingId.value }
+      : { ...data }
 
     const response = await $fetch<unknown>(props.saveUrl, {
       method: props.saveMethod,
@@ -241,11 +237,7 @@ async function onSubmit(event: FormSubmitEvent<unknown>) {
     await refresh()
     rowSelection.value = {}
   } catch (e: any) {
-    const msg =
-      e?.data?.message ??
-      e?.data?.statusMessage ??
-      e?.message ??
-      'Request failed'
+    const msg = e?.data?.message ?? e?.data?.statusMessage ?? e?.message ?? 'Request failed'
     toast.add({
       title: 'Error',
       description: typeof msg === 'string' ? msg : 'Request failed',
@@ -269,7 +261,7 @@ const selectedRowsList = computed(() => selectedRowsModel())
 const bulkSelectedIds = computed(() =>
   selectedRowsList.value
     .map((row) => row[idKey.value])
-    .filter((id): id is number => typeof id === 'number'),
+    .filter((id): id is number => typeof id === 'number')
 )
 
 function getRowPk(row: CrudRow) {
@@ -290,134 +282,95 @@ defineExpose({
 </script>
 
 <template>
-  <UDashboardPanel :id="title.toLowerCase().replace(/\s+/g, '-')">
-    <template #header>
-      <UDashboardNavbar :title="title">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-
-        <template #right>
-          <slot name="toolbar-extra" />
-          <UButton
-            :label="createButtonLabel"
-            icon="i-lucide-plus"
-            color="primary"
-            @click="openCreate"
-          />
-        </template>
-      </UDashboardNavbar>
-    </template>
-
-    <template #body>
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-          <UInput
-            v-if="enableSearch"
-            v-model="searchInput"
-            class="max-w-sm"
-            icon="i-lucide-search"
-            :placeholder="searchPlaceholder"
-          />
-
-          <USelect
-            v-model="perPage"
-            :items="perPageOptions"
-            class="min-w-36"
-          />
-        </div>
-
-        <div
-          v-if="$slots['bulk-actions'] && enableRowSelection && bulkSelectedIds.length"
-          class="flex flex-wrap items-center gap-2"
-        >
-          <slot
-            name="bulk-actions"
-            :selected-ids="bulkSelectedIds"
-            :selected-rows="selectedRowsList"
-            :clear-selection="clearSelection"
-          />
-        </div>
-      </div>
-
-      <UTable
-        ref="table"
-        v-model:column-visibility="columnVisibility"
-        v-model:row-selection="rowSelection"
-        v-model:pagination="pagination"
-        :get-row-id="getRowPk"
-        :pagination-options="{
-          getPaginationRowModel: getPaginationRowModel(),
-        }"
-        class="shrink-0"
-        :data="rows"
-        :columns="mergedColumns"
-        :loading="status === 'pending'"
-        :ui="{
-          base: 'table-fixed border-separate border-spacing-0',
-          thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
-          tbody: '[&>tr]:last:[&>td]:border-b-0',
-          th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-          td: 'border-b border-default',
-          separator: 'h-0',
-        }"
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+    <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+      <UInput
+        v-if="enableSearch"
+        v-model="searchInput"
+        class="max-w-sm"
+        icon="i-lucide-search"
+        :placeholder="searchPlaceholder"
       />
 
-      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4 mt-4">
-        <div
-          v-if="enableRowSelection"
-          class="text-sm text-muted"
-        >
-          {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
-          {{ rows.length }} row(s) selected on this page.
-        </div>
-        <div v-else class="text-sm text-muted">
-          {{ totalRows }} row(s) total
-        </div>
+      <USelect v-model="perPage" :items="perPageOptions" class="min-w-36" />
+    </div>
 
-        <UPagination
-          v-model:page="page"
-          :items-per-page="perPage"
-          :total="totalRows"
-        />
-      </div>
+    <div
+      v-if="$slots['bulk-actions'] && enableRowSelection && bulkSelectedIds.length"
+      class="flex flex-wrap items-center gap-2"
+    >
+      <slot
+        name="bulk-actions"
+        :selected-ids="bulkSelectedIds"
+        :selected-rows="selectedRowsList"
+        :clear-selection="clearSelection"
+      />
+    </div>
+  </div>
 
-      <UModal
-        v-model:open="formOpen"
-        :title="modalTitle"
-        :description="formMode === 'create' ? undefined : `ID #${editingId}`"
+  <UTable
+    ref="table"
+    v-model:column-visibility="columnVisibility"
+    v-model:row-selection="rowSelection"
+    v-model:pagination="pagination"
+    :get-row-id="getRowPk"
+    :pagination-options="{
+      getPaginationRowModel: getPaginationRowModel(),
+    }"
+    class="shrink-0"
+    :data="rows"
+    :columns="mergedColumns"
+    :loading="status === 'pending'"
+    :ui="{
+      base: 'table-fixed border-separate border-spacing-0',
+      thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
+      tbody: '[&>tr]:last:[&>td]:border-b-0',
+      th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
+      td: 'border-b border-default',
+      separator: 'h-0',
+    }"
+  />
+
+  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4 mt-4">
+    <div v-if="enableRowSelection" class="text-sm text-muted">
+      {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
+      {{ rows.length }} row(s) selected on this page.
+    </div>
+    <div v-else class="text-sm text-muted">{{ totalRows }} row(s) total</div>
+
+    <UPagination v-model:page="page" :items-per-page="perPage" :total="totalRows" />
+  </div>
+
+  <UModal
+    v-model:open="formOpen"
+    :title="modalTitle"
+    :description="formMode === 'create' ? undefined : `ID #${editingId}`"
+  >
+    <template #body>
+      <UForm
+        :schema="formSchema as never"
+        :state="formState as any"
+        class="space-y-4"
+        @submit="onSubmit"
       >
-        <template #body>
-          <UForm
-            :schema="formSchema as never"
-            :state="formState as any"
-            class="space-y-4"
-            @submit="onSubmit"
-          >
-            <slot
-              name="form"
-              :state="formState"
-              :mode="formMode"
-            />
+        <slot name="form" :state="formState" :mode="formMode" />
 
-            <div class="flex justify-end gap-2 pt-2">
-              <UButton
-                label="Cancel"
-                color="neutral"
-                variant="subtle"
-                :disabled="saving"
-                @click="closeForm"
-              />
-              <UButton
-                type="submit"
-                color="primary"
-                :label="formMode === 'create' ? 'Create' : 'Save'"
-                :loading="saving"
-              />
-            </div>
-          </UForm>
-        </template>
-      </UModal>
+        <div class="flex justify-end gap-2 pt-2">
+          <UButton
+            label="Cancel"
+            color="neutral"
+            variant="subtle"
+            :disabled="saving"
+            @click="closeForm"
+          />
+          <UButton
+            type="submit"
+            color="primary"
+            :label="formMode === 'create' ? 'Create' : 'Save'"
+            :loading="saving"
+          />
+        </div>
+      </UForm>
     </template>
-  </UDashboardPanel>
+  </UModal>
 </template>

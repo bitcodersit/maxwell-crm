@@ -3,6 +3,8 @@ import { sub } from 'date-fns'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { Period, Range } from '~/types'
 
+useDashboardNavbar({ title: 'Home' })
+
 const { isNotificationsSlideoverOpen } = useDashboard()
 
 const items = [
