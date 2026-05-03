@@ -1,51 +1,87 @@
 <script setup lang="ts">
+import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
+
 useHead({ title: 'Permissions' })
 
-const { data: permissions, refresh } = useAsyncData(
-  'permissions',
-  () => $fetch('/api/permissions') as unknown as Promise<TPaginated<TPermission>>
-)
+const columns = computed<TableColumn<TPermission>[]>(() => [
+  {
+    id: 'select',
+    size: 48,
+  },
+  {
+    accessorKey: 'id',
+    size: 48,
+    header: ({ column }) => {
+      if (!column.getIsPinned()) {
+        column.pin('left')
+      }
+      return 'ID'
+    },
+  },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'name', header: 'Name' },
+  { accessorKey: 'slug', header: 'Slug' },
+  {
+    accessorKey: 'description',
+    header: 'Description',
+    cell: ({ row }) => row.original.description || '—',
+  },
+  {
+    accessorKey: 'roles',
+    header: 'Roles',
+    cell: ({ row }) =>
+      row.original.rolePermissions?.map((rp) => rp.role?.name ?? '—').join(', ') || '—',
+  },
+  {
+    id: 'action',
+    header: ({ column }) => {
+      if (!column.getIsPinned()) {
+        column.pin('right')
+      }
+      return ''
+    },
+  },
+])
+
+const actions = (item: TPermission): DropdownMenuItem[][] => [
+  [
+    {
+      label: 'View',
+      icon: 'i-lucide-eye',
+      onSelect() {
+        console.log('view', item)
+      },
+    },
+    {
+      label: 'Update',
+      icon: 'i-lucide-pencil',
+      onSelect() {
+        console.log('update', item)
+      },
+    },
+  ],
+  [
+    {
+      label: 'Delete',
+      icon: 'i-lucide-trash',
+      color: 'error',
+      onSelect() {
+        console.log('delete', item)
+      },
+    },
+  ],
+]
 </script>
 
 <template>
-  <div class="p-4">
-    <h1>Permissions Management</h1>
-    <table class="w-full border-collapse border border-neutral-200 dark:border-neutral-800">
-      <thead>
-        <tr>
-          <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">Name</th>
-          <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">Slug</th>
-          <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">
-            Description
-          </th>
-          <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">Roles</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="permission in permissions?.data ?? []"
-          :key="permission.id"
-          class="border border-neutral-200 dark:border-neutral-800"
-        >
-          <td class="border border-neutral-200 dark:border-neutral-800 p-2">
-            {{ permission.name }}
-          </td>
-          <td class="border border-neutral-200 dark:border-neutral-800 p-2">
-            {{ permission.slug }}
-          </td>
-          <td class="border border-neutral-200 dark:border-neutral-800 p-2">
-            {{ permission.description }}
-          </td>
-          <td class="border border-neutral-200 dark:border-neutral-800 p-2">
-            {{
-              permission.rolePermissions
-                ?.map((rp) => rp.role?.name)
-                .filter(Boolean)
-                .join(', ')
-            }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <BaseCrud get-url="/api/permissions" :columns="columns" :actions="actions" />
 </template>

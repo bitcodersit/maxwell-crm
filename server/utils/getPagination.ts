@@ -10,19 +10,7 @@ export const getPagination = (query: any) => {
     take: paginate ? take : undefined,
     paginate<T>(data: T[], total = data.length) {
       if (!paginate) return data
-      return {
-        page,
-        total,
-        perPage: take,
-        totalPages: Math.ceil(total / take),
-        firstPage: 1,
-        lastPage: Math.ceil(total / take),
-        nextPage: page + 1,
-        previousPage: page - 1,
-        hasNextPage: page < Math.ceil(total / take),
-        hasPreviousPage: page > 1,
-        data,
-      }
+      return toPaginated(data, total, page, take)
     },
   }
 }
