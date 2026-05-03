@@ -119,6 +119,10 @@ const onClearFilters = () => {
     query[key] = value
   })
 }
+
+const onClearOrderBy = () => {
+  query.orderBy = {}
+}
 </script>
 
 <template>
@@ -134,11 +138,21 @@ const onClearFilters = () => {
       </template>
       <UButton
         v-if="isClearable"
-        icon="i-lucide-x"
+        icon="i-lucide-filter"
         size="sm"
         color="error"
-        variant="ghost"
+        variant="subtle"
         @click="onClearFilters"
+      >
+        Clear
+      </UButton>
+      <UButton
+        v-if="Object.keys(query.orderBy).length"
+        icon="i-lucide-arrow-up-down"
+        size="sm"
+        color="error"
+        variant="subtle"
+        @click="onClearOrderBy"
       >
         Clear
       </UButton>
