@@ -1,11 +1,16 @@
 <script setup lang="ts" generic="T extends object">
-import type { TableColumn, DropdownMenuItem } from '@nuxt/ui'
+import type { TableColumn, TableData, DropdownMenuItem } from '@nuxt/ui'
+
+export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
+  sortable?: boolean
+  pinned?: 'left' | 'right'
+}
 
 const props = withDefaults(
   defineProps<{
     getUrl: string
     sticky?: boolean
-    columns?: TableColumn<T>[]
+    columns?: TColumn<T>[]
     perPageOptions?: number[]
     enableRowSelection?: boolean
     actions?: (item: T) => DropdownMenuItem[][]
@@ -33,6 +38,40 @@ const { data, status } = useFetch<TPaginated<T>>(getUrl, {
     perPage,
   },
 })
+
+const UButton = resolveComponent('UButton')
+
+const mColumns = computed<TableColumn<T>[]>(() => {
+  return columns.value.map(({ pinned, sortable, header, ...item }) => {
+    return {
+      ...item,
+      header({ column, ...rest }) {
+        if (pinned && !column.getIsPinned()) {
+          column.pin(pinned)
+        }
+        if (typeof header === 'function') {
+          return header({ column, ...rest })
+        }
+        if (sortable) {
+          const isSorted = column.getIsSorted()
+          return h(UButton, {
+            color: 'neutral',
+            variant: 'ghost',
+            label: header,
+            icon: isSorted
+              ? isSorted === 'asc'
+                ? 'i-lucide-arrow-up-narrow-wide'
+                : 'i-lucide-arrow-down-wide-narrow'
+              : 'i-lucide-arrow-up-down',
+            class: '-mx-2.5',
+            onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
+          })
+        }
+        return header
+      },
+    } as TableColumn<T>
+  })
+})
 </script>
 
 <template>
@@ -41,7 +80,7 @@ const { data, status } = useFetch<TPaginated<T>>(getUrl, {
     v-model:row-selection="rowSelection"
     :data="data.data"
     :sticky="sticky"
-    :columns="columns"
+    :columns="mColumns"
     :loading="status === 'pending'"
     :ui="{
       base: 'table-fixed border-separate border-spacing-0',

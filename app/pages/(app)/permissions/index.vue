@@ -1,20 +1,23 @@
 <script setup lang="ts">
-import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
+import type { DropdownMenuItem } from '@nuxt/ui'
+import type { TColumn } from '@/components/base/BaseCrud.vue'
 
-const columns = computed<TableColumn<TPermission>[]>(() => [
+const columns = computed<TColumn<TPermission>[]>(() => [
   {
     id: 'select',
     size: 48,
   },
   {
     accessorKey: 'id',
+    header: 'ID',
+    pinned: 'left',
+    sortable: true,
     size: 48,
-    header: ({ column }) => {
-      if (!column.getIsPinned()) {
-        column.pin('left')
-      }
-      return 'ID'
-    },
+  },
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    sortable: true,
   },
   { accessorKey: 'name', header: 'Name' },
   { accessorKey: 'name', header: 'Name' },
@@ -41,12 +44,7 @@ const columns = computed<TableColumn<TPermission>[]>(() => [
   },
   {
     id: 'action',
-    header: ({ column }) => {
-      if (!column.getIsPinned()) {
-        column.pin('right')
-      }
-      return ''
-    },
+    pinned: 'right',
   },
 ])
 
