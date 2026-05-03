@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
       email: input.email,
     },
     include: {
+      avatar: true,
       userRoles: {
         include: {
           role: {
@@ -57,7 +58,7 @@ export default defineEventHandler(async (event) => {
   const verified = await verifyPassword(user.password, input.password)
   if (!verified) throw err.unauth()
 
-  await setUserSession(event, {
+  await replaceUserSession(event, {
     user: userToSession(user),
   })
 

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 definePageMeta({
-  layout: 'auth-layout',
+  layout: 'auth',
 })
 </script>
 
 <template>
-  <form class="p-6 md:p-8">
+  <div>
     <h1>Forgot Password</h1>
-  </form>
+  </div>
 </template>

@@ -14,6 +14,9 @@ model User {
     email    String  @unique
     password String?
 
+    avatarId Int?
+    avatar   Attachment? @relation(fields: [avatarId], references: [id], onDelete: SetNull)
+
     teams               Team[]
     userRoles           UserRole[]
     teamMembers         TeamMember[]
@@ -127,4 +130,31 @@ model RolePermission {
     @@index([roleId])
     @@index([permissionId])
     @@map("role_permissions")
+}
+
+enum StorageProvider {
+    FILESYSTEM
+    S3
+    SUPABASE
+}
+
+model Attachment {
+    id Int @id @default(autoincrement())
+
+    provider StorageProvider @default(FILESYSTEM)
+
+    name String?
+    path String
+    type String?
+    size Int?
+    mime String?
+
+    users User[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    @@index([path])
+    @@map("attachments")
 }

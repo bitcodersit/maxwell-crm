@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
+  const { user } = await requireUserSession(event)
 
-  if (!can(session, ['read-any-team', 'read-own-team'])) {
+  if (!can(user, ['read-any-team', 'read-own-team'])) {
     throw err.denied()
   }
 
@@ -15,10 +15,10 @@ export default defineEventHandler(async (event) => {
     deletedAt: null,
   }
 
-  const where = can(session, ['read-any-team'])
+  const where = can(user, ['read-any-team'])
     ? search
     : {
-        AND: [{ members: { some: { userId: session.user.id } } }, search],
+        AND: [{ members: { some: { userId: user.id } } }, search],
       }
 
   const [total, teams] = await prisma.$transaction([

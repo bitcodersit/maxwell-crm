@@ -1,11 +1,7 @@
 <script setup lang="ts">
-definePageMeta({
-  layout: 'app-layout',
-})
+useHead({ title: 'Users' })
 
-const { data: users, refresh } = useAsyncData('users', () => $fetch('/api/users'), {
-  // server: false,
-})
+const { data: users, refresh } = useAsyncData('users', () => $fetch('/api/users'))
 
 const id = ref<number | null>(null)
 const name = ref('')

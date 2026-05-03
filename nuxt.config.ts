@@ -1,46 +1,63 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import vue from '@vitejs/plugin-vue'
-import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
-  css: ['~/assets/css/tailwind.css'],
-  vite: {
-    plugins: [tailwindcss()],
-    optimizeDeps: {
-      include: [
-        'clsx',
-        'reka-ui',
-        '@vueuse/core',
-        'tailwind-merge',
-        '@vue/devtools-kit',
-        '@vue/devtools-core',
-        'class-variance-authority',
+  runtimeConfig: {
+    storageUrl: '', // NUXT_STORAGE_URL
+    public: {
+      siteUrl: '', // NUXT_PUBLIC_SITE_URL
+    },
+  },
+  css: ['~/assets/css/main.css'],
+  modules: ['@nuxt/eslint', '@nuxt/ui', '@vueuse/nuxt', 'nuxt-auth-utils', '@nuxt/image'],
+  image: {
+    format: ['webp'],
+  },
+  app: {
+    head: {
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
+        { rel: 'icon', type: 'image/png', href: '/favicon-192.png', sizes: '192x192' },
       ],
     },
   },
-  modules: ['@nuxtjs/color-mode', 'nuxt-auth-utils', 'shadcn-nuxt'],
+  devtools: {
+    enabled: true,
+  },
   colorMode: {
     storage: 'cookie',
+  },
+  routeRules: {
+    '/api/**': {
+      cors: true,
+    },
   },
   nitro: {
     rollupConfig: {
       plugins: [vue()],
     },
+    experimental: {
+      openAPI: true,
+    },
   },
-  shadcn: {
-    /**
-     * Prefix for all the imported component.
-     * @default "Ui"
-     */
-    prefix: 'Ui',
-    /**
-     * Directory that the component lives in.
-     * Will respect the Nuxt aliases.
-     * @link https://nuxt.com/docs/api/nuxt-config#alias
-     * @default "@/components/ui"
-     */
-    componentDir: '@/components/ui',
+  vite: {
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        'date-fns',
+        '@internationalized/date',
+        '@unovis/vue',
+      ],
+    },
+  },
+  eslint: {
+    config: {
+      stylistic: {
+        commaDangle: 'never',
+        braceStyle: '1tbs',
+      },
+    },
   },
 })

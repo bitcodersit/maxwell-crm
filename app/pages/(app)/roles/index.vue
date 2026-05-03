@@ -1,11 +1,9 @@
 <script setup lang="ts">
-definePageMeta({
-  layout: 'app-layout',
-})
+useHead({ title: 'Roles' })
 
 const { data: roles, refresh } = useAsyncData(
   'roles',
-  () => $fetch('/api/roles') as unknown as Promise<TPaginated<TRole>>,
+  () => $fetch('/api/roles') as unknown as Promise<TPaginated<TRole>>
 )
 </script>
 

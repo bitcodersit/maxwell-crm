@@ -1,11 +1,9 @@
 <script setup lang="ts">
-definePageMeta({
-  layout: 'app-layout',
-})
+useHead({ title: 'Permissions' })
 
 const { data: permissions, refresh } = useAsyncData(
   'permissions',
-  () => $fetch('/api/permissions') as unknown as Promise<TPaginated<TPermission>>,
+  () => $fetch('/api/permissions') as unknown as Promise<TPaginated<TPermission>>
 )
 </script>
 

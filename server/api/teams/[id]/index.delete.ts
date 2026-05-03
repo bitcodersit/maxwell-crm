@@ -2,7 +2,7 @@ import { TeamMemberRole } from '~~/prisma/client/enums'
 
 export default defineEventHandler(async (event) => {
   try {
-    const session = await requireUserSession(event)
+    const { user } = await requireUserSession(event)
 
     const idParam = getRouterParam(event, 'id')
     const ids = (idParam || '')
@@ -14,8 +14,8 @@ export default defineEventHandler(async (event) => {
       throw err.notFound()
     }
 
-    const canDeleteAny = can(session, ['delete-any-team'])
-    const canDeleteOwn = can(session, ['delete-own-team'])
+    const canDeleteAny = can(user, ['delete-any-team'])
+    const canDeleteOwn = can(user, ['delete-own-team'])
 
     if (!canDeleteAny && !canDeleteOwn) {
       throw err.denied()
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
     const uniqueIds = [...new Set(ids)]
     const leaderMemberships = await prisma.teamMember.findMany({
       where: {
-        userId: session.user.id,
+        userId: user.id,
         role: TeamMemberRole.LEADER,
         teamId: { in: uniqueIds },
       },

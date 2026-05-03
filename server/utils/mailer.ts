@@ -8,7 +8,7 @@ export const mailer = createSingleton('mailer', () => {
     from: `"${process.env.NUXT_MAIL_FROM_NAME}" <${process.env.NUXT_MAIL_FROM}>`,
     auth: {
       user: process.env.NUXT_MAIL_USER,
-      pass: process.env.NUXT_MAIL_PASS,
-    },
+      pass: process.env.NUXT_MAIL_PASS
+    }
   })
 })

@@ -19,8 +19,8 @@ export default defineEventHandler(async (event) => {
 
   const token = Math.random().toString(36).substring(2, 15)
 
-  const baseUrl = process.env.NUXT_APP_URL ?? ''
-  const magicLink = `${baseUrl}/login/magic?token=${encodeURIComponent(token)}`
+  const config = useRuntimeConfig(event)
+  const magicLink = `${config.public.siteUrl}/login/magic?token=${encodeURIComponent(token)}`
   const html = await render(MagicLink, { magicLink })
 
   await sendMail({

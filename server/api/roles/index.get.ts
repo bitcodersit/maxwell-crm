@@ -1,8 +1,8 @@
 export default defineEventHandler(async (event) => {
-  // const session = await requireUserSession(event)
-  // if (!can(session, ['read-any-role'])) {
-  //   throw err.denied()
-  // }
+  const { user } = await requireUserSession(event)
+  if (!can(user, ['read-any-role'])) {
+    throw err.denied()
+  }
 
   const query = getQuery(event)
 

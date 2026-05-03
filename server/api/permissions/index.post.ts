@@ -7,14 +7,14 @@ const zPermission = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await requireUserSession(event)
+  const { user } = await requireUserSession(event)
 
   const body = await readBody(event)
   const input = await validate(body, zPermission)
 
   try {
     if (input.id) {
-      if (!can(session, ['update-any-permission'])) {
+      if (!can(user, ['update-any-permission'])) {
         throw err.denied()
       }
       return await prisma.permission.update({
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
         },
       })
     }
-    if (!can(session, ['create-any-permission'])) {
+    if (!can(user, ['create-any-permission'])) {
       throw err.denied()
     }
     return await prisma.permission.create({

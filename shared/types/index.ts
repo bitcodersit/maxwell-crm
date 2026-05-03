@@ -6,6 +6,8 @@ export * from './Permission'
 export * from './Team'
 export * from './TeamMember'
 
+export type TMaybe<T> = T | null | undefined
+
 export type TPaginated<T> = {
   page: number
   total: number

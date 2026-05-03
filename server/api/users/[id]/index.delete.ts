@@ -3,13 +3,13 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'User ID is required',
+      statusMessage: 'User ID is required'
     })
   }
   const user = await prisma.user.delete({
     where: {
-      id: Number(id),
-    },
+      id: Number(id)
+    }
   })
   return user
 })
