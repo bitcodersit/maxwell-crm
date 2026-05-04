@@ -5,39 +5,48 @@ type TValue = CalendarProps['modelValue']
 type TMode = 'single' | 'range' | 'multiple'
 
 export type TDateFilterProps = CalendarProps & {
+  mode?: TMode
   label?: string
 }
 
 const props = withDefaults(defineProps<TDateFilterProps>(), {
-  //
+  mode: 'single',
 })
 
 const emit = defineEmits<{
+  (e: 'update:mode', mode?: TMode): void
   (e: 'update:modelValue', value?: TValue): void
 }>()
 
-const { modelValue } = toRefs(props)
+const { mode: modelMode, modelValue } = toRefs(props)
 
 const open = ref(false)
-const mode = ref<TMode>('single')
+const mode = ref<TMode>(modelMode.value)
 const value = ref<any>(modelValue.value)
 
 const onClear = () => {
   value.value = undefined
+  emit('update:mode', undefined)
   emit('update:modelValue', undefined)
   open.value = false
 }
 
 const onApply = () => {
   if (!value.value) return
-  open.value = false
+  emit('update:mode', mode.value)
   emit('update:modelValue', value.value)
+  open.value = false
 }
 
 watch(modelValue, (v) => {
   if (!v) return
   if (v == value.value) return
   value.value = v
+})
+
+watch(modelMode, (v) => {
+  if (v === mode.value) return
+  mode.value = v ?? 'single'
 })
 </script>
 

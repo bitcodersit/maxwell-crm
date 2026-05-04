@@ -60,6 +60,11 @@ const props = withDefaults(
         description?: string
       }
     }
+    persist?: {
+      key: string
+      parse?: (v: string) => TQuery
+      stringify?: (v: TQuery) => string
+    }
     getQuery?: (query: TQuery) => TQuery
     getActions?: (item: T) => DropdownMenuItem[][]
     getPostBody?: (state: TFormState) => object | FormData
@@ -83,9 +88,10 @@ const props = withDefaults(
   }
 )
 
+const { getUrl, columns, postUrl, getFormState, getPostBody, getQuery, persist } = toRefs(props)
+
 const def = toPaginated<T>()
 const table = useTemplateRef('table')
-const selected = ref<Record<string, boolean>>({})
 
 const initialQuery = {
   page: def.page,
@@ -93,14 +99,38 @@ const initialQuery = {
   orderBy: {},
 }
 
-const initialKeys = Object.keys(initialQuery)
-const query = reactive<TQuery>({
-  ...initialQuery,
-})
+const getPersisted = <T>(
+  key: string,
+  parser: (v: string | undefined, parse: (v: string) => T) => T
+) => {
+  const parse = typeof persist.value?.parse === 'function' ? persist.value.parse : JSON.parse
+  if (typeof window !== 'undefined' && persist.value?.key) {
+    const stored = localStorage.getItem(`${persist.value.key}:${key}`)
+    if (stored)
+      return parser(
+        stored,
+        typeof persist.value.parse === 'function' ? persist.value.parse : JSON.parse
+      )
+  }
+  return parser(undefined, parse)
+}
 
-const { getUrl, columns, postUrl, getFormState, getPostBody, getQuery } = toRefs(props)
+const query = ref(
+  getPersisted<TQuery>('query', (v, parse) => {
+    return v ? parse(v) : { ...initialQuery }
+  })
+)
+
+const selected = ref(
+  getPersisted<Record<string, boolean>>('selected', (v) => {
+    return v ? JSON.parse(v) : {}
+  })
+)
+
 const { data, status, refresh } = useFetch<TPaginated<T>>(getUrl, {
-  query: computed(() => getQuery.value(query)),
+  query: computed(() => getQuery.value(query.value)),
+  lazy: true,
+  server: false,
   default: () => def,
 })
 
@@ -117,7 +147,7 @@ const mColumns = computed<TableColumn<T>[]>(() => {
           return header({ column, ...rest })
         }
         if (sortBy) {
-          const v = query.orderBy[sortBy]
+          const v = query.value.orderBy[sortBy]
           return h(UButton, {
             color: 'neutral',
             variant: 'ghost',
@@ -133,11 +163,11 @@ const mColumns = computed<TableColumn<T>[]>(() => {
             },
             onClick() {
               if (!v) {
-                query.orderBy[sortBy] = 'asc'
+                query.value.orderBy[sortBy] = 'asc'
               } else if (v === 'asc') {
-                query.orderBy[sortBy] = 'desc'
+                query.value.orderBy[sortBy] = 'desc'
               } else {
-                delete query.orderBy[sortBy]
+                delete query.value.orderBy[sortBy]
               }
             },
           })
@@ -148,24 +178,24 @@ const mColumns = computed<TableColumn<T>[]>(() => {
   })
 })
 
+const initialKeys = Object.keys(initialQuery)
 const isClearable = computed(() => {
-  return Object.keys(query).some((key) => !initialKeys.includes(key))
+  return Object.keys(query.value)
+    .filter((k) => !initialKeys.includes(k))
+    .some((k) => !!query.value[k])
 })
 
 const onClearFilters = () => {
-  const queryKeys = Object.keys(query)
-  queryKeys.forEach((key) => {
-    if (!initialKeys.includes(key)) {
-      delete query[key]
-    }
-  })
-  Object.entries(initialQuery).forEach(([key, value]) => {
-    query[key] = value
-  })
+  query.value = {
+    ...initialQuery,
+  }
 }
 
 const onClearOrderBy = () => {
-  query.orderBy = {}
+  query.value = {
+    ...query.value,
+    orderBy: {},
+  }
 }
 
 const formOpen = ref(false)
@@ -252,6 +282,31 @@ const onDeleteSelected = (getUrl: (items: T[]) => string) => {
   onDelete(getUrl(items))
 }
 
+const onGotoFirstPage = () => {
+  query.value.page = 1
+}
+
+watch(
+  query,
+  (v) => {
+    if (!persist.value?.key) return
+    localStorage.setItem(
+      `${persist.value.key}:query`,
+      typeof persist.value.stringify === 'function' ? persist.value.stringify(v) : JSON.stringify(v)
+    )
+  },
+  { deep: true }
+)
+
+watch(
+  selected,
+  (v) => {
+    if (!persist.value?.key) return
+    localStorage.setItem(`${persist.value.key}:selected`, JSON.stringify(v))
+  },
+  { deep: true }
+)
+
 defineExpose({
   onUpdate,
   onDelete,
@@ -260,161 +315,182 @@ defineExpose({
 </script>
 
 <template>
-  <div class="flex items-center justify-between gap-4">
-    <div class="flex items-center gap-2">
-      <template v-for="row in filters" :key="row.name">
-        <BaseInputFilter
-          v-if="row.type === 'input'"
-          v-bind="row.props"
-          v-model="query[row.name]"
-          v-model:mode="query[row.name + 'Mode']"
-        />
-        <BaseDateFilter
-          v-else-if="row.type === 'date'"
-          v-bind="row.props"
-          v-model="query[row.name]"
+  <ClientOnly>
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <template v-for="row in filters" :key="row.name">
+          <BaseInputFilter
+            v-if="row.type === 'input'"
+            v-bind="row.props"
+            v-model="query[row.name]"
+            v-model:mode="query[row.name + 'Mode']"
+            @update:model-value="onGotoFirstPage"
+          />
+          <BaseDateFilter
+            v-else-if="row.type === 'date'"
+            v-bind="row.props"
+            v-model="query[row.name]"
+            v-model:mode="query[row.name + 'Mode']"
+            @update:model-value="onGotoFirstPage"
+          />
+        </template>
+        <UButton
+          v-if="isClearable"
+          icon="i-lucide-filter"
+          color="error"
+          variant="subtle"
+          @click="onClearFilters"
+        >
+          Clear
+        </UButton>
+        <UButton
+          v-if="Object.keys(query.orderBy).length"
+          icon="i-lucide-arrow-up-down"
+          color="error"
+          variant="subtle"
+          @click="onClearOrderBy"
+        >
+          Clear
+        </UButton>
+      </div>
+      <div class="flex items-center gap-2">
+        <template v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length">
+          <UButton
+            icon="i-lucide-list-todo"
+            color="error"
+            variant="subtle"
+            :ui="{ leadingIcon: 'size-4' }"
+            @click="selected = {}"
+          >
+            Clear
+          </UButton>
+          <slot
+            name="bulk-actions"
+            v-bind="{
+              count: table?.tableApi?.getFilteredSelectedRowModel().rows.length,
+              selected,
+            }"
+          />
+        </template>
+        <UButton icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
+          Add New
+        </UButton>
+      </div>
+    </div>
+    <UTable
+      ref="table"
+      v-model:row-selection="selected"
+      :data="data.data"
+      :sticky="sticky"
+      :columns="mColumns"
+      :loading="status === 'pending'"
+      :ui="{
+        base: 'table-fixed border-separate border-spacing-0',
+        thead: '[&>tr]:after:content-none',
+        tbody: '[&>tr]:last:[&>td]:border-b-0',
+        th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
+        td: 'border-b border-default',
+        separator: 'h-0',
+      }"
+    >
+      <template #select-header="{ column, table }">
+        <div class="pr-4">
+          <UCheckbox
+            :model-value="
+              table.getIsSomePageRowsSelected() ? 'indeterminate' : table.getIsAllPageRowsSelected()
+            "
+            aria-label="Select all"
+            @update:model-value="(v) => table.toggleAllPageRowsSelected(!!v)"
+          />
+        </div>
+        {{ !column.getIsPinned() ? column.pin('left') : '' }}
+      </template>
+      <template #select-cell="{ row }">
+        <UCheckbox
+          :model-value="row.getIsSelected()"
+          aria-label="Select row"
+          @update:model-value="(v) => row.toggleSelected(!!v)"
         />
       </template>
-      <UButton
-        v-if="isClearable"
-        icon="i-lucide-filter"
-        color="error"
-        variant="subtle"
-        @click="onClearFilters"
+      <template #action-cell="{ row }">
+        <UDropdownMenu :items="getActions(row.original)">
+          <UButton
+            icon="i-lucide-ellipsis-vertical"
+            color="neutral"
+            variant="ghost"
+            aria-label="Actions"
+          />
+        </UDropdownMenu>
+      </template>
+    </UTable>
+    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
+      <div
+        v-if="
+          (enableRowSelection && table?.tableApi?.getFilteredSelectedRowModel().rows.length) || 0
+        "
+        class="text-sm text-muted"
       >
-        Clear
-      </UButton>
-      <UButton
-        v-if="Object.keys(query.orderBy).length"
-        icon="i-lucide-arrow-up-down"
-        color="error"
-        variant="subtle"
-        @click="onClearOrderBy"
-      >
-        Clear
-      </UButton>
-    </div>
-    <div class="flex items-center gap-2">
-      <slot
-        name="bulk-actions"
-        v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
-        v-bind="{
-          count: table?.tableApi?.getFilteredSelectedRowModel().rows.length,
-          selected,
-        }"
-      />
-      <UButton icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
-        Add New
-      </UButton>
-    </div>
-  </div>
-  <UTable
-    ref="table"
-    v-model:row-selection="selected"
-    :data="data.data"
-    :sticky="sticky"
-    :columns="mColumns"
-    :loading="status === 'pending'"
-    :ui="{
-      base: 'table-fixed border-separate border-spacing-0',
-      thead: '[&>tr]:after:content-none',
-      tbody: '[&>tr]:last:[&>td]:border-b-0',
-      th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-      td: 'border-b border-default',
-      separator: 'h-0',
-    }"
-  >
-    <template #select-header="{ column, table }">
-      <div class="pr-4">
-        <UCheckbox
-          :model-value="
-            table.getIsSomePageRowsSelected() ? 'indeterminate' : table.getIsAllPageRowsSelected()
-          "
-          aria-label="Select all"
-          @update:model-value="(v) => table.toggleAllPageRowsSelected(!!v)"
+        {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
+        {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} row(s) selected.
+      </div>
+      <div v-else class="text-sm text-muted">
+        Showing {{ query.perPage }} of {{ data.total }} row(s) total
+      </div>
+
+      <div class="flex items-center gap-3">
+        <USelect
+          v-model="query.perPage"
+          :items="perPageOptions"
+          class="min-w-20"
+          @change="onGotoFirstPage"
+        />
+        <UPagination
+          v-model:page="query.page"
+          :items-per-page="query.perPage"
+          :total="data.total"
         />
       </div>
-      {{ !column.getIsPinned() ? column.pin('left') : '' }}
-    </template>
-    <template #select-cell="{ row }">
-      <UCheckbox
-        :model-value="row.getIsSelected()"
-        aria-label="Select row"
-        @update:model-value="(v) => row.toggleSelected(!!v)"
-      />
-    </template>
-    <template #action-cell="{ row }">
-      <UDropdownMenu :items="getActions(row.original)">
-        <UButton
-          icon="i-lucide-ellipsis-vertical"
-          color="neutral"
-          variant="ghost"
-          aria-label="Actions"
-        />
-      </UDropdownMenu>
-    </template>
-  </UTable>
-  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
-    <div
-      v-if="(enableRowSelection && table?.tableApi?.getFilteredSelectedRowModel().rows.length) || 0"
-      class="text-sm text-muted"
+    </div>
+    <UModal
+      v-model:open="formOpen"
+      :title="formModal?.[formMode]?.title"
+      :description="formModal?.[formMode]?.description"
     >
-      {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
-      {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} row(s) selected.
-    </div>
-    <div v-else class="text-sm text-muted">
-      Showing {{ query.perPage }} of {{ data.total }} row(s) total
-    </div>
-
-    <div class="flex items-center gap-3">
-      <USelect
-        v-model="query.perPage"
-        :items="perPageOptions"
-        class="min-w-20"
-        @change="() => (query.page = 1)"
-      />
-      <UPagination v-model:page="query.page" :items-per-page="query.perPage" :total="data.total" />
-    </div>
-  </div>
-  <UModal
-    v-model:open="formOpen"
-    :title="formModal?.[formMode]?.title"
-    :description="formModal?.[formMode]?.description"
-  >
-    <template #body>
-      <UForm ref="formRef" :state="formState" @submit="onSubmit">
-        <div :class="formClass" class="grid grid-cols-1 gap-4">
-          <UFormField
-            v-for="row in fields"
-            :key="row.name"
-            :name="row.name"
-            :label="row.label"
-            :class="row.col"
-          >
-            <UInput
-              v-if="row.type === 'input'"
-              v-model="formState[row.name]"
-              v-bind="{ ...formItem, ...row.props }"
-            />
-            <UTextarea
-              v-else-if="row.type === 'textarea'"
-              v-model="formState[row.name]"
-              v-bind="{ ...formItem, ...row.props }"
-            />
-            <BaseAutocomplete
-              v-else-if="row.type === 'autocomplete'"
-              v-model="formState[row.name]"
-              v-bind="{ ...formItem, ...row.props }"
-            />
-          </UFormField>
-        </div>
-        <div class="flex justify-end gap-2 mt-4">
-          <UButton type="button" color="neutral" variant="subtle" @click="formOpen = false">
-            Cancel
-          </UButton>
-          <UButton type="submit" :loading="isSubmitting"> Submit </UButton>
-        </div>
-      </UForm>
-    </template>
-  </UModal>
+      <template #body>
+        <UForm ref="formRef" :state="formState" @submit="onSubmit">
+          <div :class="formClass" class="grid grid-cols-1 gap-4">
+            <UFormField
+              v-for="row in fields"
+              :key="row.name"
+              :name="row.name"
+              :label="row.label"
+              :class="row.col"
+            >
+              <UInput
+                v-if="row.type === 'input'"
+                v-model="formState[row.name]"
+                v-bind="{ ...formItem, ...row.props }"
+              />
+              <UTextarea
+                v-else-if="row.type === 'textarea'"
+                v-model="formState[row.name]"
+                v-bind="{ ...formItem, ...row.props }"
+              />
+              <BaseAutocomplete
+                v-else-if="row.type === 'autocomplete'"
+                v-model="formState[row.name]"
+                v-bind="{ ...formItem, ...row.props }"
+              />
+            </UFormField>
+          </div>
+          <div class="flex justify-end gap-2 mt-4">
+            <UButton type="button" color="neutral" variant="subtle" @click="formOpen = false">
+              Cancel
+            </UButton>
+            <UButton type="submit" :loading="isSubmitting"> Submit </UButton>
+          </div>
+        </UForm>
+      </template>
+    </UModal>
+  </ClientOnly>
 </template>

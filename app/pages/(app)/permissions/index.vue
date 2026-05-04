@@ -156,16 +156,30 @@ const formModal = {
   },
 }
 
+const persist = {
+  key: 'permissions',
+  parse: (v: string) => {
+    const data = JSON.parse(v)
+    return {
+      ...data,
+      ...calendarFormatDates(data, ['createdAt', 'updatedAt'], {
+        returnType: 'dateValue',
+      }),
+    }
+  },
+  stringify: (v: TQuery) => {
+    return JSON.stringify(
+      calendarFormatDates(v, ['createdAt', 'updatedAt'], {
+        returnType: 'storage',
+      })
+    )
+  },
+}
+
 const getQuery = (query: TQuery) => {
-  return {
-    ...query,
-    createdAt: calendarFormatDate(query.createdAt, {
-      formatStr: 'yyyy-MM-dd',
-    }),
-    updatedAt: calendarFormatDate(query.updatedAt, {
-      formatStr: 'yyyy-MM-dd',
-    }),
-  }
+  return calendarFormatDates(query, ['createdAt', 'updatedAt'], {
+    formatStr: 'yyyy-MM-dd',
+  })
 }
 
 const getActions = (item: TPermission): DropdownMenuItem[][] => [
@@ -231,6 +245,7 @@ const onDeleteSelected = () => {
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
+    :persist="persist"
   >
     <template #bulk-actions="{ count }">
       <UButton
