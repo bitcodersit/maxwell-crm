@@ -74,7 +74,7 @@ const props = withDefaults(
 
 const def = toPaginated<T>()
 const table = useTemplateRef('table')
-const rowSelection = ref<Record<string, boolean>>({})
+const selected = ref<Record<string, boolean>>({})
 
 const initialQuery = {
   page: def.page,
@@ -192,7 +192,7 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
           formMode.value === 'create' ? 'Item added successfully' : 'Item updated successfully',
       })
       formOpen.value = false
-      rowSelection.value = {}
+      selected.value = {}
       refresh()
     })
     .catch((e) => {
@@ -230,13 +230,21 @@ const onDelete = async (url: string) => {
       })
       .finally(() => {
         isSubmitting.value = false
+        selected.value = {}
       })
   }
+}
+
+const onDeleteSelected = (getUrl: (items: T[]) => string) => {
+  const items = table.value?.tableApi?.getFilteredSelectedRowModel().rows.map((row) => row.original)
+  if (!items?.length) return
+  onDelete(getUrl(items))
 }
 
 defineExpose({
   onUpdate,
   onDelete,
+  onDeleteSelected,
 })
 </script>
 
@@ -254,7 +262,6 @@ defineExpose({
       <UButton
         v-if="isClearable"
         icon="i-lucide-filter"
-        size="sm"
         color="error"
         variant="subtle"
         @click="onClearFilters"
@@ -264,7 +271,6 @@ defineExpose({
       <UButton
         v-if="Object.keys(query.orderBy).length"
         icon="i-lucide-arrow-up-down"
-        size="sm"
         color="error"
         variant="subtle"
         @click="onClearOrderBy"
@@ -273,14 +279,22 @@ defineExpose({
       </UButton>
     </div>
     <div class="flex items-center gap-2">
-      <UButton size="sm" icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
+      <slot
+        name="bulk-actions"
+        v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
+        v-bind="{
+          count: table?.tableApi?.getFilteredSelectedRowModel().rows.length,
+          selected,
+        }"
+      />
+      <UButton icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
         Add New
       </UButton>
     </div>
   </div>
   <UTable
     ref="table"
-    v-model:row-selection="rowSelection"
+    v-model:row-selection="selected"
     :data="data.data"
     :sticky="sticky"
     :columns="mColumns"

@@ -91,12 +91,12 @@ const columns = computed<TColumn<TPermission>[]>(() => [
 ])
 
 const filters: TFilter[] = [
-  {
-    id: 'q',
-    type: 'input',
-    label: 'Search',
-    placeholder: 'Search...',
-  },
+  // {
+  //   id: 'q',
+  //   type: 'input',
+  //   label: 'Search',
+  //   placeholder: 'Search...',
+  // },
   {
     id: 'id',
     type: 'input',
@@ -164,6 +164,10 @@ const getFormState = (v?: TPermission) => ({
   name: v?.name ?? '',
   description: v?.description ?? '',
 })
+
+const onDeleteSelected = () => {
+  crudRef.value?.onDeleteSelected((v) => `/api/permissions/${v.map((x) => x.id).join(',')}`)
+}
 </script>
 
 <template>
@@ -177,5 +181,22 @@ const getFormState = (v?: TPermission) => ({
     :form-modal="formModal"
     :get-actions="getActions"
     :get-form-state="getFormState"
-  />
+  >
+    <template #bulk-actions="{ count }">
+      <UButton
+        label="Delete"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-trash"
+        :ui="{ leadingIcon: 'size-4' }"
+        @click="onDeleteSelected"
+      >
+        <template #trailing>
+          <UKbd>
+            {{ count }}
+          </UKbd>
+        </template>
+      </UButton>
+    </template>
+  </BaseCrud>
 </template>

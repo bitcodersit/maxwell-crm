@@ -60,14 +60,16 @@ watch(modelMode, (v) => {
   >
     <UChip :show="!!modelValue">
       <UButton
-        size="sm"
         icon="i-lucide-filter"
         color="primary"
         variant="subtle"
-        :ui="{ leadingIcon: 'size-3.5' }"
+        :ui="{ leadingIcon: 'size-4' }"
         @click="open = true"
       >
         {{ label }}
+        <template v-if="modelValue"> | </template>
+        <template v-if="modelValue && modeable"> {{ mode }} |</template>
+        {{ modelValue }}
       </UButton>
     </UChip>
     <template #content>
