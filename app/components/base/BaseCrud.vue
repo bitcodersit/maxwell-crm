@@ -127,11 +127,19 @@ const selected = ref(
   })
 )
 
+const nuxtApp = useNuxtApp()
+const refreshKey = ref(0)
+const key = computed(() => `${getUrl.value}:${refreshKey.value}:${JSON.stringify(query.value)}`)
+
 const { data, status, refresh } = useFetch<TPaginated<T>>(getUrl, {
+  key,
   query: computed(() => getQuery.value(query.value)),
   lazy: true,
   server: false,
   default: () => def,
+  getCachedData(key) {
+    return nuxtApp.payload.data[key] || nuxtApp.static.data[key]
+  },
 })
 
 const UButton = resolveComponent('UButton')
@@ -334,36 +342,50 @@ defineExpose({
             @update:model-value="onGotoFirstPage"
           />
         </template>
-        <UButton
-          v-if="isClearable"
-          icon="i-lucide-filter"
-          color="error"
-          variant="subtle"
-          @click="onClearFilters"
-        >
-          Clear
-        </UButton>
-        <UButton
-          v-if="Object.keys(query.orderBy).length"
-          icon="i-lucide-arrow-up-down"
-          color="error"
-          variant="subtle"
-          @click="onClearOrderBy"
-        >
-          Clear
-        </UButton>
-      </div>
-      <div class="flex items-center gap-2">
-        <template v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length">
+        <UTooltip text="Refresh data">
           <UButton
-            icon="i-lucide-list-todo"
+            icon="i-lucide-refresh-cw"
+            color="primary"
+            variant="subtle"
+            @click="refreshKey++"
+          />
+        </UTooltip>
+        <UTooltip text="Clear filters">
+          <UButton
+            v-if="isClearable"
+            icon="i-lucide-filter"
             color="error"
             variant="subtle"
-            :ui="{ leadingIcon: 'size-4' }"
-            @click="selected = {}"
+            @click="onClearFilters"
           >
             Clear
           </UButton>
+        </UTooltip>
+        <UTooltip text="Clear Sorting">
+          <UButton
+            v-if="Object.keys(query.orderBy).length"
+            icon="i-lucide-arrow-up-down"
+            color="error"
+            variant="subtle"
+            @click="onClearOrderBy"
+          >
+            Clear
+          </UButton>
+        </UTooltip>
+      </div>
+      <div class="flex items-center gap-2">
+        <template v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length">
+          <UTooltip text="Clear selection">
+            <UButton
+              icon="i-lucide-list-todo"
+              color="error"
+              variant="subtle"
+              :ui="{ leadingIcon: 'size-4' }"
+              @click="selected = {}"
+            >
+              Clear
+            </UButton>
+          </UTooltip>
           <slot
             name="bulk-actions"
             v-bind="{
@@ -372,9 +394,11 @@ defineExpose({
             }"
           />
         </template>
-        <UButton icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
-          Add New
-        </UButton>
+        <UTooltip text="Add new item">
+          <UButton icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
+            Add New
+          </UButton>
+        </UTooltip>
       </div>
     </div>
     <UTable
@@ -438,12 +462,14 @@ defineExpose({
       </div>
 
       <div class="flex items-center gap-3">
-        <USelect
-          v-model="query.perPage"
-          :items="perPageOptions"
-          class="min-w-20"
-          @change="onGotoFirstPage"
-        />
+        <UTooltip text="Change items per page">
+          <USelect
+            v-model="query.perPage"
+            :items="perPageOptions"
+            class="min-w-20"
+            @change="onGotoFirstPage"
+          />
+        </UTooltip>
         <UPagination
           v-model:page="query.page"
           :items-per-page="query.perPage"
@@ -484,10 +510,16 @@ defineExpose({
             </UFormField>
           </div>
           <div class="flex justify-end gap-2 mt-4">
-            <UButton type="button" color="neutral" variant="subtle" @click="formOpen = false">
+            <UButton
+              icon="i-lucide-x"
+              type="button"
+              color="error"
+              variant="subtle"
+              @click="formOpen = false"
+            >
               Cancel
             </UButton>
-            <UButton type="submit" :loading="isSubmitting"> Submit </UButton>
+            <UButton type="submit" :loading="isSubmitting" icon="i-lucide-send"> Submit </UButton>
           </div>
         </UForm>
       </template>
