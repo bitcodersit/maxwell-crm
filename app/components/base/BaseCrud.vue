@@ -1,5 +1,13 @@
 <script setup lang="ts" generic="T extends object">
-import type { TableColumn, TableData, DropdownMenuItem } from '@nuxt/ui'
+import type {
+  TableData,
+  InputProps,
+  SelectProps,
+  TextareaProps,
+  TableColumn,
+  FormSubmitEvent,
+  DropdownMenuItem,
+} from '@nuxt/ui'
 import type { TInputFilterProps } from './BaseInputFilter.vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
@@ -9,7 +17,13 @@ export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
 
 export type TFilter = { id: string } & (
   | ({ type: 'input' } & TInputFilterProps)
-  | ({ type: 'select' } & { options: [] })
+  | ({ type: 'select' } & SelectProps)
+)
+
+export type TField = { id: string; label: string } & (
+  | ({ type: 'input' } & InputProps)
+  | ({ type: 'textarea' } & TextareaProps)
+  | ({ type: 'select' } & SelectProps)
 )
 
 export type TQuery = {
@@ -19,23 +33,42 @@ export type TQuery = {
   [key: string]: any
 }
 
+type TFormState = Record<string, any>
+
 const props = withDefaults(
   defineProps<{
     getUrl: string
     sticky?: boolean
-    columns?: TColumn<T>[]
+    fields?: TField[]
     filters?: TFilter[]
+    columns?: TColumn<T>[]
+    postUrl?: string
     perPageOptions?: number[]
     enableRowSelection?: boolean
-    actions?: (item: T) => DropdownMenuItem[][]
+    formModal?: {
+      create?: {
+        title?: string
+        description?: string
+      }
+      update?: {
+        title?: string
+        description?: string
+      }
+    }
+    getActions?: (item: T) => DropdownMenuItem[][]
+    getFormState?: (item?: T) => TFormState
+    getPostBody?: (state: TFormState) => object | FormData
   }>(),
   {
     sticky: true,
     enableRowSelection: true,
+    fields: () => [],
     filters: () => [],
     columns: () => [],
-    actions: () => [],
+    getActions: () => [],
+    getFormState: (v?: T) => ({ ...(v ?? {}) }),
     perPageOptions: () => [5, 10, 20, 30, 40, 50, 100],
+    getPostBody: (state: TFormState) => state,
   }
 )
 
@@ -54,8 +87,8 @@ const query = reactive<TQuery>({
   ...initialQuery,
 })
 
-const { getUrl, columns, filters } = toRefs(props)
-const { data, status } = useFetch<TPaginated<T>>(getUrl, {
+const { getUrl, columns, filters, postUrl, getFormState, formModal, getPostBody } = toRefs(props)
+const { data, status, refresh } = useFetch<TPaginated<T>>(getUrl, {
   query,
   default: () => def,
 })
@@ -123,6 +156,88 @@ const onClearFilters = () => {
 const onClearOrderBy = () => {
   query.orderBy = {}
 }
+
+const formOpen = ref(false)
+const formMode = ref<'create' | 'update'>('create')
+const formState = ref<TFormState>({})
+const isSubmitting = ref(false)
+
+const onAddNew = () => {
+  formMode.value = 'create'
+  formState.value = getFormState.value()
+  formOpen.value = true
+}
+
+const onUpdate = (row: T) => {
+  formMode.value = 'update'
+  formState.value = getFormState.value(row)
+  formOpen.value = true
+}
+
+const toast = useToast()
+const formRef = useTemplateRef('formRef')
+
+const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
+  if (!postUrl.value) throw new Error('Post URL is not set')
+  isSubmitting.value = true
+  $fetch(postUrl.value, {
+    method: 'POST',
+    body: getPostBody.value(event.data),
+  })
+    .then(() => {
+      toast.add({
+        color: 'success',
+        title: 'Success',
+        description:
+          formMode.value === 'create' ? 'Item added successfully' : 'Item updated successfully',
+      })
+      formOpen.value = false
+      rowSelection.value = {}
+      refresh()
+    })
+    .catch((e) => {
+      const { message, errors } = parseError(e)
+      if (errors?.length) formRef.value?.setErrors(errors)
+      else formRef.value?.setErrors([{ name: 'name', message }])
+    })
+    .finally(() => {
+      isSubmitting.value = false
+    })
+}
+
+const { confirm } = useConfirm()
+const onDelete = async (url: string) => {
+  if (await confirm('Are you sure you want to delete this item?')) {
+    isSubmitting.value = true
+    $fetch(url, {
+      method: 'DELETE',
+    })
+      .then(() => {
+        toast.add({
+          color: 'success',
+          title: 'Success! 🎉',
+          description: 'Item deleted successfully',
+        })
+        refresh()
+      })
+      .catch((e) => {
+        const { message } = parseError(e)
+        toast.add({
+          color: 'error',
+          title: 'Error! 😭',
+          description: message,
+        })
+      })
+      .finally(() => {
+        isSubmitting.value = false
+      })
+  }
+}
+
+defineExpose({
+  onUpdate,
+  onDelete,
+})
 </script>
 
 <template>
@@ -158,7 +273,9 @@ const onClearOrderBy = () => {
       </UButton>
     </div>
     <div class="flex items-center gap-2">
-      <UButton size="sm" icon="i-lucide-plus" color="primary" variant="solid">Add New</UButton>
+      <UButton size="sm" icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
+        Add New
+      </UButton>
     </div>
   </div>
   <UTable
@@ -197,7 +314,7 @@ const onClearOrderBy = () => {
       />
     </template>
     <template #action-cell="{ row }">
-      <UDropdownMenu :items="actions(row.original)">
+      <UDropdownMenu :items="getActions(row.original)">
         <UButton
           icon="i-lucide-ellipsis-vertical"
           color="neutral"
@@ -220,8 +337,45 @@ const onClearOrderBy = () => {
     </div>
 
     <div class="flex items-center gap-3">
-      <USelect v-model="query.perPage" :items="perPageOptions" class="min-w-20" />
+      <USelect
+        v-model="query.perPage"
+        :items="perPageOptions"
+        class="min-w-20"
+        @change="() => (query.page = 1)"
+      />
       <UPagination v-model:page="query.page" :items-per-page="query.perPage" :total="data.total" />
     </div>
   </div>
+  <UModal
+    v-model:open="formOpen"
+    :title="formModal?.[formMode]?.title"
+    :description="formModal?.[formMode]?.description"
+  >
+    <template #body>
+      <UForm ref="formRef" :state="formState" class="space-y-4" @submit="onSubmit">
+        <template v-for="row in fields" :key="row.id">
+          <UFormField :name="row.id" :label="row.label">
+            <UInput
+              v-if="row.type === 'input'"
+              v-model="formState[row.id]"
+              class="w-full"
+              size="xl"
+            />
+            <UTextarea
+              v-else-if="row.type === 'textarea'"
+              v-model="formState[row.id]"
+              class="w-full"
+              size="xl"
+            />
+          </UFormField>
+        </template>
+        <div class="flex justify-end gap-2">
+          <UButton type="button" color="neutral" variant="subtle" @click="formOpen = false">
+            Cancel
+          </UButton>
+          <UButton type="submit" :loading="isSubmitting"> Submit </UButton>
+        </div>
+      </UForm>
+    </template>
+  </UModal>
 </template>

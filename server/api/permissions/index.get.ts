@@ -7,10 +7,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event)
-  const where: Prisma.PermissionWhereInput = {}
+  const where: Prisma.PermissionWhereInput = {
+    deletedAt: null,
+  }
 
   const { take, skip, paginate } = getPagination(query)
-  const { orderBy } = getOrderBy(query)
+  const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
 
   // filter by ids
   const { ids } = getQueryId(query)

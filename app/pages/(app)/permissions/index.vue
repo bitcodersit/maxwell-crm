@@ -1,8 +1,23 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
-import type { TColumn, TFilter } from '@/components/base/BaseCrud.vue'
+import type { TColumn, TFilter, TField } from '@/components/base/BaseCrud.vue'
+import { format } from 'date-fns'
 
+const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
+
+const fields: TField[] = [
+  {
+    id: 'name',
+    type: 'input',
+    label: 'Name',
+  },
+  {
+    id: 'description',
+    type: 'textarea',
+    label: 'Description',
+  },
+]
 
 const columns = computed<TColumn<TPermission>[]>(() => [
   {
@@ -20,12 +35,15 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     accessorKey: 'name',
     header: 'Name',
     sortBy: 'name',
-  },
-  {
-    accessorKey: 'description',
-    header: 'Description',
-    sortBy: 'description',
-    cell: ({ row }) => row.original.description || '—',
+    cell: ({ row }) =>
+      row.original.name.split('-').map((label) => {
+        return h(UBadge, {
+          label,
+          class: 'mr-1 capitalize',
+          variant: 'subtle',
+          color: ColorsMap[label] || 'neutral',
+        })
+      }),
   },
   {
     accessorKey: 'roles',
@@ -44,39 +62,33 @@ const columns = computed<TColumn<TPermission>[]>(() => [
         ) || '—',
   },
   {
+    accessorKey: 'name',
+    header: 'Slug',
+    sortBy: 'name',
+  },
+  {
+    accessorKey: 'description',
+    header: 'Description',
+    sortBy: 'description',
+    cell: ({ row }) => row.original.description || '—',
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created At',
+    sortBy: 'createdAt',
+    cell: ({ row }) => format(new Date(row.original.createdAt), 'MMM d, yyyy h:mm a'),
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: 'Updated At',
+    sortBy: 'updatedAt',
+    cell: ({ row }) => format(new Date(row.original.updatedAt), 'MMM d, yyyy h:mm a'),
+  },
+  {
     id: 'action',
     pinned: 'right',
   },
 ])
-
-const actions = (item: TPermission): DropdownMenuItem[][] => [
-  [
-    {
-      label: 'View',
-      icon: 'i-lucide-eye',
-      onSelect() {
-        console.log('view', item)
-      },
-    },
-    {
-      label: 'Update',
-      icon: 'i-lucide-pencil',
-      onSelect() {
-        console.log('update', item)
-      },
-    },
-  ],
-  [
-    {
-      label: 'Delete',
-      icon: 'i-lucide-trash',
-      color: 'error',
-      onSelect() {
-        console.log('delete', item)
-      },
-    },
-  ],
-]
 
 const filters: TFilter[] = [
   {
@@ -106,8 +118,64 @@ const filters: TFilter[] = [
     placeholder: 'Search by description',
   },
 ]
+
+const formModal = {
+  create: {
+    title: 'Add New Permission',
+    description: 'Add a new permission to the system',
+  },
+  update: {
+    title: 'Update Permission',
+    description: 'Update the permission',
+  },
+}
+
+const getActions = (item: TPermission): DropdownMenuItem[][] => [
+  [
+    {
+      label: 'View',
+      icon: 'i-lucide-eye',
+      onSelect() {
+        console.log('view', item)
+      },
+    },
+    {
+      label: 'Update',
+      icon: 'i-lucide-pencil',
+      onSelect() {
+        crudRef.value?.onUpdate(item)
+      },
+    },
+  ],
+  [
+    {
+      label: 'Delete',
+      icon: 'i-lucide-trash',
+      color: 'error',
+      onSelect() {
+        crudRef.value?.onDelete(`/api/permissions/${item.id}`)
+      },
+    },
+  ],
+]
+
+const getFormState = (v?: TPermission) => ({
+  id: v?.id,
+  name: v?.name ?? '',
+  description: v?.description ?? '',
+})
 </script>
 
 <template>
-  <BaseCrud get-url="/api/permissions" :columns="columns" :actions="actions" :filters="filters" />
+  <BaseCrud
+    ref="crudRef"
+    get-url="/api/permissions"
+    post-url="/api/permissions"
+    :fields="fields"
+    :columns="columns"
+    :filters="filters"
+    :form-modal="formModal"
+    :get-actions="getActions"
+    :get-form-state="getFormState"
+  />
 </template>

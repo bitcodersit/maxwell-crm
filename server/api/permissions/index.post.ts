@@ -1,6 +1,6 @@
 const zPermission = z.object({
   id: z.number().optional(),
-  name: z.string().min(1),
+  name: z.string().min(1, 'Name is required!'),
   description: z.string().nullish(),
   roleIds: z.array(z.number()).nullish(),
 })
@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
     if (message.includes('permissions_name_key')) {
       throw err.unprocessable({
         name: {
-          errors: ['Name must be unique'],
+          errors: ['Name is already taken, please try a different name'],
         },
       })
     }
