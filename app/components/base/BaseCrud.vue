@@ -10,6 +10,7 @@ import type {
 } from '@nuxt/ui'
 import type { TInputFilterProps } from './BaseInputFilter.vue'
 import type { TSelectMenuProps } from './BaseSelectMenu.vue'
+import type { TBaseTagsProps } from './BaseTags.vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
@@ -24,7 +25,8 @@ export type TFilter = { id: string } & (
 export type TField = { id: string; label: string } & (
   | ({ type: 'input' } & InputProps)
   | ({ type: 'textarea' } & TextareaProps)
-  | ({ type: 'select' } & TSelectMenuProps)
+  | { type: 'select'; props: TSelectMenuProps }
+  | { type: 'tags'; props: TBaseTagsProps }
 )
 
 export type TQuery = {
@@ -382,10 +384,10 @@ defineExpose({
               class="w-full"
               size="xl"
             />
-            <BaseSelectMenu
-              v-else-if="row.type === 'select'"
+            <BaseTags
+              v-else-if="row.type === 'tags'"
               v-model="formState[row.id]"
-              v-bind="row"
+              v-bind="row.props"
             />
           </UFormField>
         </template>

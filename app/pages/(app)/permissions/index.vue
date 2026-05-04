@@ -13,18 +13,17 @@ const fields: TField[] = [
     label: 'Name',
   },
   {
+    id: 'roles',
+    type: 'tags',
+    label: 'Roles',
+    props: {
+      api: '/api/roles',
+    },
+  },
+  {
     id: 'description',
     type: 'textarea',
     label: 'Description',
-  },
-  {
-    id: 'roles',
-    type: 'select',
-    label: 'Roles',
-    api: '/api/roles',
-    valueKey: 'id',
-    labelKey: 'name',
-    multiple: true,
   },
 ]
 
@@ -166,10 +165,20 @@ const getFormState = (v?: TPermission) => ({
   id: v?.id,
   name: v?.name ?? '',
   description: v?.description ?? '',
+  roles: v?.rolePermissions?.map((rp) => rp.roleId || rp.role) ?? [],
+})
+
+const getPostBody = (v: Record<string, any>) => ({
+  id: v.id,
+  name: v.name,
+  description: v.description,
+  roleIds: v.roles.map((r: any) => r.id),
 })
 
 const onDeleteSelected = () => {
-  crudRef.value?.onDeleteSelected((v) => `/api/permissions/${v.map((x) => x.id).join(',')}`)
+  crudRef.value?.onDeleteSelected((v) => {
+    return `/api/permissions/${v.map((x) => x.id).join(',')}`
+  })
 }
 </script>
 
@@ -183,6 +192,7 @@ const onDeleteSelected = () => {
     :filters="filters"
     :form-modal="formModal"
     :get-actions="getActions"
+    :get-post-body="getPostBody"
     :get-form-state="getFormState"
   >
     <template #bulk-actions="{ count }">
