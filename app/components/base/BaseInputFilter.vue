@@ -98,9 +98,9 @@ watch(modelMode, (v) => {
         <UButton
           v-if="modelValue"
           icon="i-lucide-x"
-          color="neutral"
-          variant="ghost"
           size="sm"
+          color="error"
+          variant="subtle"
           @click="onClear"
         >
           Clear
