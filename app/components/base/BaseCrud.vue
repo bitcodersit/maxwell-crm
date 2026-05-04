@@ -10,18 +10,20 @@ import type {
 } from '@nuxt/ui'
 import type { TInputFilterProps } from './BaseInputFilter.vue'
 import type { TBaseAutocompleteProps } from './BaseAutocomplete.vue'
+import type { TDateFilterProps } from './BaseDateFilter.vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
   sortBy?: string
 }
 
-export type TFilter = { id: string } & (
-  | ({ type: 'input' } & TInputFilterProps)
-  | ({ type: 'select' } & SelectProps)
+export type TFilter = { name: string } & (
+  | { type: 'date'; props?: TDateFilterProps }
+  | { type: 'input'; props?: TInputFilterProps }
+  | { type: 'select'; props?: SelectProps }
 )
 
-export type TField = { id: string; label: string; col?: string } & (
+export type TField = { name: string; label: string; col?: string } & (
   | { type: 'input'; props?: InputProps }
   | { type: 'textarea'; props?: TextareaProps }
   | { type: 'autocomplete'; props: TBaseAutocompleteProps }
@@ -58,9 +60,10 @@ const props = withDefaults(
         description?: string
       }
     }
+    getQuery?: (query: TQuery) => TQuery
     getActions?: (item: T) => DropdownMenuItem[][]
-    getFormState?: (item?: T) => TFormState
     getPostBody?: (state: TFormState) => object | FormData
+    getFormState?: (item?: T) => TFormState
   }>(),
   {
     sticky: true,
@@ -68,10 +71,11 @@ const props = withDefaults(
     fields: () => [],
     filters: () => [],
     columns: () => [],
+    getQuery: (v: TQuery) => v,
     getActions: () => [],
+    getPostBody: (state: TFormState) => state,
     getFormState: (v?: T) => ({ ...(v ?? {}) }),
     perPageOptions: () => [5, 10, 20, 30, 40, 50, 100],
-    getPostBody: (state: TFormState) => state,
     formItem: () => ({
       size: 'xl',
       class: 'w-full',
@@ -94,9 +98,9 @@ const query = reactive<TQuery>({
   ...initialQuery,
 })
 
-const { getUrl, columns, postUrl, getFormState, getPostBody } = toRefs(props)
+const { getUrl, columns, postUrl, getFormState, getPostBody, getQuery } = toRefs(props)
 const { data, status, refresh } = useFetch<TPaginated<T>>(getUrl, {
-  query,
+  query: computed(() => getQuery.value(query)),
   default: () => def,
 })
 
@@ -258,12 +262,17 @@ defineExpose({
 <template>
   <div class="flex items-center justify-between gap-4">
     <div class="flex items-center gap-2">
-      <template v-for="row in filters" :key="row.id">
+      <template v-for="row in filters" :key="row.name">
         <BaseInputFilter
           v-if="row.type === 'input'"
-          v-bind="row"
-          v-model="query[row.id]"
-          v-model:mode="query[row.id + 'Mode']"
+          v-bind="row.props"
+          v-model="query[row.name]"
+          v-model:mode="query[row.name + 'Mode']"
+        />
+        <BaseDateFilter
+          v-else-if="row.type === 'date'"
+          v-bind="row.props"
+          v-model="query[row.name]"
         />
       </template>
       <UButton
@@ -377,24 +386,24 @@ defineExpose({
         <div :class="formClass" class="grid grid-cols-1 gap-4">
           <UFormField
             v-for="row in fields"
-            :key="row.id"
-            :name="row.id"
+            :key="row.name"
+            :name="row.name"
             :label="row.label"
             :class="row.col"
           >
             <UInput
               v-if="row.type === 'input'"
-              v-model="formState[row.id]"
+              v-model="formState[row.name]"
               v-bind="{ ...formItem, ...row.props }"
             />
             <UTextarea
               v-else-if="row.type === 'textarea'"
-              v-model="formState[row.id]"
+              v-model="formState[row.name]"
               v-bind="{ ...formItem, ...row.props }"
             />
             <BaseAutocomplete
               v-else-if="row.type === 'autocomplete'"
-              v-model="formState[row.id]"
+              v-model="formState[row.name]"
               v-bind="{ ...formItem, ...row.props }"
             />
           </UFormField>

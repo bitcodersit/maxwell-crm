@@ -32,6 +32,10 @@ export default defineEventHandler(async (event) => {
   const descMode = (query.descriptionMode || 'contains').toString().trim()
   if (desc) where.description = descMode === 'contains' ? { contains: desc } : desc
 
+  // filter by dates
+  whereDate(where, query, 'createdAt')
+  whereDate(where, query, 'updatedAt')
+
   const [total, permissions] = await prisma.$transaction([
     prisma.permission.count({ where }),
     prisma.permission.findMany({

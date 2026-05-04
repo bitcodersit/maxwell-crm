@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
-import type { TColumn, TFilter, TField } from '@/components/base/BaseCrud.vue'
+import type { TColumn, TFilter, TField, TQuery } from '@/components/base/BaseCrud.vue'
 import { format } from 'date-fns'
 
 const crudRef = useTemplateRef('crudRef')
@@ -8,12 +8,12 @@ const UBadge = resolveComponent('UBadge')
 
 const fields: TField[] = [
   {
-    id: 'name',
+    name: 'name',
     type: 'input',
     label: 'Name',
   },
   {
-    id: 'roles',
+    name: 'roles',
     type: 'autocomplete',
     label: 'Roles',
     props: {
@@ -21,7 +21,7 @@ const fields: TField[] = [
     },
   },
   {
-    id: 'description',
+    name: 'description',
     type: 'textarea',
     label: 'Description',
   },
@@ -84,13 +84,17 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     accessorKey: 'createdAt',
     header: 'Created At',
     sortBy: 'createdAt',
-    cell: ({ row }) => format(new Date(row.original.createdAt), 'MMM d, yyyy h:mm a'),
+    cell: ({ row }) => {
+      return format(new Date(row.original.createdAt), 'MMM d, yyyy h:mm a')
+    },
   },
   {
     accessorKey: 'updatedAt',
     header: 'Updated At',
     sortBy: 'updatedAt',
-    cell: ({ row }) => format(new Date(row.original.updatedAt), 'MMM d, yyyy h:mm a'),
+    cell: ({ row }) => {
+      return format(new Date(row.original.updatedAt), 'MMM d, yyyy h:mm a')
+    },
   },
   {
     id: 'action',
@@ -100,24 +104,44 @@ const columns = computed<TColumn<TPermission>[]>(() => [
 
 const filters: TFilter[] = [
   {
-    id: 'id',
+    name: 'id',
     type: 'input',
-    label: 'ID',
-    placeholder: 'Search by id (eg 1 or 1,2,3)',
+    props: {
+      label: 'ID',
+      placeholder: 'Search by id (eg 1 or 1,2,3)',
+    },
   },
   {
-    id: 'name',
+    name: 'name',
     type: 'input',
-    label: 'Name',
-    modeable: true,
-    placeholder: 'Search by name',
+    props: {
+      label: 'Name',
+      placeholder: 'Search by name',
+      modeable: true,
+    },
   },
   {
-    id: 'description',
+    name: 'description',
     type: 'input',
-    label: 'Description',
-    modeable: true,
-    placeholder: 'Search by description',
+    props: {
+      label: 'Description',
+      placeholder: 'Search by description',
+      modeable: true,
+    },
+  },
+  {
+    name: 'createdAt',
+    type: 'date',
+    props: {
+      label: 'Created',
+    },
+  },
+  {
+    name: 'updatedAt',
+    type: 'date',
+    props: {
+      label: 'Updated',
+    },
   },
 ]
 
@@ -130,6 +154,18 @@ const formModal = {
     title: 'Update Permission',
     description: 'Update the permission',
   },
+}
+
+const getQuery = (query: TQuery) => {
+  return {
+    ...query,
+    createdAt: calendarFormatDate(query.createdAt, {
+      formatStr: 'yyyy-MM-dd',
+    }),
+    updatedAt: calendarFormatDate(query.updatedAt, {
+      formatStr: 'yyyy-MM-dd',
+    }),
+  }
 }
 
 const getActions = (item: TPermission): DropdownMenuItem[][] => [
@@ -191,6 +227,7 @@ const onDeleteSelected = () => {
     :columns="columns"
     :filters="filters"
     :form-modal="formModal"
+    :get-query="getQuery"
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
