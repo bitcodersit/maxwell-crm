@@ -17,6 +17,15 @@ const fields: TField[] = [
     type: 'textarea',
     label: 'Description',
   },
+  {
+    id: 'roles',
+    type: 'select',
+    label: 'Roles',
+    api: '/api/roles',
+    valueKey: 'id',
+    labelKey: 'name',
+    multiple: true,
+  },
 ]
 
 const columns = computed<TColumn<TPermission>[]>(() => [
@@ -91,12 +100,6 @@ const columns = computed<TColumn<TPermission>[]>(() => [
 ])
 
 const filters: TFilter[] = [
-  // {
-  //   id: 'q',
-  //   type: 'input',
-  //   label: 'Search',
-  //   placeholder: 'Search...',
-  // },
   {
     id: 'id',
     type: 'input',

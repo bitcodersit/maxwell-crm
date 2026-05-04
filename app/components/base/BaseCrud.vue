@@ -9,6 +9,7 @@ import type {
   DropdownMenuItem,
 } from '@nuxt/ui'
 import type { TInputFilterProps } from './BaseInputFilter.vue'
+import type { TSelectMenuProps } from './BaseSelectMenu.vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
@@ -23,7 +24,7 @@ export type TFilter = { id: string } & (
 export type TField = { id: string; label: string } & (
   | ({ type: 'input' } & InputProps)
   | ({ type: 'textarea' } & TextareaProps)
-  | ({ type: 'select' } & SelectProps)
+  | ({ type: 'select' } & TSelectMenuProps)
 )
 
 export type TQuery = {
@@ -380,6 +381,11 @@ defineExpose({
               v-model="formState[row.id]"
               class="w-full"
               size="xl"
+            />
+            <BaseSelectMenu
+              v-else-if="row.type === 'select'"
+              v-model="formState[row.id]"
+              v-bind="row"
             />
           </UFormField>
         </template>
