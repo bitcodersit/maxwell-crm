@@ -8,7 +8,7 @@ export function userToSession(user: TUser) {
     avatarId: user.avatarId,
     roles: (user.userRoles?.map((ur) => ur.role?.name).filter(Boolean) ?? []) as string[],
     permissions: (user.userRoles?.flatMap(
-      (ur) => ur.role?.rolePermissions?.map((rp) => rp.permission?.slug).filter(Boolean) ?? []
+      (ur) => ur.role?.rolePermissions?.map((rp) => rp.permission?.name).filter(Boolean) ?? []
     ) ?? []) as string[],
   }
 }

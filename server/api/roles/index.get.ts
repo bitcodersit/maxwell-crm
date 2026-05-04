@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['read-any-role'])) {
+  if (!can(user, ['read-any-roles'])) {
     throw err.denied()
   }
 
@@ -29,7 +29,6 @@ export default defineEventHandler(async (event) => {
               select: {
                 id: true,
                 name: true,
-                slug: true,
               },
             },
           },

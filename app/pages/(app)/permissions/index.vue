@@ -22,11 +22,6 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     sortBy: 'name',
   },
   {
-    accessorKey: 'slug',
-    header: 'Slug',
-    sortBy: 'slug',
-  },
-  {
     accessorKey: 'description',
     header: 'Description',
     sortBy: 'description',
@@ -102,13 +97,6 @@ const filters: TFilter[] = [
     label: 'Name',
     modeable: true,
     placeholder: 'Search by name',
-  },
-  {
-    id: 'slug',
-    type: 'input',
-    label: 'Slug',
-    modeable: true,
-    placeholder: 'Search by slug',
   },
   {
     id: 'description',

@@ -7,7 +7,7 @@ const zMeUpdate = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user: sessionUser } = await requireUserSession(event)
-  if (!can(sessionUser, ['update-own-user'])) {
+  if (!can(sessionUser, ['update-own-users'])) {
     throw err.denied()
   }
 

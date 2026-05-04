@@ -2,7 +2,7 @@ import { Prisma } from '~~/prisma/client/client'
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['read-any-permission'])) {
+  if (!can(user, ['read-any-permissions'])) {
     throw err.denied()
   }
 
@@ -18,17 +18,12 @@ export default defineEventHandler(async (event) => {
 
   // filter by search text
   const { contains } = getQueryQ(query)
-  if (contains) where.OR = [{ name: { contains } }, { slug: { contains } }]
+  if (contains) where.OR = [{ name: { contains } }, { description: { contains } }]
 
   // filter by name
   const name = (query.name || '').toString().trim()
   const nameMode = (query.nameMode || 'contains').toString().trim()
   if (name) where.name = nameMode === 'contains' ? { contains: name } : name
-
-  // filter by slug
-  const slug = (query.slug || '').toString().trim()
-  const slugMode = (query.slugMode || 'contains').toString().trim()
-  if (slug) where.slug = slugMode === 'contains' ? { contains: slug } : slug
 
   // filter by description
   const desc = (query.description || '').toString().trim()
