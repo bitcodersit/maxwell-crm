@@ -46,6 +46,7 @@ const props = withDefaults(
     filters?: TFilter[]
     columns?: TColumn<T>[]
     postUrl?: string
+    staleTime?: number
     perPageOptions?: number[]
     enableRowSelection?: boolean
     formClass?: string
@@ -72,6 +73,7 @@ const props = withDefaults(
   }>(),
   {
     sticky: true,
+    staleTime: 30 * 1000,
     enableRowSelection: true,
     fields: () => [],
     filters: () => [],
@@ -88,7 +90,8 @@ const props = withDefaults(
   }
 )
 
-const { getUrl, columns, postUrl, getFormState, getPostBody, getQuery, persist } = toRefs(props)
+const { getUrl, columns, postUrl, getFormState, getPostBody, getQuery, persist, staleTime } =
+  toRefs(props)
 
 const def = toPaginated<T>()
 const table = useTemplateRef('table')
@@ -138,7 +141,15 @@ const { data, status, refresh } = useFetch<TPaginated<T>>(getUrl, {
   server: false,
   default: () => def,
   getCachedData(key) {
-    return nuxtApp.payload.data[key] || nuxtApp.static.data[key]
+    const data = nuxtApp.payload.data[key]
+    if (!data || Date.now() - data.fetchedAt > staleTime.value) return
+    return data
+  },
+  transform(data) {
+    return {
+      ...data,
+      fetchedAt: Date.now(),
+    }
   },
 })
 
