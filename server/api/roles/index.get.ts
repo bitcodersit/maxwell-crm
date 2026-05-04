@@ -1,3 +1,5 @@
+import { Prisma } from '~~/prisma/client/client'
+
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['read-any-roles'])) {
@@ -14,6 +16,32 @@ export default defineEventHandler(async (event) => {
     OR: [{ name: { contains: q } }],
   }
 
+  const selectInclude: {
+    select?: Prisma.RoleSelect
+    include?: Prisma.RoleInclude
+  } = {}
+
+  if (isTrue(query.options)) {
+    selectInclude.select = {
+      id: true,
+      name: true,
+    }
+  } else {
+    selectInclude.include = {
+      rolePermissions: {
+        select: {
+          id: true,
+          permission: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    }
+  }
+
   const [total, roles] = await prisma.$transaction([
     prisma.role.count({ where }),
     prisma.role.findMany({
@@ -21,19 +49,7 @@ export default defineEventHandler(async (event) => {
       take,
       where,
       orderBy,
-      include: {
-        rolePermissions: {
-          select: {
-            id: true,
-            permission: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      ...selectInclude,
     }),
   ])
 

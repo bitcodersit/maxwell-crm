@@ -8,9 +8,10 @@ import type {
   FormSubmitEvent,
   DropdownMenuItem,
 } from '@nuxt/ui'
+import type { TDateFilterProps } from './BaseDateFilter.vue'
 import type { TInputFilterProps } from './BaseInputFilter.vue'
 import type { TBaseAutocompleteProps } from './BaseAutocomplete.vue'
-import type { TDateFilterProps } from './BaseDateFilter.vue'
+import type { TCheckboxFilterApiProps } from './BaseCheckboxFilterApi.vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
@@ -21,6 +22,7 @@ export type TFilter = { name: string } & (
   | { type: 'date'; props?: TDateFilterProps }
   | { type: 'input'; props?: TInputFilterProps }
   | { type: 'select'; props?: SelectProps }
+  | { type: 'checkbox-api'; props: TCheckboxFilterApiProps }
 )
 
 export type TField = { name: string; label: string; col?: string } & (
@@ -350,6 +352,12 @@ defineExpose({
             v-bind="row.props"
             v-model="query[row.name]"
             v-model:mode="query[row.name + 'Mode']"
+            @update:model-value="onGotoFirstPage"
+          />
+          <BaseCheckboxFilterApi
+            v-else-if="row.type === 'checkbox-api'"
+            v-bind="row.props"
+            v-model="query[row.name]"
             @update:model-value="onGotoFirstPage"
           />
         </template>

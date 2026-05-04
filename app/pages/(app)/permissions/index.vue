@@ -130,6 +130,17 @@ const filters: TFilter[] = [
     },
   },
   {
+    name: 'roleIds',
+    type: 'checkbox-api',
+    props: {
+      label: 'Roles',
+      api: '/api/roles',
+      query: {
+        options: true,
+      },
+    },
+  },
+  {
     name: 'createdAt',
     type: 'date',
     props: {
