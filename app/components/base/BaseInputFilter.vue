@@ -64,12 +64,23 @@ watch(modelMode, (v) => {
         color="primary"
         variant="subtle"
         :ui="{ leadingIcon: 'size-4' }"
+        @click:trailing="onClear"
         @click="open = true"
       >
         {{ label ?? 'Text' }}
         <template v-if="modelValue"> | </template>
         <template v-if="modelValue && modeable"> {{ mode }} |</template>
         {{ modelValue }}
+        <template v-if="modelValue" #trailing>
+          <UButton
+            icon="i-lucide-x"
+            size="xs"
+            color="error"
+            variant="soft"
+            :ui="{ leadingIcon: 'size-3.5', base: 'p-0.5 rounded-full' }"
+            @click.stop.prevent="onClear"
+          />
+        </template>
       </UButton>
     </UChip>
     <template #content>

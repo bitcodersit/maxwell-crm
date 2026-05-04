@@ -74,6 +74,16 @@ watch(modelMode, (v) => {
             })
           }}
         </template>
+        <template v-if="modelValue" #trailing>
+          <UButton
+            icon="i-lucide-x"
+            size="xs"
+            color="error"
+            variant="soft"
+            :ui="{ leadingIcon: 'size-3.5', base: 'p-0.5 rounded-full' }"
+            @click.stop.prevent="onClear"
+          />
+        </template>
       </UButton>
     </UChip>
     <template #content>
