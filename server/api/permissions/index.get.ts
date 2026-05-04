@@ -47,6 +47,32 @@ export default defineEventHandler(async (event) => {
   whereDate(where, query, 'createdAt')
   whereDate(where, query, 'updatedAt')
 
+  const selectInclude: {
+    select?: Prisma.PermissionSelect
+    include?: Prisma.PermissionInclude
+  } = isTrue(query.options)
+    ? {
+        select: {
+          id: true,
+          name: true,
+        },
+      }
+    : {
+        include: {
+          rolePermissions: {
+            select: {
+              id: true,
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      }
+
   const [total, permissions] = await prisma.$transaction([
     prisma.permission.count({ where }),
     prisma.permission.findMany({
@@ -54,19 +80,7 @@ export default defineEventHandler(async (event) => {
       take,
       where,
       orderBy,
-      include: {
-        rolePermissions: {
-          select: {
-            id: true,
-            role: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      ...selectInclude,
     }),
   ])
 

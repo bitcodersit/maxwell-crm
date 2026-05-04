@@ -18,6 +18,9 @@ const fields: TField[] = [
     label: 'Roles',
     props: {
       api: '/api/roles',
+      query: {
+        options: true,
+      },
     },
   },
   {

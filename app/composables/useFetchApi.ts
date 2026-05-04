@@ -1,6 +1,6 @@
 type TOptions<T> = {
+  api: MaybeRefOrGetter<string>
   query?: MaybeRefOrGetter<Record<string, any>>
-  endpoint: MaybeRefOrGetter<string>
   staleTime?: MaybeRefOrGetter<number>
   immediate?: boolean
   refreshKey?: MaybeRefOrGetter<number>
@@ -8,17 +8,17 @@ type TOptions<T> = {
 }
 
 export const useFetchApi = <T extends TPaginated<any>>({
+  api,
   query,
-  endpoint,
   staleTime = 30 * 1000,
   immediate = true,
   refreshKey = 0,
   getDefault,
 }: TOptions<T>) => {
   const key = computed(() => {
-    return `${toValue(endpoint)}:${toValue(refreshKey)}:${JSON.stringify(toValue(query))}`
+    return `${toValue(api)}:${toValue(refreshKey)}:${JSON.stringify(toValue(query))}`
   })
-  return useFetch(endpoint, {
+  return useFetch(api, {
     key,
     query,
     immediate,

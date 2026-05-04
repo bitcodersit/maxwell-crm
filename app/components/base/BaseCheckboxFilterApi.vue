@@ -8,12 +8,15 @@ export type TCheckboxFilterApiProps<Value extends TValue = TValue, Item extends 
   api: string
   label?: string
   query?: Record<string, any>
+  valueKey?: string
   modelValue?: Value[]
-  itemLabel?: (item: Item) => string
+  labelClass?: string
+  getLabel?: (item: Item) => string
 }
 
 const props = withDefaults(defineProps<TCheckboxFilterApiProps<Value, Item>>(), {
-  itemLabel: (item: Item) => item.name,
+  valueKey: 'id',
+  getLabel: (item: Item) => item.name,
 })
 
 const emit = defineEmits<{
@@ -23,13 +26,17 @@ const emit = defineEmits<{
 const { api, label, query, modelValue } = toRefs(props)
 const { state: searchTerm, stateD: searchTermD } = useDebouncedState('', 300)
 
+const defaultPerPage = query.value?.perPage ?? 10
+const perPage = ref(defaultPerPage)
+
 const { data, status, execute } = useFetchApi({
-  endpoint: api,
-  immediate: false,
+  api,
   staleTime: 10 * 1000,
+  immediate: false,
   query: computed(() => ({
     ...query.value,
     q: searchTermD.value,
+    perPage: perPage.value,
   })),
   getDefault() {
     return toPaginated<Item>()
@@ -38,22 +45,6 @@ const { data, status, execute } = useFetchApi({
 
 const open = ref(false)
 const state = ref<any>(modelValue.value)
-
-// const model = computed({
-//   get() {
-//     return state.value?.map((item) => {
-//       return itemKey.value(item as T)
-//     })
-//   },
-//   set(v) {
-//     state.value = v
-//       ?.map((value) => {
-//         return (data.value?.data?.find((item) => itemKey.value(item) === value) ||
-//           state.value?.find((item) => itemKey.value(item as T) === value)) as T
-//       })
-//       ?.filter(Boolean)
-//   },
-// })
 
 const onOpen = () => {
   open.value = true
@@ -81,7 +72,7 @@ watch(modelValue, (v) => {
   <UPopover
     v-model:open="open"
     :arrow="true"
-    :ui="{ content: 'p-3 flex flex-col gap-3 max-w-64 w-full' }"
+    :ui="{ content: 'p-3 flex flex-col max-w-64 w-full max-h-[600px]' }"
     :content="{ align: 'start', side: 'bottom' }"
   >
     <UChip :show="!!modelValue">
@@ -110,45 +101,78 @@ watch(modelValue, (v) => {
       </UButton>
     </UChip>
     <template #content>
-      <div>
-        <UInput v-model="searchTerm" :autofocus="true" placeholder="Search..." class="w-full" />
+      <div class="flex items-center gap-2 justify-end">
+        <span
+          role="button"
+          class="text-primary underline text-sm cursor-pointer"
+          @click="state = data.data.map((item: Item) => item[valueKey])"
+        >
+          Select all
+        </span>
+        <span role="button" class="text-error underline text-sm cursor-pointer" @click="state = []">
+          Clear
+        </span>
+      </div>
+      <div class="mt-1">
+        <UInput
+          v-model="searchTerm"
+          :autofocus="true"
+          class="w-full"
+          placeholder="Search..."
+          @keyup.enter="onApply"
+        />
         <UProgress v-if="status === 'pending'" size="sm" animation="swing" />
       </div>
-      <div v-if="!data.data.length">
-        <div class="text-muted p-3 text-sm">No results found</div>
+      <div v-if="status !== 'pending' && !data.data.length" class="text-muted py-1 text-sm mt-3">
+        No results found
       </div>
       <UCheckboxGroup
         v-else
         v-model="state"
         :items="data.data"
-        value-key="id"
-        label-key="name"
+        :value-key="valueKey"
         :ui="{
-          root: 'overflow-hidden',
-          description: 'truncate',
+          root: 'overflow-y-auto mt-3',
+          label: labelClass,
         }"
         @keyup.enter="onApply"
+      >
+        <template #label="{ item }">
+          {{ getLabel(item) }}
+        </template>
+      </UCheckboxGroup>
+      <UButton
+        v-if="perPage < data.total"
+        :disabled="status === 'pending'"
+        size="xs"
+        label="Load More"
+        variant="link"
+        @click="perPage += defaultPerPage"
       />
-      <div class="flex items-center gap-2 justify-end">
+      <div class="flex items-center gap-2 justify-end mt-3">
         <UButton
           v-if="modelValue"
           icon="i-lucide-x"
+          label="Clear"
           size="sm"
           color="error"
           variant="subtle"
           @click="onClear"
-        >
-          Clear
-        </UButton>
+        />
         <UButton
+          :disabled="!state?.length"
           icon="i-lucide-check"
           color="primary"
+          label="Apply"
           variant="solid"
           size="sm"
-          :disabled="!state?.length"
           @click="onApply"
         >
-          Apply
+          <template v-if="state?.length" #trailing>
+            <UKbd size="md">
+              {{ state?.length }}
+            </UKbd>
+          </template>
         </UButton>
       </div>
     </template>

@@ -4,8 +4,9 @@ import type { ButtonProps, InputTagsProps } from '@nuxt/ui'
 type TItem = Record<string, any>
 export type TBaseAutocompleteProps = InputTagsProps & {
   api: string
-  emptyMessage?: string
   optionProps?: ButtonProps | ((item: TItem, index: number, isActive: boolean) => ButtonProps)
+  emptyMessage?: string
+  query?: Record<string, any>
   itemKey?: (item: TItem) => string
   itemLabel?: (item: TItem) => string
 }
@@ -16,49 +17,34 @@ const props = withDefaults(defineProps<TBaseAutocompleteProps>(), {
   itemLabel: (item: TItem) => item.name,
 })
 
+const { api, query } = toRefs(props)
+
 const model = defineModel<TItem[]>({ default: () => [] })
 const rootRef = useTemplateRef<HTMLElement>('rootRef')
-const queryKey = computed(() => debouncedSearchTerm.value.trim().toLowerCase())
 const panelRef = useTemplateRef<HTMLElement>('panelRef')
-const queryCache = ref<Record<string, TItem[]>>({})
-const searchTerm = ref('')
 const activeIndex = ref(0)
 const dropdownOpen = ref(false)
 const inputTagsRef = useTemplateRef<{ inputRef: HTMLInputElement | null }>('inputTagsRef')
-const fetchedQueries = ref<Record<string, true>>({})
 const popoverReference = computed(() => rootRef.value ?? undefined)
-const debouncedSearchTerm = refDebounced(searchTerm, 300)
 
-const { data, status, execute } = useLazyFetch<TPaginated<TItem>>(() => props.api, {
-  server: false,
+const { state: searchTerm, stateD: searchTermD } = useDebouncedState('', 300)
+const { data, status, execute } = useFetchApi({
+  api,
   immediate: false,
-  query: computed(() => {
-    const q = debouncedSearchTerm.value.trim()
-    return { q: q || undefined }
-  }),
-  default() {
+  staleTime: 10 * 1000,
+  query: computed(() => ({
+    ...query.value,
+    q: searchTermD.value,
+  })),
+  getDefault() {
     return toPaginated<TItem>()
   },
 })
 
-const currentRows = computed(() => {
-  const key = queryKey.value
-  return queryCache.value[key] ?? data.value?.data ?? []
-})
-
 const selectableItems = computed(() => {
-  const rows = currentRows.value
   const selected = new Set(model.value.map((x) => props.itemKey(x)))
-  return rows.filter((row) => !selected.has(props.itemKey(row)))
+  return data.value.data.filter((row) => !selected.has(props.itemKey(row))) ?? []
 })
-
-const fetchForCurrentQuery = async () => {
-  const key = queryKey.value
-  if (fetchedQueries.value[key]) return
-  await execute()
-  queryCache.value[key] = data.value?.data ?? []
-  fetchedQueries.value[key] = true
-}
 
 const onOpenAutoFocus = (event: Event) => {
   event.preventDefault()
@@ -91,12 +77,6 @@ onClickOutside(
   { ignore: [panelRef] }
 )
 
-watch(debouncedSearchTerm, async () => {
-  if (!dropdownOpen.value) return
-  activeIndex.value = 0
-  await fetchForCurrentQuery()
-})
-
 watch(selectableItems, (list) => {
   if (!list.length) {
     activeIndex.value = 0
@@ -128,7 +108,7 @@ watchEffect((onCleanup) => {
   const onFocus = async () => {
     dropdownOpen.value = true
     activeIndex.value = 0
-    await fetchForCurrentQuery()
+    execute()
   }
 
   const onKeydown = (e: KeyboardEvent) => {
