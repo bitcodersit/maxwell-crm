@@ -14,7 +14,7 @@ const fields: TField[] = [
   },
   {
     id: 'roles',
-    type: 'tags',
+    type: 'autocomplete',
     label: 'Roles',
     props: {
       api: '/api/roles',
@@ -135,7 +135,7 @@ const formModal = {
 const getActions = (item: TPermission): DropdownMenuItem[][] => [
   [
     {
-      label: 'View',
+      label: 'View Details',
       icon: 'i-lucide-eye',
       onSelect() {
         console.log('view', item)

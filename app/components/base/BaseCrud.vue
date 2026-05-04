@@ -9,8 +9,7 @@ import type {
   DropdownMenuItem,
 } from '@nuxt/ui'
 import type { TInputFilterProps } from './BaseInputFilter.vue'
-import type { TSelectMenuProps } from './BaseSelectMenu.vue'
-import type { TBaseTagsProps } from './BaseTags.vue'
+import type { TBaseAutocompleteProps } from './BaseAutocomplete.vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
@@ -22,11 +21,10 @@ export type TFilter = { id: string } & (
   | ({ type: 'select' } & SelectProps)
 )
 
-export type TField = { id: string; label: string } & (
-  | ({ type: 'input' } & InputProps)
-  | ({ type: 'textarea' } & TextareaProps)
-  | { type: 'select'; props: TSelectMenuProps }
-  | { type: 'tags'; props: TBaseTagsProps }
+export type TField = { id: string; label: string; col?: string } & (
+  | { type: 'input'; props?: InputProps }
+  | { type: 'textarea'; props?: TextareaProps }
+  | { type: 'autocomplete'; props: TBaseAutocompleteProps }
 )
 
 export type TQuery = {
@@ -48,6 +46,8 @@ const props = withDefaults(
     postUrl?: string
     perPageOptions?: number[]
     enableRowSelection?: boolean
+    formClass?: string
+    formItem?: Record<string, any>
     formModal?: {
       create?: {
         title?: string
@@ -72,6 +72,10 @@ const props = withDefaults(
     getFormState: (v?: T) => ({ ...(v ?? {}) }),
     perPageOptions: () => [5, 10, 20, 30, 40, 50, 100],
     getPostBody: (state: TFormState) => state,
+    formItem: () => ({
+      size: 'xl',
+      class: 'w-full',
+    }),
   }
 )
 
@@ -90,7 +94,7 @@ const query = reactive<TQuery>({
   ...initialQuery,
 })
 
-const { getUrl, columns, filters, postUrl, getFormState, formModal, getPostBody } = toRefs(props)
+const { getUrl, columns, postUrl, getFormState, getPostBody } = toRefs(props)
 const { data, status, refresh } = useFetch<TPaginated<T>>(getUrl, {
   query,
   default: () => def,
@@ -369,29 +373,33 @@ defineExpose({
     :description="formModal?.[formMode]?.description"
   >
     <template #body>
-      <UForm ref="formRef" :state="formState" class="space-y-4" @submit="onSubmit">
-        <template v-for="row in fields" :key="row.id">
-          <UFormField :name="row.id" :label="row.label">
+      <UForm ref="formRef" :state="formState" @submit="onSubmit">
+        <div :class="formClass" class="grid grid-cols-1 gap-4">
+          <UFormField
+            v-for="row in fields"
+            :key="row.id"
+            :name="row.id"
+            :label="row.label"
+            :class="row.col"
+          >
             <UInput
               v-if="row.type === 'input'"
               v-model="formState[row.id]"
-              class="w-full"
-              size="xl"
+              v-bind="{ ...formItem, ...row.props }"
             />
             <UTextarea
               v-else-if="row.type === 'textarea'"
               v-model="formState[row.id]"
-              class="w-full"
-              size="xl"
+              v-bind="{ ...formItem, ...row.props }"
             />
-            <BaseTags
-              v-else-if="row.type === 'tags'"
+            <BaseAutocomplete
+              v-else-if="row.type === 'autocomplete'"
               v-model="formState[row.id]"
-              v-bind="row.props"
+              v-bind="{ ...formItem, ...row.props }"
             />
           </UFormField>
-        </template>
-        <div class="flex justify-end gap-2">
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
           <UButton type="button" color="neutral" variant="subtle" @click="formOpen = false">
             Cancel
           </UButton>

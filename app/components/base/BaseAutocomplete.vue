@@ -1,45 +1,44 @@
 <script setup lang="ts">
-export type TBaseTagsItem = Record<string, any>
-export type TBaseTagsProps = {
+import type { ButtonProps, InputTagsProps } from '@nuxt/ui'
+
+type TItem = Record<string, any>
+export type TBaseAutocompleteProps = InputTagsProps & {
   api: string
-  placeholder?: string
-  max?: number
-  size?: 'sm' | 'md' | 'lg' | 'xl'
-  valueKey?: string
-  labelKey?: string
+  emptyMessage?: string
+  optionProps?: ButtonProps | ((item: TItem, index: number, isActive: boolean) => ButtonProps)
+  itemKey?: (item: TItem) => string
+  itemLabel?: (item: TItem) => string
 }
 
-const props = withDefaults(defineProps<TBaseTagsProps>(), {
-  size: 'xl',
-  valueKey: 'id',
-  labelKey: 'name',
+const props = withDefaults(defineProps<TBaseAutocompleteProps>(), {
+  emptyMessage: 'No matching items',
+  itemKey: (item: TItem) => item.id,
+  itemLabel: (item: TItem) => item.name,
 })
 
-const model = defineModel<TBaseTagsItem[]>({ default: () => [] })
-
-const searchTerm = ref('')
-const dropdownOpen = ref(false)
-const activeIndex = ref(0)
-const debouncedSearchTerm = refDebounced(searchTerm, 200)
+const model = defineModel<TItem[]>({ default: () => [] })
+const rootRef = useTemplateRef<HTMLElement>('rootRef')
 const queryKey = computed(() => debouncedSearchTerm.value.trim().toLowerCase())
-const queryCache = ref<Record<string, TBaseTagsItem[]>>({})
+const panelRef = useTemplateRef<HTMLElement>('panelRef')
+const queryCache = ref<Record<string, TItem[]>>({})
+const searchTerm = ref('')
+const activeIndex = ref(0)
+const dropdownOpen = ref(false)
+const inputTagsRef = useTemplateRef<{ inputRef: HTMLInputElement | null }>('inputTagsRef')
 const fetchedQueries = ref<Record<string, true>>({})
+const popoverReference = computed(() => rootRef.value ?? undefined)
+const debouncedSearchTerm = refDebounced(searchTerm, 300)
 
-const { data, status, execute } = useLazyFetch<TPaginated<TBaseTagsItem>>(() => props.api, {
+const { data, status, execute } = useLazyFetch<TPaginated<TItem>>(() => props.api, {
   server: false,
   immediate: false,
   query: computed(() => {
     const q = debouncedSearchTerm.value.trim()
     return { q: q || undefined }
   }),
-  default: () => toPaginated<TBaseTagsItem>(),
-})
-
-const getItemKey = (item: TBaseTagsItem) => item?.[props.valueKey]
-const getItemLabel = (item: TBaseTagsItem) => String(item?.[props.labelKey] ?? '')
-const convertByKeys = (value: string) => ({
-  [props.valueKey]: Number(value),
-  [props.labelKey]: value,
+  default() {
+    return toPaginated<TItem>()
+  },
 })
 
 const currentRows = computed(() => {
@@ -49,18 +48,48 @@ const currentRows = computed(() => {
 
 const selectableItems = computed(() => {
   const rows = currentRows.value
-  const selected = new Set(model.value.map((x) => getItemKey(x)))
-  return rows.filter((row) => !selected.has(getItemKey(row)))
+  const selected = new Set(model.value.map((x) => props.itemKey(x)))
+  return rows.filter((row) => !selected.has(props.itemKey(row)))
 })
 
 const fetchForCurrentQuery = async () => {
   const key = queryKey.value
   if (fetchedQueries.value[key]) return
-
   await execute()
   queryCache.value[key] = data.value?.data ?? []
   fetchedQueries.value[key] = true
 }
+
+const onOpenAutoFocus = (event: Event) => {
+  event.preventDefault()
+}
+
+const onSelectItem = (item: TItem) => {
+  if (props.max != null && model.value.length >= props.max) return
+  if (model.value.some((x) => props.itemKey(x) === props.itemKey(item))) return
+  model.value = [...model.value, item]
+  const input = inputTagsRef.value?.inputRef
+  if (input) {
+    input.focus({ preventScroll: true })
+  }
+  dropdownOpen.value = true
+  activeIndex.value = 0
+}
+
+const getOptionProps = (item: TItem, index: number, isActive: boolean) => {
+  if (typeof props.optionProps === 'function') {
+    return props.optionProps(item, index, isActive)
+  }
+  return props.optionProps
+}
+
+onClickOutside(
+  rootRef,
+  () => {
+    dropdownOpen.value = false
+  },
+  { ignore: [panelRef] }
+)
 
 watch(debouncedSearchTerm, async () => {
   if (!dropdownOpen.value) return
@@ -76,24 +105,6 @@ watch(selectableItems, (list) => {
   if (activeIndex.value >= list.length) activeIndex.value = list.length - 1
 })
 
-const inputTagsRef = useTemplateRef<{ inputRef: HTMLInputElement | null }>('inputTagsRef')
-const rootRef = useTemplateRef<HTMLElement>('rootRef')
-const panelRef = useTemplateRef<HTMLElement>('panelRef')
-
-const popoverReference = computed(() => rootRef.value ?? undefined)
-
-const onOpenAutoFocus = (event: Event) => {
-  event.preventDefault()
-}
-
-onClickOutside(
-  rootRef,
-  () => {
-    dropdownOpen.value = false
-  },
-  { ignore: [panelRef] }
-)
-
 watch(dropdownOpen, async (open) => {
   if (!open) return
   await nextTick()
@@ -103,20 +114,6 @@ watch(dropdownOpen, async (open) => {
     input.focus({ preventScroll: true })
   }
 })
-
-function selectItem(item: TBaseTagsItem) {
-  if (props.max != null && model.value.length >= props.max) return
-  if (model.value.some((x) => getItemKey(x) === getItemKey(item))) return
-  model.value = [...model.value, item]
-  searchTerm.value = ''
-  const input = inputTagsRef.value?.inputRef
-  if (input) {
-    input.value = ''
-    input.focus({ preventScroll: true })
-  }
-  dropdownOpen.value = true
-  activeIndex.value = 0
-}
 
 watchEffect((onCleanup) => {
   const el = inputTagsRef.value?.inputRef
@@ -147,7 +144,7 @@ watchEffect((onCleanup) => {
         selectableItems.value.length
       ) {
         const item = selectableItems.value[activeIndex.value]
-        if (item) selectItem(item)
+        if (item) onSelectItem(item)
       }
       return
     }
@@ -193,10 +190,10 @@ watchEffect((onCleanup) => {
       :add-on-blur="false"
       :add-on-tab="false"
       :add-on-paste="false"
-      :convert-value="convertByKeys"
-      :display-value="getItemLabel"
-      class="w-full"
+      :display-value="itemLabel"
+      :ui="ui"
       :size="size"
+      class="w-full"
     />
   </div>
   <UPopover
@@ -216,27 +213,27 @@ watchEffect((onCleanup) => {
       <span class="sr-only" aria-hidden="true" />
     </template>
     <template #content>
-      <div ref="panelRef" role="listbox">
-        <div v-if="status === 'pending'" class="text-muted p-3 text-sm">Loading…</div>
-        <div v-else-if="!selectableItems.length" class="text-muted p-3 text-sm">
-          No matching items
+      <div ref="panelRef" role="listbox" class="overflow-hidden">
+        <div v-if="status === 'pending'" class="absolute inset-x-0 top-0 px-1.5">
+          <UProgress size="sm" animation="swing" />
         </div>
-        <template v-else>
-          <button
-            v-for="(item, idx) in selectableItems"
-            :key="getItemKey(item)"
-            type="button"
-            role="option"
-            :aria-selected="idx === activeIndex"
-            class="flex w-full items-center rounded px-3 py-2 text-left text-sm hover:bg-elevated/50"
-            :class="idx === activeIndex ? 'bg-elevated/50' : ''"
-            @mousedown.prevent
-            @click="selectItem(item)"
-            @mouseenter="activeIndex = idx"
-          >
-            {{ getItemLabel(item) }}
-          </button>
-        </template>
+        <div v-if="!selectableItems.length" class="text-muted p-3 text-sm">{{ emptyMessage }}</div>
+        <UButton
+          v-for="(item, idx) in selectableItems"
+          :key="itemKey(item)"
+          :label="itemLabel(item)"
+          :class="idx === activeIndex ? 'bg-elevated/50' : ''"
+          :aria-selected="idx === activeIndex"
+          role="option"
+          type="button"
+          color="neutral"
+          class="w-full"
+          variant="ghost"
+          v-bind="getOptionProps(item, idx, idx === activeIndex)"
+          @mousedown.prevent
+          @click="onSelectItem(item)"
+          @mouseenter="activeIndex = idx"
+        />
       </div>
     </template>
   </UPopover>
