@@ -15,8 +15,8 @@ export default defineEventHandler(async (event) => {
   const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
 
   // filter by ids
-  const ids = getQueryId(query, 'id')
-  if (ids.length) where.id = { in: ids }
+  const id = getQueryId(query, 'id')
+  if (id) where.id = id
 
   // filter by search text
   const { contains } = getQueryQ(query)
@@ -33,15 +33,8 @@ export default defineEventHandler(async (event) => {
   if (desc) where.description = descMode === 'contains' ? { contains: desc } : desc
 
   // filter by role ids
-  const roleIds = getQueryId(query, 'roleIds')
-  if (roleIds.length)
-    where.rolePermissions = {
-      some: {
-        roleId: {
-          in: roleIds,
-        },
-      },
-    }
+  const roleId = getQueryId(query, 'roleIds')
+  if (roleId) where.rolePermissions = { some: { roleId } }
 
   // filter by dates
   whereDate(where, query, 'createdAt')

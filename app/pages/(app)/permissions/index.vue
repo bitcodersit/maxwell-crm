@@ -127,7 +127,7 @@ const filters: TFilter[] = [
     type: 'input',
     props: {
       label: 'ID',
-      placeholder: 'Search by id (eg 1 or 1,2,3)',
+      placeholder: 'eg 1 or 1,2,3 or 1-10',
     },
   },
   {
