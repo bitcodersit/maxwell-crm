@@ -9,9 +9,13 @@ const zUser = z.object({
 })
 
 export default defineEventHandler(async (event) => {
+  const { user: sessionUser } = await requireUserSession(event)
   const body = await readBody(event)
   const input = await validate(body, zUser)
   if (input.id) {
+    if (!can(sessionUser, ['update-any-users'])) {
+      throw err.denied()
+    }
     const data: Prisma.UserUpdateInput = {
       name: input.name,
       email: input.email,
@@ -46,6 +50,10 @@ export default defineEventHandler(async (event) => {
       },
     })
     return user
+  }
+
+  if (!can(sessionUser, ['create-any-users'])) {
+    throw err.denied()
   }
 
   const password = input.password ? await hashPassword(input.password) : undefined

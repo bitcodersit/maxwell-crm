@@ -1,106 +1,287 @@
 <script setup lang="ts">
-const { data: users, refresh } = useAsyncData('users', () => $fetch('/api/users'))
+import type { TColumn, TFilter, TField, TGetActions } from '@/components/base/BaseCrud.vue'
 
-const id = ref<number | null>(null)
-const name = ref('')
-const email = ref('')
-const password = ref('')
+const crudRef = useTemplateRef('crudRef')
+const UBadge = resolveComponent('UBadge')
 
-const createUser = () => {
-  $fetch('/api/users', {
-    method: 'POST',
-    body: {
-      id: id.value,
-      name: name.value,
-      email: email.value,
-      password: password.value,
+const fields: TField[] = [
+  {
+    name: 'name',
+    type: 'input',
+    label: 'Name',
+  },
+  {
+    name: 'email',
+    type: 'input',
+    label: 'Email',
+    props: {
+      type: 'email',
     },
-  }).then(() => {
-    refresh()
-    id.value = null
-    name.value = ''
-    email.value = ''
-    password.value = ''
-  })
+  },
+  {
+    name: 'password',
+    type: 'input',
+    label: 'Password',
+    props: {
+      type: 'password',
+      placeholder: 'Leave blank when updating to keep current password',
+    },
+  },
+  {
+    name: 'roles',
+    type: 'autocomplete',
+    label: 'Roles',
+    props: {
+      api: '/api/roles',
+      query: {
+        options: true,
+      },
+    },
+  },
+]
+
+const columns = computed<TColumn<TUser>[]>(() => [
+  {
+    id: 'select',
+    size: 48,
+  },
+  {
+    accessorKey: 'id',
+    header: 'ID',
+    pinned: 'left',
+    sortBy: 'id',
+    size: 48,
+  },
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    sortBy: 'name',
+    cell: ({ row }) =>
+      row.original.name.split('-').map((label) => {
+        return h(UBadge, {
+          label,
+          class: 'mr-1 capitalize',
+          variant: 'subtle',
+          color: ColorsMap[label] || 'neutral',
+        })
+      }),
+  },
+  {
+    accessorKey: 'email',
+    header: 'Email',
+    sortBy: 'email',
+    display: {
+      type: 'text',
+      class: 'min-w-48',
+      length: 36,
+    },
+    cell({ row }) {
+      return row.original.email || '—'
+    },
+  },
+  {
+    accessorKey: 'roles',
+    header: 'Roles',
+    display: {
+      type: 'array',
+      slice: 3,
+      class: 'flex flex-wrap -ml-1 -mt-1',
+    },
+    cell({ row, ...ctx }) {
+      if (!row.original.userRoles?.length) return '—'
+      return row.original.userRoles
+        .map((ur) => ur.role?.name)
+        .filter(Boolean)
+        .map((label) => {
+          const modal = (ctx as any).modal
+          return h(UBadge, {
+            label,
+            size: modal ? 'lg' : 'md',
+            class: modal ? 'ml-1 mt-1' : 'mr-1',
+            color: 'neutral',
+            variant: 'subtle',
+          })
+        })
+    },
+  },
+  {
+    accessorKey: 'name',
+    header: 'Slug',
+    sortBy: 'name',
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    sortBy: 'createdAt',
+    cell: ({ row }) => $dfc(row.original.createdAt),
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: 'Updated',
+    sortBy: 'updatedAt',
+    cell: ({ row }) => $dfc(row.original.updatedAt),
+  },
+  {
+    id: 'action',
+    pinned: 'right',
+  },
+])
+
+const filters: TFilter[] = [
+  {
+    name: 'id',
+    type: 'input',
+    props: {
+      label: 'ID',
+      placeholder: 'eg 1 or 1,2,3 or 1-10',
+    },
+  },
+  {
+    name: 'name',
+    type: 'input',
+    props: {
+      label: 'Name',
+      placeholder: 'Search by name',
+      modeable: true,
+    },
+  },
+  {
+    name: 'email',
+    type: 'input',
+    props: {
+      label: 'Email',
+      placeholder: 'Search by email',
+      modeable: true,
+    },
+  },
+  {
+    name: 'roleIds',
+    type: 'checkbox-api',
+    props: {
+      label: 'Roles',
+      api: '/api/roles',
+      query: {
+        options: true,
+      },
+    },
+  },
+  {
+    name: 'createdAt',
+    type: 'date',
+    props: {
+      label: 'Created',
+    },
+  },
+  {
+    name: 'updatedAt',
+    type: 'date',
+    props: {
+      label: 'Updated',
+    },
+  },
+]
+
+const formModal = {
+  create: {
+    title: 'Add New User',
+    description: 'Create a user account',
+  },
+  update: {
+    title: 'Update User',
+    description: 'Update user details',
+  },
 }
 
-const openEditUser = (user: any) => {
-  id.value = user.id
-  name.value = user.name
-  email.value = user.email
-  password.value = user.password
-}
+const getActions: TGetActions<TUser> = (item, v) => [
+  [
+    {
+      ...actions.view,
+      hidden: v?.view,
+      onSelect() {
+        crudRef.value?.onView(item, {
+          modal: {
+            ui: {
+              content: 'max-w-2xl',
+            },
+          },
+        })
+      },
+    },
+    {
+      ...actions.update,
+      onSelect() {
+        crudRef.value?.onUpdate(item)
+      },
+    },
+  ].filter((action: any) => !action.hidden),
+  [
+    {
+      ...actions.delete,
+      onSelect() {
+        crudRef.value?.onDelete(`/api/users/${item.id}`)
+      },
+    },
+  ],
+]
 
-const deleteUser = (id: number) => {
-  if (confirm('Are you sure you want to delete this user?')) {
-    $fetch(`/api/users/${id}`, {
-      method: 'DELETE',
-    }).then(() => {
-      refresh()
-    })
+const getFormState = (v?: TUser) => ({
+  id: v?.id,
+  name: v?.name ?? '',
+  email: v?.email ?? '',
+  password: '',
+  roles: v?.userRoles?.map((ur) => ur.role).filter(Boolean) ?? [],
+})
+
+const getPostBody = (v: Record<string, any>) => {
+  const body: Record<string, unknown> = {
+    id: v.id,
+    name: v.name,
+    email: v.email,
+    roleIds: (v.roles ?? []).map((r: any) => r.id),
   }
+  const pwd = typeof v.password === 'string' ? v.password.trim() : ''
+  if (pwd) body.password = pwd
+  return body
+}
+
+const onDeleteSelected = () => {
+  crudRef.value?.onDeleteSelected((rows) => {
+    return `/api/users/${rows.map((x) => x.id).join(',')}`
+  })
 }
 </script>
 
 <template>
-  <div class="p-4">
-    <form @submit.prevent="createUser" class="flex gap-2">
-      <input
-        type="text"
-        v-model="name"
-        name="name"
-        placeholder="Name"
-        class="border rounded-md p-2 dark:bg-neutral-800"
-      />
-      <input
-        type="email"
-        v-model="email"
-        name="email"
-        placeholder="Email"
-        class="border rounded-md p-2 dark:bg-neutral-800"
-      />
-      <input
-        type="password"
-        v-model="password"
-        name="password"
-        placeholder="Password"
-        class="border rounded-md p-2 dark:bg-neutral-800"
-      />
-      <button type="submit" class="bg-blue-500 text-white px-4 rounded-md">
-        {{ id ? 'Update User' : 'Create User' }}
-      </button>
-    </form>
-
-    <div class="mt-4">
-      <table class="w-full border-collapse border border-neutral-200 dark:border-neutral-800">
-        <thead>
-          <tr>
-            <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">Name</th>
-            <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">Email</th>
-            <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="user in users"
-            :key="user.id"
-            class="border border-neutral-200 dark:border-neutral-800"
-          >
-            <td class="border border-neutral-200 dark:border-neutral-800 p-2">{{ user.name }}</td>
-            <td class="border border-neutral-200 dark:border-neutral-800 p-2">
-              {{ user.email }}
-            </td>
-            <td class="border border-neutral-200 dark:border-neutral-800 p-2 flex gap-2">
-              <button @click="openEditUser(user)" class="bg-blue-500 text-white px-2 rounded-md">
-                Edit
-              </button>
-              <button @click="deleteUser(user.id)" class="bg-red-500 text-white px-2 rounded-md">
-                Delete
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <BaseCrud
+    ref="crudRef"
+    get-url="/api/users"
+    post-url="/api/users"
+    export-url="/api/users/export"
+    persist-key="users"
+    :fields="fields"
+    :columns="columns"
+    :filters="filters"
+    :form-modal="formModal"
+    :date-fields="['createdAt', 'updatedAt']"
+    :get-actions="getActions"
+    :get-post-body="getPostBody"
+    :get-form-state="getFormState"
+  >
+    <template #bulk-actions="{ count }">
+      <UButton
+        label="Delete"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-trash"
+        :ui="{ leadingIcon: 'size-4' }"
+        @click="onDeleteSelected"
+      >
+        <template #trailing>
+          <UKbd>
+            {{ count }}
+          </UKbd>
+        </template>
+      </UButton>
+    </template>
+  </BaseCrud>
 </template>

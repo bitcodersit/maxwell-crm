@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['delete-any-users'])) {
+  if (!can(user, ['delete-any-roles'])) {
     throw err.denied()
   }
   const id = getRouterParam(event, 'id')
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
     .filter((n) => !Number.isNaN(n))
   if (!ids.length) throw err.notFound()
   try {
-    const data = await prisma.user.deleteMany({
+    const data = await prisma.role.deleteMany({
       where: {
         id: {
           in: ids,
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
       },
     })
     return {
-      message: 'User deleted successfully',
+      message: 'Role deleted successfully',
       data,
     }
   } catch (error: any) {

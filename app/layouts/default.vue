@@ -24,7 +24,7 @@ const links = computed(() => {
         label: 'Users',
         icon: 'i-lucide-users',
         to: '/users',
-        visible: can(user.value, ['read-any-users', 'read-own-users']),
+        visible: can(user.value, ['read-any-users']),
         onSelect: () => {
           open.value = false
         },
@@ -33,7 +33,7 @@ const links = computed(() => {
         label: 'Roles',
         icon: 'i-lucide-list-todo',
         to: '/roles',
-        visible: can(user.value, ['read-any-roles', 'read-own-roles']),
+        visible: can(user.value, ['read-any-roles']),
         onSelect: () => {
           open.value = false
         },
