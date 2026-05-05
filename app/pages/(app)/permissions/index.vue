@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TColumn, TFilter, TField, TQuery, TGetActions } from '@/components/base/BaseCrud.vue'
+import type { TColumn, TFilter, TField, TGetActions } from '@/components/base/BaseCrud.vue'
 import { format } from 'date-fns'
 
 const crudRef = useTemplateRef('crudRef')
