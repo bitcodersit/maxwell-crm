@@ -188,22 +188,7 @@ const formModal = {
 
 const persist = {
   key: 'permissions',
-  parse: (v: string) => {
-    const data = JSON.parse(v)
-    return {
-      ...data,
-      ...calendarFormatDates(data, ['createdAt', 'updatedAt'], {
-        returnType: 'dateValue',
-      }),
-    }
-  },
-  stringify: (v: TQuery) => {
-    return JSON.stringify(
-      calendarFormatDates(v, ['createdAt', 'updatedAt'], {
-        returnType: 'storage',
-      })
-    )
-  },
+  dateFields: ['createdAt', 'updatedAt'],
 }
 
 const getQuery = (query: TQuery) => {
@@ -215,8 +200,7 @@ const getQuery = (query: TQuery) => {
 const getActions: TGetActions<TPermission> = (item, v) => [
   [
     {
-      label: 'View Details',
-      icon: 'i-lucide-eye',
+      ...actions.view,
       hidden: v?.view,
       onSelect() {
         crudRef.value?.onView(item, {
@@ -229,18 +213,15 @@ const getActions: TGetActions<TPermission> = (item, v) => [
       },
     },
     {
-      label: 'Update',
-      icon: 'i-lucide-pencil',
+      ...actions.update,
       onSelect() {
         crudRef.value?.onUpdate(item)
       },
     },
-  ].filter((v) => !v.hidden),
+  ].filter((v: any) => !v.hidden),
   [
     {
-      label: 'Delete',
-      icon: 'i-lucide-trash',
-      color: 'error',
+      ...actions.delete,
       onSelect() {
         crudRef.value?.onDelete(`/api/permissions/${item.id}`)
       },
@@ -277,12 +258,12 @@ const onDeleteSelected = () => {
     :fields="fields"
     :columns="columns"
     :filters="filters"
+    :persist="persist"
     :form-modal="formModal"
     :get-query="getQuery"
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
-    :persist="persist"
   >
     <template #bulk-actions="{ count }">
       <UButton

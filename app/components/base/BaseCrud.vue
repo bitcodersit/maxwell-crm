@@ -86,8 +86,9 @@ const props = withDefaults(
     }
     persist?: {
       key: string
-      parse?: (v: string) => TQuery
-      stringify?: (v: TQuery) => string
+      dateFields?: string[]
+      // parse?: (v: string) => TQuery
+      // stringify?: (v: TQuery) => string
     }
     getQuery?: (query: TQuery) => TQuery
     getActions?: TGetActions<T>
@@ -127,23 +128,30 @@ const initialQuery = {
 
 const getPersisted = <T>(
   key: string,
-  parser: (v: string | undefined, parse: (v: string) => T) => T
+  parser: (v: TMaybe<string>, parse: (value: string, initial?: T) => T) => T
 ) => {
-  const parse = typeof persist.value?.parse === 'function' ? persist.value.parse : JSON.parse
+  const parse = <T>(value: string, initial?: T) => {
+    try {
+      const parsed = JSON.parse(value)
+      return {
+        ...parsed,
+        ...calendarFormatDates(parsed, persist.value?.dateFields ?? [], {
+          returnType: 'dateValue',
+        }),
+      }
+    } catch {}
+    return { ...initial }
+  }
   if (typeof window !== 'undefined' && persist.value?.key) {
     const stored = localStorage.getItem(`${persist.value.key}:${key}`)
-    if (stored)
-      return parser(
-        stored,
-        typeof persist.value.parse === 'function' ? persist.value.parse : JSON.parse
-      )
+    return parser(stored, parse)
   }
   return parser(undefined, parse)
 }
 
 const query = ref(
   getPersisted<TQuery>('query', (v, parse) => {
-    return v ? parse(v) : { ...initialQuery }
+    return v ? parse(v, initialQuery) : { ...initialQuery }
   })
 )
 
@@ -393,7 +401,11 @@ watch(
     if (!persist.value?.key) return
     localStorage.setItem(
       `${persist.value.key}:query`,
-      typeof persist.value.stringify === 'function' ? persist.value.stringify(v) : JSON.stringify(v)
+      JSON.stringify(
+        calendarFormatDates(v, persist.value?.dateFields ?? [], {
+          returnType: 'storage',
+        })
+      )
     )
   },
   { deep: true }
