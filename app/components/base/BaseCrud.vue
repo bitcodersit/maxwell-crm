@@ -69,6 +69,7 @@ const props = withDefaults(
     columns?: TColumn<T>[]
     postUrl?: string
     formItem?: Record<string, any>
+    exportUrl?: string
     formClass?: string
     staleTime?: number
     persistKey?: string
@@ -105,8 +106,17 @@ const props = withDefaults(
   }
 )
 
-const { getUrl, columns, postUrl, persistKey, dateFields, getPostBody, getFormState, staleTime } =
-  toRefs(props)
+const {
+  getUrl,
+  columns,
+  postUrl,
+  exportUrl,
+  staleTime,
+  dateFields,
+  persistKey,
+  getPostBody,
+  getFormState,
+} = toRefs(props)
 
 const def = toPaginated<T>()
 const table = useTemplateRef('table')
@@ -156,16 +166,18 @@ const nuxtApp = useNuxtApp()
 const refreshKey = ref(0)
 const key = computed(() => `${getUrl.value}:${refreshKey.value}:${JSON.stringify(query.value)}`)
 
+const fetchQuery = computed(() => {
+  return calendarFormatDates(query.value, dateFields.value, {
+    formatStr: 'yyyy-MM-dd',
+  })
+})
+
 const { data, status } = useFetch<TPaginated<T>>(getUrl, {
   key,
   lazy: true,
   server: false,
+  query: fetchQuery,
   default: () => def,
-  query: computed(() => {
-    return calendarFormatDates(query.value, dateFields.value, {
-      formatStr: 'yyyy-MM-dd',
-    })
-  }),
   getCachedData(key) {
     const data = nuxtApp.payload.data[key]
     if (!data || Date.now() - data.fetchedAt > staleTime.value) return
@@ -380,8 +392,16 @@ const onDelete = async (url: string) => {
   }
 }
 
+const getSelectedRows = () => {
+  return table.value?.tableApi?.getFilteredSelectedRowModel().rows ?? []
+}
+
+const getSelectedRowItems = () => {
+  return getSelectedRows().map((row) => row.original)
+}
+
 const onDeleteSelected = (getUrl: (items: T[]) => string) => {
-  const items = table.value?.tableApi?.getFilteredSelectedRowModel().rows.map((row) => row.original)
+  const items = getSelectedRowItems()
   if (!items?.length) return
   onDelete(getUrl(items))
 }
@@ -446,12 +466,48 @@ defineExpose({
   onDelete,
   onDeleteSelected,
 })
+
+// Export
+const exportOpen = ref(false)
+const exportState = ref({
+  format: 'excel',
+  selection: 'all',
+})
+
+const { exporting, execute: onExport } = useExport()
+const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>) => {
+  if (!exportUrl.value) return console.error('Export URL is not set')
+  if (
+    exportState.value.selection === 'selected' &&
+    !table.value?.tableApi?.getFilteredSelectedRowModel().rows.length
+  ) {
+    toast.add({
+      color: 'error',
+      title: 'Error! 😭',
+      description: 'No selected rows',
+    })
+    return
+  }
+  await onExport(exportUrl.value, {
+    ...fetchQuery.value,
+    ...exportState.value,
+    ...(exportState.value.selection === 'selected'
+      ? {
+          id: getSelectedRowItems()
+            .map((item: any) => item.id)
+            .join(','),
+        }
+      : {}),
+  })
+  exportOpen.value = false
+}
+//
 </script>
 
 <template>
   <ClientOnly>
-    <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-2">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap">
         <template v-for="row in filters" :key="row.name">
           <BaseInputFilter
             v-if="row.type === 'input'"
@@ -505,7 +561,7 @@ defineExpose({
           </UButton>
         </UTooltip>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <template v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length">
           <UTooltip text="Clear selection">
             <UButton
@@ -526,6 +582,62 @@ defineExpose({
             }"
           />
         </template>
+        <UPopover
+          v-if="exportUrl"
+          v-model:open="exportOpen"
+          :ui="{ content: 'p-4 max-w-sm w-full' }"
+          :content="{ align: 'end', side: 'bottom' }"
+        >
+          <UTooltip text="Export">
+            <UButton icon="i-lucide-download" color="primary" variant="solid" label="Export" />
+          </UTooltip>
+          <template #content>
+            <UForm
+              :state="exportState"
+              :loading="exporting"
+              class="flex flex-col gap-4"
+              @submit="onSubmitExport"
+            >
+              <UFormField label="Selection">
+                <URadioGroup
+                  v-model="exportState.selection"
+                  variant="table"
+                  orientation="horizontal"
+                  :items="[
+                    {
+                      label: 'All',
+                      value: 'all',
+                    },
+                    {
+                      label: 'Selected',
+                      value: 'selected',
+                    },
+                    {
+                      label: 'Current Page',
+                      value: 'current-page',
+                    },
+                  ]"
+                />
+              </UFormField>
+              <UFormField label="Format">
+                <URadioGroup
+                  v-model="exportState.format"
+                  variant="table"
+                  orientation="horizontal"
+                  :items="[
+                    { label: 'Excel', value: 'excel' },
+                    { label: 'CSV', value: 'csv' },
+                  ]"
+                />
+              </UFormField>
+              <div class="flex justify-end">
+                <UButton type="submit" icon="i-lucide-download" :loading="exporting">
+                  Export
+                </UButton>
+              </div>
+            </UForm>
+          </template>
+        </UPopover>
         <UTooltip text="Add new item">
           <UButton icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
             Add New

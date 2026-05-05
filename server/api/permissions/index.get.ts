@@ -1,12 +1,13 @@
+import type { H3Event } from 'h3'
 import { Prisma } from '~~/prisma/client/client'
 
-export default defineEventHandler(async (event) => {
+export const getPermissions = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['read-any-permissions'])) {
-    throw err.denied()
+    return {
+      error: err.denied(),
+    }
   }
-
-  const query = getQuery(event)
 
   const { take, skip, paginate } = getPagination(query)
   const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
@@ -77,5 +78,13 @@ export default defineEventHandler(async (event) => {
     }),
   ])
 
-  return paginate(permissions, total)
+  return {
+    data: paginate(permissions, total),
+  }
+}
+
+export default defineEventHandler(async (event) => {
+  const { error, data } = await getPermissions(event)
+  if (error) throw error
+  return data
 })

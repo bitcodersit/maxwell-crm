@@ -244,6 +244,7 @@ const onDeleteSelected = () => {
     ref="crudRef"
     get-url="/api/permissions"
     post-url="/api/permissions"
+    export-url="/api/permissions/export"
     persist-key="permissions"
     :fields="fields"
     :columns="columns"
