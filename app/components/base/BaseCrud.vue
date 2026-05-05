@@ -1,3 +1,21 @@
+<script context="module" lang="ts">
+type TTextDisplay = {
+  type: 'text'
+  class: string
+  length: number
+}
+
+type TArrayDisplay = {
+  type: 'array'
+  slice: number
+  class?: string
+}
+
+type TDisplay = TTextDisplay | TArrayDisplay
+type TFormState = Record<string, any>
+//
+</script>
+
 <script setup lang="ts" generic="T extends object">
 import type {
   TableData,
@@ -16,6 +34,7 @@ import type { TCheckboxFilterApiProps } from './BaseCheckboxFilterApi.vue'
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
   sortBy?: string
+  display?: TDisplay
 }
 
 export type TFilter = { name: string } & (
@@ -37,8 +56,6 @@ export type TQuery = {
   orderBy: Record<string, 'asc' | 'desc'>
   [key: string]: any
 }
-
-type TFormState = Record<string, any>
 
 const props = withDefaults(
   defineProps<{
@@ -136,7 +153,7 @@ const nuxtApp = useNuxtApp()
 const refreshKey = ref(0)
 const key = computed(() => `${getUrl.value}:${refreshKey.value}:${JSON.stringify(query.value)}`)
 
-const { data, status, refresh } = useFetch<TPaginated<T>>(getUrl, {
+const { data, status } = useFetch<TPaginated<T>>(getUrl, {
   key,
   query: computed(() => getQuery.value(query.value)),
   lazy: true,
@@ -156,10 +173,65 @@ const { data, status, refresh } = useFetch<TPaginated<T>>(getUrl, {
 })
 
 const UButton = resolveComponent('UButton')
+const infoModal = useInfoModal()
+
 const mColumns = computed<TableColumn<T>[]>(() => {
-  return columns.value.map(({ pinned, sortBy, header, ...item }) => {
+  return columns.value.map(({ pinned, cell, sortBy, header, display, ...item }) => {
     return {
       ...item,
+      cell: display
+        ? (ctx) => {
+            const getValue = (v?: any) => {
+              return typeof cell === 'function' ? cell({ ...ctx, ...v }) : cell
+            }
+            if (display.type === 'text') {
+              const text = getValue()
+              if (typeof text !== 'string' || !text) return text
+              return h('div', { class: ['flex items-center', display.class] }, [
+                h('div', { class: 'truncate' }, text),
+                text.length > display.length
+                  ? h(UButton, {
+                      size: 'xs',
+                      color: 'primary',
+                      label: 'more',
+                      variant: 'link',
+                      class: 'px-0',
+                      onClick() {
+                        infoModal.open({
+                          title: String(header),
+                          body: text,
+                        })
+                      },
+                    })
+                  : null,
+              ])
+            }
+            if (display.type === 'array') {
+              const items = getValue()
+              if (!Array.isArray(items) || !items.length) return items
+              const visible = items.slice(0, display.slice)
+              const hidden = items.length - visible.length
+              return h('div', { class: 'flex items-center' }, [
+                ...visible,
+                hidden > 0
+                  ? h(UButton, {
+                      size: 'xs',
+                      class: 'px-0',
+                      color: 'primary',
+                      variant: 'link',
+                      label: `+${hidden} more`,
+                      onClick() {
+                        infoModal.open({
+                          title: String(header),
+                          body: h('div', { class: display.class }, getValue({ modal: true })),
+                        })
+                      },
+                    })
+                  : null,
+              ])
+            }
+          }
+        : cell,
       header({ column, ...rest }) {
         if (pinned && !column.getIsPinned()) {
           column.pin(pinned)
@@ -255,7 +327,7 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
       })
       formOpen.value = false
       selected.value = {}
-      refresh()
+      refreshKey.value++
     })
     .catch((e) => {
       const { message, errors } = parseError(e)
@@ -280,7 +352,7 @@ const onDelete = async (url: string) => {
           title: 'Success! 🎉',
           description: 'Item deleted successfully',
         })
-        refresh()
+        refreshKey.value++
       })
       .catch((e) => {
         const { message } = parseError(e)
@@ -420,52 +492,56 @@ defineExpose({
         </UTooltip>
       </div>
     </div>
-    <UTable
-      ref="table"
-      v-model:row-selection="selected"
-      :data="data.data"
-      :sticky="sticky"
-      :columns="mColumns"
-      :loading="status === 'pending'"
-      :ui="{
-        base: 'table-fixed border-separate border-spacing-0',
-        thead: '[&>tr]:after:content-none',
-        tbody: '[&>tr]:last:[&>td]:border-b-0',
-        th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-        td: 'border-b border-default',
-        separator: 'h-0',
-      }"
-    >
-      <template #select-header="{ column, table }">
-        <div class="pr-4">
+    <div class="overflow-auto max-w-full">
+      <UTable
+        ref="table"
+        v-model:row-selection="selected"
+        :data="data.data"
+        :sticky="sticky"
+        :columns="mColumns"
+        :loading="status === 'pending'"
+        :ui="{
+          base: 'table-fixed border-separate border-spacing-0',
+          thead: '[&>tr]:after:content-none',
+          tbody: '[&>tr]:last:[&>td]:border-b-0',
+          th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
+          td: 'border-b border-default',
+          separator: 'h-0',
+        }"
+      >
+        <template #select-header="{ column, table }">
+          <div class="pr-4">
+            <UCheckbox
+              :model-value="
+                table.getIsSomePageRowsSelected()
+                  ? 'indeterminate'
+                  : table.getIsAllPageRowsSelected()
+              "
+              aria-label="Select all"
+              @update:model-value="(v) => table.toggleAllPageRowsSelected(!!v)"
+            />
+          </div>
+          {{ !column.getIsPinned() ? column.pin('left') : '' }}
+        </template>
+        <template #select-cell="{ row }">
           <UCheckbox
-            :model-value="
-              table.getIsSomePageRowsSelected() ? 'indeterminate' : table.getIsAllPageRowsSelected()
-            "
-            aria-label="Select all"
-            @update:model-value="(v) => table.toggleAllPageRowsSelected(!!v)"
+            :model-value="row.getIsSelected()"
+            aria-label="Select row"
+            @update:model-value="(v) => row.toggleSelected(!!v)"
           />
-        </div>
-        {{ !column.getIsPinned() ? column.pin('left') : '' }}
-      </template>
-      <template #select-cell="{ row }">
-        <UCheckbox
-          :model-value="row.getIsSelected()"
-          aria-label="Select row"
-          @update:model-value="(v) => row.toggleSelected(!!v)"
-        />
-      </template>
-      <template #action-cell="{ row }">
-        <UDropdownMenu :items="getActions(row.original)">
-          <UButton
-            icon="i-lucide-ellipsis-vertical"
-            color="neutral"
-            variant="ghost"
-            aria-label="Actions"
-          />
-        </UDropdownMenu>
-      </template>
-    </UTable>
+        </template>
+        <template #action-cell="{ row }">
+          <UDropdownMenu :items="getActions(row.original)">
+            <UButton
+              icon="i-lucide-ellipsis-vertical"
+              color="neutral"
+              variant="ghost"
+              aria-label="Actions"
+            />
+          </UDropdownMenu>
+        </template>
+      </UTable>
+    </div>
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
       <div
         v-if="

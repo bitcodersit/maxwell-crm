@@ -59,18 +59,28 @@ const columns = computed<TColumn<TPermission>[]>(() => [
   {
     accessorKey: 'roles',
     header: 'Roles',
-    cell: ({ row }) =>
-      row.original.rolePermissions
-        ?.map((rp) => rp.role?.name)
+    display: {
+      type: 'array',
+      slice: 3,
+      class: 'flex flex-wrap -ml-1 -mt-1',
+    },
+    cell({ row, ...ctx }) {
+      if (!row.original.rolePermissions) return '-'
+      if (!row.original.rolePermissions.length) return '-'
+      return row.original.rolePermissions
+        .map((rp) => rp.role?.name)
         .filter(Boolean)
-        .map((name) =>
-          h(UBadge, {
-            class: 'mr-1',
+        .map((label) => {
+          const modal = (ctx as any).modal
+          return h(UBadge, {
+            class: modal ? 'ml-1 mt-1' : 'mr-1',
+            size: modal ? 'lg' : 'md',
             color: 'neutral',
             variant: 'subtle',
-            label: name,
+            label,
           })
-        ) || '—',
+        })
+    },
   },
   {
     accessorKey: 'name',
@@ -81,7 +91,14 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     accessorKey: 'description',
     header: 'Description',
     sortBy: 'description',
-    cell: ({ row }) => row.original.description || '—',
+    display: {
+      type: 'text',
+      class: 'w-64',
+      length: 40,
+    },
+    cell({ row }) {
+      return row.original.description || '—'
+    },
   },
   {
     accessorKey: 'createdAt',
