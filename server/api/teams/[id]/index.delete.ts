@@ -14,8 +14,8 @@ export default defineEventHandler(async (event) => {
       throw err.notFound()
     }
 
-    const canDeleteAny = can(user, ['delete-any-team'])
-    const canDeleteOwn = can(user, ['delete-own-team'])
+    const canDeleteAny = can(user, ['delete-any-teams'])
+    const canDeleteOwn = can(user, ['delete-own-teams'])
 
     if (!canDeleteAny && !canDeleteOwn) {
       throw err.denied()

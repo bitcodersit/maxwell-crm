@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['read-any-user'])) {
+  if (!can(user, ['read-any-users'])) {
     throw err.denied()
   }
 

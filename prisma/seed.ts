@@ -2,9 +2,6 @@ import 'dotenv/config'
 
 import { PrismaClient } from './client/client'
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
-import { hashPassword } from 'nuxt-auth-utils/runtime/server/utils/password'
-
-const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
 
 const prisma = new PrismaClient({
   adapter: new PrismaMariaDb({
@@ -31,15 +28,14 @@ async function main() {
     })
   }
 
-  const operations = ['create', 'read', 'update', 'delete']
-  const modules = ['user', 'role', 'permission', 'team']
+  const operations = ['create', 'read', 'update', 'delete', 'export']
+  const modules = ['users', 'roles', 'permissions', 'teams', 'attachments']
   const subjects = ['any', 'own']
 
   const permissionsData = operations.flatMap((operation) =>
     modules.flatMap((module) =>
       subjects.map((subject) => ({
-        slug: `${operation}-${subject}-${module}`,
-        name: capitalize(`${operation} ${subject} ${module}`),
+        name: `${operation}-${subject}-${module}`,
       }))
     )
   )
@@ -48,7 +44,7 @@ async function main() {
     permissionsData.map((permission) =>
       prisma.permission.upsert({
         where: {
-          slug: permission.slug,
+          name: permission.name,
         },
         update: {},
         create: permission,
@@ -79,6 +75,28 @@ async function main() {
         })
       )
     )
+  }
+
+  const superAdminEmail = process.env.NUXT_SUPER_ADMIN_EMAIL
+  const superAdminPassword = process.env.NUXT_SUPER_ADMIN_PASSWORD
+
+  if (superAdminEmail && superAdminPassword) {
+    await prisma.user.upsert({
+      where: {
+        email: superAdminEmail,
+      },
+      update: {},
+      create: {
+        name: 'Super Admin',
+        email: superAdminEmail,
+        password: superAdminPassword,
+        userRoles: {
+          create: {
+            roleId: superAdminRole.id,
+          },
+        },
+      },
+    })
   }
 }
 main()

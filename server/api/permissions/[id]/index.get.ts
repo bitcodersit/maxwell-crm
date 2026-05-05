@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['read-any-permission'])) {
+  if (!can(user, ['read-any-permissions'])) {
     throw err.denied()
   }
   const id = getRouterParam(event, 'id')

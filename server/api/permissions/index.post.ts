@@ -1,7 +1,6 @@
 const zPermission = z.object({
   id: z.number().optional(),
-  name: z.string().min(1),
-  slug: z.string().min(1),
+  name: z.string().min(1, 'Name is required!'),
   description: z.string().nullish(),
   roleIds: z.array(z.number()).nullish(),
 })
@@ -14,7 +13,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     if (input.id) {
-      if (!can(user, ['update-any-permission'])) {
+      if (!can(user, ['update-any-permissions'])) {
         throw err.denied()
       }
       return await prisma.permission.update({
@@ -23,7 +22,6 @@ export default defineEventHandler(async (event) => {
         },
         data: {
           name: input.name,
-          slug: input.slug,
           description: input.description,
           rolePermissions: input.roleIds
             ? {
@@ -48,13 +46,12 @@ export default defineEventHandler(async (event) => {
         },
       })
     }
-    if (!can(user, ['create-any-permission'])) {
+    if (!can(user, ['create-any-permissions'])) {
       throw err.denied()
     }
     return await prisma.permission.create({
       data: {
         name: input.name,
-        slug: input.slug,
         description: input.description,
         rolePermissions: {
           createMany: {
@@ -73,17 +70,10 @@ export default defineEventHandler(async (event) => {
   } catch (error: any) {
     const message = error.message
     if (message.includes('not found')) throw err.notFound()
-    if (message.includes('permissions_slug_key')) {
-      throw err.unprocessable({
-        slug: {
-          errors: ['Slug must be unique'],
-        },
-      })
-    }
     if (message.includes('permissions_name_key')) {
       throw err.unprocessable({
-        slug: {
-          errors: ['Name must be unique'],
+        name: {
+          errors: ['Name is already taken, please try a different name'],
         },
       })
     }

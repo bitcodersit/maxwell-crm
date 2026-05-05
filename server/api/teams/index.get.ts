@@ -1,7 +1,7 @@
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
 
-  if (!can(user, ['read-any-team', 'read-own-team'])) {
+  if (!can(user, ['read-any-teams', 'read-own-teams'])) {
     throw err.denied()
   }
 
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     deletedAt: null,
   }
 
-  const where = can(user, ['read-any-team'])
+  const where = can(user, ['read-any-teams'])
     ? search
     : {
         AND: [{ members: { some: { userId: user.id } } }, search],

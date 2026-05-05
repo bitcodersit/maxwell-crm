@@ -1,8 +1,33 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui'
-import type { TColumn, TFilter } from '@/components/base/BaseCrud.vue'
+import type { TColumn, TFilter, TField, TQuery, TGetActions } from '@/components/base/BaseCrud.vue'
+import { format } from 'date-fns'
 
+const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
+
+const fields: TField[] = [
+  {
+    name: 'name',
+    type: 'input',
+    label: 'Name',
+  },
+  {
+    name: 'roles',
+    type: 'autocomplete',
+    label: 'Roles',
+    props: {
+      api: '/api/roles',
+      query: {
+        options: true,
+      },
+    },
+  },
+  {
+    name: 'description',
+    type: 'textarea',
+    label: 'Description',
+  },
+]
 
 const columns = computed<TColumn<TPermission>[]>(() => [
   {
@@ -20,33 +45,75 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     accessorKey: 'name',
     header: 'Name',
     sortBy: 'name',
+    cell: ({ row }) =>
+      row.original.name.split('-').map((label) => {
+        return h(UBadge, {
+          label,
+          class: 'mr-1 capitalize',
+          variant: 'subtle',
+          color: ColorsMap[label] || 'neutral',
+        })
+      }),
   },
   {
-    accessorKey: 'slug',
+    accessorKey: 'roles',
+    header: 'Roles',
+    display: {
+      type: 'array',
+      slice: 3,
+      class: 'flex flex-wrap -ml-1 -mt-1',
+    },
+    cell({ row, ...ctx }) {
+      if (!row.original.rolePermissions) return '—'
+      if (!row.original.rolePermissions.length) return '—'
+      return row.original.rolePermissions
+        .map((rp) => rp.role?.name)
+        .filter(Boolean)
+        .map((label) => {
+          const modal = (ctx as any).modal
+          return h(UBadge, {
+            label,
+            size: modal ? 'lg' : 'md',
+            class: modal ? 'ml-1 mt-1' : 'mr-1',
+            color: 'neutral',
+            variant: 'subtle',
+          })
+        })
+    },
+  },
+  {
+    accessorKey: 'name',
     header: 'Slug',
-    sortBy: 'slug',
+    sortBy: 'name',
   },
   {
     accessorKey: 'description',
     header: 'Description',
     sortBy: 'description',
-    cell: ({ row }) => row.original.description || '—',
+    display: {
+      type: 'text',
+      class: 'w-64',
+      length: 40,
+    },
+    cell({ row }) {
+      return row.original.description || '—'
+    },
   },
   {
-    accessorKey: 'roles',
-    header: 'Roles',
-    cell: ({ row }) =>
-      row.original.rolePermissions
-        ?.map((rp) => rp.role?.name)
-        .filter(Boolean)
-        .map((name) =>
-          h(UBadge, {
-            class: 'mr-1',
-            color: 'neutral',
-            variant: 'subtle',
-            label: name,
-          })
-        ) || '—',
+    accessorKey: 'createdAt',
+    header: 'Created',
+    sortBy: 'createdAt',
+    cell: ({ row }) => {
+      return format(new Date(row.original.createdAt), 'MMM d, yyyy h:mm a')
+    },
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: 'Updated',
+    sortBy: 'updatedAt',
+    cell: ({ row }) => {
+      return format(new Date(row.original.updatedAt), 'MMM d, yyyy h:mm a')
+    },
   },
   {
     id: 'action',
@@ -54,72 +121,184 @@ const columns = computed<TColumn<TPermission>[]>(() => [
   },
 ])
 
-const actions = (item: TPermission): DropdownMenuItem[][] => [
+const filters: TFilter[] = [
+  {
+    name: 'id',
+    type: 'input',
+    props: {
+      label: 'ID',
+      placeholder: 'eg 1 or 1,2,3 or 1-10',
+    },
+  },
+  {
+    name: 'name',
+    type: 'input',
+    props: {
+      label: 'Name',
+      placeholder: 'Search by name',
+      modeable: true,
+    },
+  },
+  {
+    name: 'description',
+    type: 'input',
+    props: {
+      label: 'Description',
+      placeholder: 'Search by description',
+      modeable: true,
+    },
+  },
+  {
+    name: 'roleIds',
+    type: 'checkbox-api',
+    props: {
+      label: 'Roles',
+      api: '/api/roles',
+      query: {
+        options: true,
+      },
+    },
+  },
+  {
+    name: 'createdAt',
+    type: 'date',
+    props: {
+      label: 'Created',
+    },
+  },
+  {
+    name: 'updatedAt',
+    type: 'date',
+    props: {
+      label: 'Updated',
+    },
+  },
+]
+
+const formModal = {
+  create: {
+    title: 'Add New Permission',
+    description: 'Add a new permission to the system',
+  },
+  update: {
+    title: 'Update Permission',
+    description: 'Update the permission',
+  },
+}
+
+const persist = {
+  key: 'permissions',
+  parse: (v: string) => {
+    const data = JSON.parse(v)
+    return {
+      ...data,
+      ...calendarFormatDates(data, ['createdAt', 'updatedAt'], {
+        returnType: 'dateValue',
+      }),
+    }
+  },
+  stringify: (v: TQuery) => {
+    return JSON.stringify(
+      calendarFormatDates(v, ['createdAt', 'updatedAt'], {
+        returnType: 'storage',
+      })
+    )
+  },
+}
+
+const getQuery = (query: TQuery) => {
+  return calendarFormatDates(query, ['createdAt', 'updatedAt'], {
+    formatStr: 'yyyy-MM-dd',
+  })
+}
+
+const getActions: TGetActions<TPermission> = (item, v) => [
   [
     {
-      label: 'View',
+      label: 'View Details',
       icon: 'i-lucide-eye',
+      hidden: v?.view,
       onSelect() {
-        console.log('view', item)
+        crudRef.value?.onView(item, {
+          modal: {
+            ui: {
+              content: 'max-w-2xl',
+            },
+          },
+        })
       },
     },
     {
       label: 'Update',
       icon: 'i-lucide-pencil',
       onSelect() {
-        console.log('update', item)
+        crudRef.value?.onUpdate(item)
       },
     },
-  ],
+  ].filter((v) => !v.hidden),
   [
     {
       label: 'Delete',
       icon: 'i-lucide-trash',
       color: 'error',
       onSelect() {
-        console.log('delete', item)
+        crudRef.value?.onDelete(`/api/permissions/${item.id}`)
       },
     },
   ],
 ]
 
-const filters: TFilter[] = [
-  {
-    id: 'q',
-    type: 'input',
-    label: 'Search',
-    placeholder: 'Search...',
-  },
-  {
-    id: 'id',
-    type: 'input',
-    label: 'ID',
-    placeholder: 'Search by id (eg 1 or 1,2,3)',
-  },
-  {
-    id: 'name',
-    type: 'input',
-    label: 'Name',
-    modeable: true,
-    placeholder: 'Search by name',
-  },
-  {
-    id: 'slug',
-    type: 'input',
-    label: 'Slug',
-    modeable: true,
-    placeholder: 'Search by slug',
-  },
-  {
-    id: 'description',
-    type: 'input',
-    label: 'Description',
-    modeable: true,
-    placeholder: 'Search by description',
-  },
-]
+const getFormState = (v?: TPermission) => ({
+  id: v?.id,
+  name: v?.name ?? '',
+  description: v?.description ?? '',
+  roles: v?.rolePermissions?.map((rp) => rp.role) ?? [],
+})
+
+const getPostBody = (v: Record<string, any>) => ({
+  id: v.id,
+  name: v.name,
+  description: v.description,
+  roleIds: v.roles.map((r: any) => r.id),
+})
+
+const onDeleteSelected = () => {
+  crudRef.value?.onDeleteSelected((v) => {
+    return `/api/permissions/${v.map((x) => x.id).join(',')}`
+  })
+}
 </script>
 
 <template>
-  <BaseCrud get-url="/api/permissions" :columns="columns" :actions="actions" :filters="filters" />
+  <BaseCrud
+    ref="crudRef"
+    get-url="/api/permissions"
+    post-url="/api/permissions"
+    :fields="fields"
+    :columns="columns"
+    :filters="filters"
+    :form-modal="formModal"
+    :get-query="getQuery"
+    :get-actions="getActions"
+    :get-post-body="getPostBody"
+    :get-form-state="getFormState"
+    :persist="persist"
+  >
+    <template #bulk-actions="{ count }">
+      <UButton
+        label="Delete"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-trash"
+        :ui="{ leadingIcon: 'size-4' }"
+        @click="onDeleteSelected"
+      >
+        <template #trailing>
+          <UKbd>
+            {{ count }}
+          </UKbd>
+        </template>
+      </UButton>
+    </template>
+  </BaseCrud>
 </template>

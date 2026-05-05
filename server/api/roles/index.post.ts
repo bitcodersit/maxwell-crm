@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     const input = await validate(body, zRole)
 
     if (input.id) {
-      if (!can(user, ['update-any-role'])) {
+      if (!can(user, ['update-any-roles'])) {
         throw err.denied()
       }
       const role = await prisma.role.update({
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
       return role
     }
 
-    if (!can(user, ['create-any-role'])) {
+    if (!can(user, ['create-any-roles'])) {
       throw err.denied()
     }
     const role = await prisma.role.create({

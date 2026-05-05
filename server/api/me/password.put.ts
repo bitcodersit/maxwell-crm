@@ -7,7 +7,7 @@ const zPasswordChange = z.object({
 
 export default defineEventHandler(async (event) => {
   const sessionUser = await getCurrentUser(event)
-  if (!can(sessionUser, ['update-own-user'])) {
+  if (!can(sessionUser, ['update-own-users'])) {
     throw err.denied()
   }
 

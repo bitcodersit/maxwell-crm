@@ -136,7 +136,6 @@ function togglePermission(state: Record<string, unknown>, permissionId: number, 
             />
             <span class="text-sm">
               <span class="font-medium text-highlighted">{{ p.name }}</span>
-              <span class="block text-xs text-muted">{{ p.slug }}</span>
             </span>
           </label>
         </div>
