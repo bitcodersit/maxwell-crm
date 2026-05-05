@@ -64,16 +64,16 @@ export type TGetActions<T> = (item: T, options?: { view?: boolean }) => Dropdown
 const props = withDefaults(
   defineProps<{
     getUrl: string
-    sticky?: boolean
     fields?: TField[]
     filters?: TFilter[]
     columns?: TColumn<T>[]
     postUrl?: string
-    staleTime?: number
-    perPageOptions?: number[]
-    enableRowSelection?: boolean
-    formClass?: string
     formItem?: Record<string, any>
+    formClass?: string
+    staleTime?: number
+    persistKey?: string
+    dateFields?: string[]
+    perPageOptions?: number[]
     formModal?: {
       create?: {
         title?: string
@@ -84,25 +84,16 @@ const props = withDefaults(
         description?: string
       }
     }
-    persist?: {
-      key: string
-      dateFields?: string[]
-      // parse?: (v: string) => TQuery
-      // stringify?: (v: TQuery) => string
-    }
-    getQuery?: (query: TQuery) => TQuery
     getActions?: TGetActions<T>
     getPostBody?: (state: TFormState) => object | FormData
     getFormState?: (item?: T) => TFormState
   }>(),
   {
-    sticky: true,
     staleTime: 30 * 1000,
-    enableRowSelection: true,
     fields: () => [],
     filters: () => [],
     columns: () => [],
-    getQuery: (v: TQuery) => v,
+    dateFields: () => [],
     getActions: () => [],
     getPostBody: (state: TFormState) => state,
     getFormState: (v?: T) => ({ ...(v ?? {}) }),
@@ -114,7 +105,7 @@ const props = withDefaults(
   }
 )
 
-const { getUrl, columns, postUrl, getFormState, getPostBody, getQuery, persist, staleTime } =
+const { getUrl, columns, postUrl, persistKey, dateFields, getPostBody, getFormState, staleTime } =
   toRefs(props)
 
 const def = toPaginated<T>()
@@ -135,15 +126,15 @@ const getPersisted = <T>(
       const parsed = JSON.parse(value)
       return {
         ...parsed,
-        ...calendarFormatDates(parsed, persist.value?.dateFields ?? [], {
+        ...calendarFormatDates(parsed, dateFields.value, {
           returnType: 'dateValue',
         }),
       }
     } catch {}
     return { ...initial }
   }
-  if (typeof window !== 'undefined' && persist.value?.key) {
-    const stored = localStorage.getItem(`${persist.value.key}:${key}`)
+  if (typeof window !== 'undefined' && persistKey.value) {
+    const stored = localStorage.getItem(`${persistKey.value}:${key}`)
     return parser(stored, parse)
   }
   return parser(undefined, parse)
@@ -167,10 +158,14 @@ const key = computed(() => `${getUrl.value}:${refreshKey.value}:${JSON.stringify
 
 const { data, status } = useFetch<TPaginated<T>>(getUrl, {
   key,
-  query: computed(() => getQuery.value(query.value)),
   lazy: true,
   server: false,
   default: () => def,
+  query: computed(() => {
+    return calendarFormatDates(query.value, dateFields.value, {
+      formatStr: 'yyyy-MM-dd',
+    })
+  }),
   getCachedData(key) {
     const data = nuxtApp.payload.data[key]
     if (!data || Date.now() - data.fetchedAt > staleTime.value) return
@@ -398,11 +393,11 @@ const onGotoFirstPage = () => {
 watch(
   query,
   (v) => {
-    if (!persist.value?.key) return
+    if (!persistKey.value) return
     localStorage.setItem(
-      `${persist.value.key}:query`,
+      `${persistKey.value}:query`,
       JSON.stringify(
-        calendarFormatDates(v, persist.value?.dateFields ?? [], {
+        calendarFormatDates(v, dateFields.value, {
           returnType: 'storage',
         })
       )
@@ -411,14 +406,10 @@ watch(
   { deep: true }
 )
 
-watch(
-  selected,
-  (v) => {
-    if (!persist.value?.key) return
-    localStorage.setItem(`${persist.value.key}:selected`, JSON.stringify(v))
-  },
-  { deep: true }
-)
+watch(selected, (v) => {
+  if (!persistKey.value) return
+  localStorage.setItem(`${persistKey.value}:selected`, JSON.stringify(v))
+})
 
 type TViewOptions = {
   modal?: ModalProps
@@ -542,61 +533,56 @@ defineExpose({
         </UTooltip>
       </div>
     </div>
-    <div class="overflow-auto max-w-full">
-      <UTable
-        ref="table"
-        v-model:row-selection="selected"
-        :data="data.data"
-        :sticky="sticky"
-        :columns="mColumns"
-        :loading="status === 'pending'"
-        :ui="{
-          base: 'table-fixed border-separate border-spacing-0',
-          thead: '[&>tr]:after:content-none',
-          tbody: '[&>tr]:last:[&>td]:border-b-0',
-          th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-          td: 'border-b border-default',
-          separator: 'h-0',
-        }"
-      >
-        <template #select-header="{ column, table }">
-          <div class="pr-4">
-            <UCheckbox
-              :model-value="
-                table.getIsSomePageRowsSelected()
-                  ? 'indeterminate'
-                  : table.getIsAllPageRowsSelected()
-              "
-              aria-label="Select all"
-              @update:model-value="(v) => table.toggleAllPageRowsSelected(!!v)"
-            />
-          </div>
-          {{ !column.getIsPinned() ? column.pin('left') : '' }}
-        </template>
-        <template #select-cell="{ row }">
+    <UTable
+      ref="table"
+      v-model:row-selection="selected"
+      class="flex-1"
+      :sticky="true"
+      :data="data.data"
+      :columns="mColumns"
+      :loading="status === 'pending'"
+      :ui="{
+        base: 'table-fixed border-separate border-spacing-0',
+        thead: '[&>tr]:after:content-none',
+        tbody: '[&>tr]:last:[&>td]:border-b-0',
+        th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
+        td: 'border-b border-default',
+        separator: 'h-0',
+      }"
+    >
+      <template #select-header="{ column, table }">
+        <div class="pr-4">
           <UCheckbox
-            :model-value="row.getIsSelected()"
-            aria-label="Select row"
-            @update:model-value="(v) => row.toggleSelected(!!v)"
+            :model-value="
+              table.getIsSomePageRowsSelected() ? 'indeterminate' : table.getIsAllPageRowsSelected()
+            "
+            aria-label="Select all"
+            @update:model-value="(v) => table.toggleAllPageRowsSelected(!!v)"
           />
-        </template>
-        <template #action-cell="{ row }">
-          <UDropdownMenu :items="getActions(row.original)">
-            <UButton
-              icon="i-lucide-ellipsis-vertical"
-              color="neutral"
-              variant="ghost"
-              aria-label="Actions"
-            />
-          </UDropdownMenu>
-        </template>
-      </UTable>
-    </div>
+        </div>
+        {{ !column.getIsPinned() ? column.pin('left') : '' }}
+      </template>
+      <template #select-cell="{ row }">
+        <UCheckbox
+          :model-value="row.getIsSelected()"
+          aria-label="Select row"
+          @update:model-value="(v) => row.toggleSelected(!!v)"
+        />
+      </template>
+      <template #action-cell="{ row }">
+        <UDropdownMenu :items="getActions(row.original)">
+          <UButton
+            icon="i-lucide-ellipsis-vertical"
+            color="neutral"
+            variant="ghost"
+            aria-label="Actions"
+          />
+        </UDropdownMenu>
+      </template>
+    </UTable>
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
       <div
-        v-if="
-          (enableRowSelection && table?.tableApi?.getFilteredSelectedRowModel().rows.length) || 0
-        "
+        v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
         class="text-sm text-muted"
       >
         {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of

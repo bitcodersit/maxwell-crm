@@ -186,17 +186,6 @@ const formModal = {
   },
 }
 
-const persist = {
-  key: 'permissions',
-  dateFields: ['createdAt', 'updatedAt'],
-}
-
-const getQuery = (query: TQuery) => {
-  return calendarFormatDates(query, ['createdAt', 'updatedAt'], {
-    formatStr: 'yyyy-MM-dd',
-  })
-}
-
 const getActions: TGetActions<TPermission> = (item, v) => [
   [
     {
@@ -255,12 +244,12 @@ const onDeleteSelected = () => {
     ref="crudRef"
     get-url="/api/permissions"
     post-url="/api/permissions"
+    persist-key="permissions"
     :fields="fields"
     :columns="columns"
     :filters="filters"
-    :persist="persist"
     :form-modal="formModal"
-    :get-query="getQuery"
+    :date-fields="['createdAt', 'updatedAt']"
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
