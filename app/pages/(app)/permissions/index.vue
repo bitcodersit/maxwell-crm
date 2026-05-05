@@ -101,7 +101,7 @@ const columns = computed<TColumn<TPermission>[]>(() => [
   },
   {
     accessorKey: 'createdAt',
-    header: 'Created At',
+    header: 'Created',
     sortBy: 'createdAt',
     cell: ({ row }) => {
       return format(new Date(row.original.createdAt), 'MMM d, yyyy h:mm a')
@@ -109,7 +109,7 @@ const columns = computed<TColumn<TPermission>[]>(() => [
   },
   {
     accessorKey: 'updatedAt',
-    header: 'Updated At',
+    header: 'Updated',
     sortBy: 'updatedAt',
     cell: ({ row }) => {
       return format(new Date(row.original.updatedAt), 'MMM d, yyyy h:mm a')
