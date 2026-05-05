@@ -20,9 +20,12 @@ const getId = (query: any, key: string): TId | undefined => {
   const v = (query[key] || '').toString().trim()
   if (v.includes('-')) {
     const [start, end] = v.split('-')
+    const gte = Number(start)
+    const lte = Number(end)
+    if (isNaN(gte) || isNaN(lte)) return undefined
     return {
-      gte: Number(start),
-      lte: Number(end),
+      gte,
+      lte,
     }
   }
   const ids = v

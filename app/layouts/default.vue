@@ -42,7 +42,7 @@ const links = computed(() => {
         label: 'Permissions',
         icon: 'i-lucide-list-todo',
         to: '/permissions',
-        visible: can(user.value, ['read-any-permissions', 'read-own-permissions']),
+        visible: can(user.value, ['read-any-permissions']),
         onSelect: () => {
           open.value = false
         },

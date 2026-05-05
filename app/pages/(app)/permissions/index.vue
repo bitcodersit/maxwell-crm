@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { TColumn, TFilter, TField, TGetActions } from '@/components/base/BaseCrud.vue'
-import { format } from 'date-fns'
 
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
@@ -103,17 +102,13 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     accessorKey: 'createdAt',
     header: 'Created',
     sortBy: 'createdAt',
-    cell: ({ row }) => {
-      return format(new Date(row.original.createdAt), 'MMM d, yyyy h:mm a')
-    },
+    cell: ({ row }) => $dfc(row.original.createdAt),
   },
   {
     accessorKey: 'updatedAt',
     header: 'Updated',
     sortBy: 'updatedAt',
-    cell: ({ row }) => {
-      return format(new Date(row.original.updatedAt), 'MMM d, yyyy h:mm a')
-    },
+    cell: ({ row }) => $dfc(row.original.updatedAt),
   },
   {
     id: 'action',

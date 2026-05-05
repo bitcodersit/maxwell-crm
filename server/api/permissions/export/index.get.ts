@@ -8,7 +8,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event)
-  if (query.selection === 'all') query.paginate = false
+  const selection = query.selection?.toString() ?? ''
+  if (['all', 'selected'].includes(selection) || query.id) {
+    query.paginate = false
+  }
+
   const { error, data } = await getPermissions(event, query)
   if (error) throw error
 
