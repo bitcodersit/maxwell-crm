@@ -65,19 +65,19 @@ const columns = computed<TColumn<TPermission>[]>(() => [
       class: 'flex flex-wrap -ml-1 -mt-1',
     },
     cell({ row, ...ctx }) {
-      if (!row.original.rolePermissions) return '-'
-      if (!row.original.rolePermissions.length) return '-'
+      if (!row.original.rolePermissions) return '—'
+      if (!row.original.rolePermissions.length) return '—'
       return row.original.rolePermissions
         .map((rp) => rp.role?.name)
         .filter(Boolean)
         .map((label) => {
           const modal = (ctx as any).modal
           return h(UBadge, {
-            class: modal ? 'ml-1 mt-1' : 'mr-1',
+            label,
             size: modal ? 'lg' : 'md',
+            class: modal ? 'ml-1 mt-1' : 'mr-1',
             color: 'neutral',
             variant: 'subtle',
-            label,
           })
         })
     },

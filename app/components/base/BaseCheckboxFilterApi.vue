@@ -129,6 +129,7 @@ watch(modelValue, (v) => {
       <UCheckboxGroup
         v-else
         v-model="state"
+        size="lg"
         :items="data.data"
         :value-key="valueKey"
         :ui="{
@@ -169,7 +170,7 @@ watch(modelValue, (v) => {
           @click="onApply"
         >
           <template v-if="state?.length" #trailing>
-            <UKbd size="md">
+            <UKbd size="sm">
               {{ state?.length }}
             </UKbd>
           </template>
