@@ -25,11 +25,13 @@ import type {
   TableColumn,
   FormSubmitEvent,
   DropdownMenuItem,
+  ModalProps,
 } from '@nuxt/ui'
 import type { TDateFilterProps } from './BaseDateFilter.vue'
 import type { TInputFilterProps } from './BaseInputFilter.vue'
 import type { TBaseAutocompleteProps } from './BaseAutocomplete.vue'
 import type { TCheckboxFilterApiProps } from './BaseCheckboxFilterApi.vue'
+import { isVNode } from 'vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
@@ -56,6 +58,8 @@ export type TQuery = {
   orderBy: Record<string, 'asc' | 'desc'>
   [key: string]: any
 }
+
+export type TGetActions<T> = (item: T, options?: { view?: boolean }) => DropdownMenuItem[][]
 
 const props = withDefaults(
   defineProps<{
@@ -86,7 +90,7 @@ const props = withDefaults(
       stringify?: (v: TQuery) => string
     }
     getQuery?: (query: TQuery) => TQuery
-    getActions?: (item: T) => DropdownMenuItem[][]
+    getActions?: TGetActions<T>
     getPostBody?: (state: TFormState) => object | FormData
     getFormState?: (item?: T) => TFormState
   }>(),
@@ -318,7 +322,7 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
     method: 'POST',
     body: getPostBody.value(event.data),
   })
-    .then(() => {
+    .then((item) => {
       toast.add({
         color: 'success',
         title: 'Success',
@@ -328,6 +332,9 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
       formOpen.value = false
       selected.value = {}
       refreshKey.value++
+      if (viewModal.value && viewItem.value) {
+        onView(item as T)
+      }
     })
     .catch((e) => {
       const { message, errors } = parseError(e)
@@ -353,6 +360,7 @@ const onDelete = async (url: string) => {
           description: 'Item deleted successfully',
         })
         refreshKey.value++
+        viewModal.value = false
       })
       .catch((e) => {
         const { message } = parseError(e)
@@ -400,7 +408,37 @@ watch(
   { deep: true }
 )
 
+type TViewOptions = {
+  modal?: ModalProps
+}
+
+const viewItem = ref<T>()
+const viewModal = ref(false)
+const viewItems = ref<any[]>([])
+const viewProps = ref<TViewOptions>({})
+
+const onView = (item: T, props = viewProps.value) => {
+  viewItem.value = item
+  viewProps.value = props || {}
+  viewItems.value = columns.value
+    .filter((v) => !(v.id && ['select'].includes(v.id)))
+    .map(({ id, accessorKey, header, cell }: any) => {
+      const td = cell
+        ? typeof cell === 'function'
+          ? cell({ row: { original: item } })
+          : cell
+        : item[accessorKey as keyof T]
+      return {
+        id: id || accessorKey,
+        tr: id === 'action' ? header || 'Actions' : header,
+        td: Array.isArray(td) ? h('div', {}, td) : td,
+      }
+    })
+  viewModal.value = true
+}
+
 defineExpose({
+  onView,
   onUpdate,
   onDelete,
   onDeleteSelected,
@@ -572,6 +610,33 @@ defineExpose({
         />
       </div>
     </div>
+    <UModal v-model:open="viewModal" title="View Details" v-bind="viewProps.modal">
+      <template #body>
+        <table class="w-full border-collapse text-sm text-left">
+          <tbody>
+            <tr v-for="item in viewItems" :key="item.id">
+              <th class="border border-default px-4 py-2">{{ item.tr }}</th>
+              <td class="border border-default px-4 py-2">
+                <div
+                  v-if="viewItem && item.id === 'action'"
+                  class="flex items-center flex-wrap gap-2"
+                >
+                  <UButton
+                    v-for="action in getActions(viewItem, { view: true }).flat()"
+                    size="sm"
+                    variant="subtle"
+                    v-bind="action"
+                    @click="action.onSelect"
+                  />
+                </div>
+                <component v-else-if="isVNode(item.td)" :is="item.td" />
+                <template v-else>{{ item.td }}</template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+    </UModal>
     <UModal
       v-model:open="formOpen"
       :title="formModal?.[formMode]?.title"

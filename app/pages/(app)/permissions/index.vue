@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui'
-import type { TColumn, TFilter, TField, TQuery } from '@/components/base/BaseCrud.vue'
+import type { TColumn, TFilter, TField, TQuery, TGetActions } from '@/components/base/BaseCrud.vue'
 import { format } from 'date-fns'
 
 const crudRef = useTemplateRef('crudRef')
@@ -213,13 +212,20 @@ const getQuery = (query: TQuery) => {
   })
 }
 
-const getActions = (item: TPermission): DropdownMenuItem[][] => [
+const getActions: TGetActions<TPermission> = (item, v) => [
   [
     {
       label: 'View Details',
       icon: 'i-lucide-eye',
+      hidden: v?.view,
       onSelect() {
-        console.log('view', item)
+        crudRef.value?.onView(item, {
+          modal: {
+            ui: {
+              content: 'max-w-2xl',
+            },
+          },
+        })
       },
     },
     {
@@ -229,7 +235,7 @@ const getActions = (item: TPermission): DropdownMenuItem[][] => [
         crudRef.value?.onUpdate(item)
       },
     },
-  ],
+  ].filter((v) => !v.hidden),
   [
     {
       label: 'Delete',
@@ -246,7 +252,7 @@ const getFormState = (v?: TPermission) => ({
   id: v?.id,
   name: v?.name ?? '',
   description: v?.description ?? '',
-  roles: v?.rolePermissions?.map((rp) => rp.roleId || rp.role) ?? [],
+  roles: v?.rolePermissions?.map((rp) => rp.role) ?? [],
 })
 
 const getPostBody = (v: Record<string, any>) => ({
