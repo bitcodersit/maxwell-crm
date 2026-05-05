@@ -7,38 +7,38 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event)
-  const where: Prisma.PermissionWhereInput = {
-    deletedAt: null,
-  }
 
   const { take, skip, paginate } = getPagination(query)
   const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
 
-  // filter by ids
-  const id = getQueryId(query, 'id')
-  if (id) where.id = id
-
-  // filter by search text
-  const { contains } = getQueryQ(query)
-  if (contains) where.OR = [{ name: { contains } }, { description: { contains } }]
-
-  // filter by name
-  const name = (query.name || '').toString().trim()
-  const nameMode = (query.nameMode || 'contains').toString().trim()
-  if (name) where.name = nameMode === 'contains' ? { contains: name } : name
-
-  // filter by description
-  const desc = (query.description || '').toString().trim()
-  const descMode = (query.descriptionMode || 'contains').toString().trim()
-  if (desc) where.description = descMode === 'contains' ? { contains: desc } : desc
-
-  // filter by role ids
-  const roleId = getQueryId(query, 'roleIds')
-  if (roleId) where.rolePermissions = { some: { roleId } }
-
-  // filter by dates
-  whereDate(where, query, 'createdAt')
-  whereDate(where, query, 'updatedAt')
+  const where = getWhere<Prisma.PermissionWhereInput>(query)
+    .id('id')
+    .text('name')
+    .text('description')
+    .date('createdAt')
+    .date('updatedAt')
+    .text('q', (text) => ({
+      OR: [
+        {
+          name: {
+            contains: text,
+          },
+        },
+        {
+          description: {
+            contains: text,
+          },
+        },
+      ],
+    }))
+    .id('roleIds', (roleId) => ({
+      rolePermissions: {
+        some: {
+          roleId,
+        },
+      },
+    }))
+    .get()
 
   const selectInclude: {
     select?: Prisma.PermissionSelect
