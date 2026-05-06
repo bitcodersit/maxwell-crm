@@ -1,14 +1,12 @@
-import { randomUUID } from 'node:crypto'
 import ResetPassword from '@/components/emails/ResetPassword.vue'
 import { render } from '@vue-email/render'
+import { createResetPasswordLink } from '~~/server/utils/passwordReset'
 
 const zForgotPassword = z.object({
   email: z.email(),
 })
 
-const RESEND_COOLDOWN_SECONDS = 60
-const RESET_TOKEN_TTL_SECONDS = 5 * 60
-
+const RESEND_COOLDOWN_SECONDS = 30
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const input = await validate(body, zForgotPassword)
@@ -62,30 +60,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const token = randomUUID()
-  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_SECONDS * 1000)
-
-  await prisma.$transaction([
-    prisma.token.deleteMany({
-      where: {
-        modelId: user.id,
-        modelType: 'USER',
-        type: 'RESET',
-      },
-    }),
-    prisma.token.create({
-      data: {
-        modelId: user.id,
-        modelType: 'USER',
-        type: 'RESET',
-        token,
-        expiresAt,
-      },
-    }),
-  ])
-
-  const config = useRuntimeConfig(event)
-  const resetLink = `${config.public.siteUrl}/reset-password?token=${encodeURIComponent(token)}`
+  const resetLink = await createResetPasswordLink(event, user.id)
   const html = await render(ResetPassword, {
     name: user.name,
     resetLink,

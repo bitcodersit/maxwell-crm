@@ -1,4 +1,8 @@
 import { Prisma } from '~~/prisma/client/client'
+import WelcomeUser from '@/components/emails/WelcomeUser.vue'
+import PasswordUpdated from '@/components/emails/PasswordUpdated.vue'
+import { render } from '@vue-email/render'
+import { createResetPasswordLink } from '~~/server/utils/passwordReset'
 
 const zUser = z.object({
   id: z.number().nullish(),
@@ -22,6 +26,7 @@ export default defineEventHandler(async (event) => {
       },
       select: {
         email: true,
+        password: true,
       },
     })
     if (!existing) throw err.notFound()
@@ -69,6 +74,42 @@ export default defineEventHandler(async (event) => {
         },
       },
     })
+
+    const config = useRuntimeConfig(event)
+    const loginUrl = `${config.public.siteUrl}/login`
+    const emailChanged = existing.email !== input.email
+
+    if (emailChanged) {
+      const needsResetLink = !input.password && !existing.password
+      const resetLink = needsResetLink ? await createResetPasswordLink(event, user.id) : undefined
+      const html = await render(WelcomeUser, {
+        name: user.name,
+        loginEmail: user.email,
+        loginUrl,
+        loginPassword: input.password || undefined,
+        resetLink,
+      })
+      await sendMail({
+        to: user.email,
+        subject: 'Welcome to Maxwell CRM',
+        html,
+      })
+    }
+
+    if (input.password) {
+      const html = await render(PasswordUpdated, {
+        name: user.name,
+        loginEmail: user.email,
+        loginPassword: input.password,
+        loginUrl,
+      })
+      await sendMail({
+        to: user.email,
+        subject: 'Your password has been updated',
+        html,
+      })
+    }
+
     return user
   }
 
@@ -95,6 +136,22 @@ export default defineEventHandler(async (event) => {
         },
       },
     },
+  })
+
+  const config = useRuntimeConfig(event)
+  const loginUrl = `${config.public.siteUrl}/login`
+  const resetLink = !input.password ? await createResetPasswordLink(event, user.id) : undefined
+  const html = await render(WelcomeUser, {
+    name: user.name,
+    loginEmail: user.email,
+    loginUrl,
+    loginPassword: input.password || undefined,
+    resetLink,
+  })
+  await sendMail({
+    to: user.email,
+    subject: 'Welcome to Maxwell CRM',
+    html,
   })
 
   return user
