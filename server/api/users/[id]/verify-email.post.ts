@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto'
 import VerifyEmail from '@/components/emails/VerifyEmail.vue'
 import { render } from '@vue-email/render'
+import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
 
 export default defineEventHandler(async (event) => {
   const { user: sessionUser } = await requireUserSession(event)
@@ -32,29 +32,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const token = randomUUID()
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24)
-  await prisma.$transaction(async (tx) => {
-    await tx.token.deleteMany({
-      where: {
-        modelId: target.id,
-        modelType: 'USER',
-        type: 'VERIFY',
-      },
-    })
-    await tx.token.create({
-      data: {
-        modelId: target.id,
-        modelType: 'USER',
-        type: 'VERIFY',
-        token,
-        expiresAt,
-      },
-    })
-  })
-
-  const config = useRuntimeConfig(event)
-  const verifyLink = `${config.public.siteUrl}/verify-email?token=${encodeURIComponent(token)}`
+  const verifyLink = await createVerifyEmailLink(event, target.id)
   const html = await render(VerifyEmail, {
     verifyLink,
     name: target.name,

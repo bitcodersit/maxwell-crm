@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Text } from '@vue-email/components'
+import { Link, Text } from '@vue-email/components'
 import EmailCardLayout from './layouts/EmailCardLayout.vue'
 
 defineProps<{
@@ -8,6 +8,7 @@ defineProps<{
   loginUrl: string
   loginPassword?: string
   resetLink?: string
+  verifyLink?: string
 }>()
 </script>
 
@@ -27,6 +28,10 @@ defineProps<{
     </Text>
     <Text v-else className="text-[14px] leading-6 text-[#374151] my-0">
       Use the button above to set your password first.
+    </Text>
+    <Text v-if="verifyLink" className="text-[14px] leading-6 text-[#374151] my-0">
+      Verify email:
+      <Link :href="verifyLink" className="text-[#111827] underline">Click here</Link>
     </Text>
   </EmailCardLayout>
 </template>

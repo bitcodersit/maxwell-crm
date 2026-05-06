@@ -3,6 +3,7 @@ import WelcomeUser from '@/components/emails/WelcomeUser.vue'
 import PasswordUpdated from '@/components/emails/PasswordUpdated.vue'
 import { render } from '@vue-email/render'
 import { createResetPasswordLink } from '~~/server/utils/passwordReset'
+import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
 
 const zUser = z.object({
   id: z.number().nullish(),
@@ -82,12 +83,14 @@ export default defineEventHandler(async (event) => {
     if (emailChanged) {
       const needsResetLink = !input.password && !existing.password
       const resetLink = needsResetLink ? await createResetPasswordLink(event, user.id) : undefined
+      const verifyLink = await createVerifyEmailLink(event, user.id)
       const html = await render(WelcomeUser, {
         name: user.name,
         loginEmail: user.email,
         loginUrl,
         loginPassword: input.password || undefined,
         resetLink,
+        verifyLink,
       })
       await queueEmail({
         to: user.email,
@@ -141,12 +144,14 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
   const loginUrl = `${config.public.siteUrl}/login`
   const resetLink = !input.password ? await createResetPasswordLink(event, user.id) : undefined
+  const verifyLink = await createVerifyEmailLink(event, user.id)
   const html = await render(WelcomeUser, {
     name: user.name,
     loginEmail: user.email,
     loginUrl,
     loginPassword: input.password || undefined,
     resetLink,
+    verifyLink,
   })
   await queueEmail({
     to: user.email,

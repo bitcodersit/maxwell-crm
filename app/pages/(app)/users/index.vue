@@ -74,6 +74,9 @@ const columns = computed<TColumn<TUser>[]>(() => [
           size: 'sm',
           src: getAttachment(row.original.avatarId),
           alt: row.original.name,
+          ui: {
+            fallback: 'text-xs',
+          },
         }),
         h('div', {}, row.original.name),
       ])
