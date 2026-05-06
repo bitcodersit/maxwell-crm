@@ -60,10 +60,14 @@ export default defineEventHandler(async (event) => {
     name: target.name,
   })
 
-  await sendMail({
+  await queueEmail({
     to: target.email,
     subject: 'Verify your email address',
     html,
+    action: {
+      type: 'user-still-unverified',
+      userId: target.id,
+    },
   })
 
   return {

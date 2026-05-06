@@ -1,0 +1,3 @@
+ALTER TABLE `email_jobs`
+  ADD COLUMN `cc` JSON NULL,
+  ADD COLUMN `bcc` JSON NULL;

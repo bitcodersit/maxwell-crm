@@ -41,6 +41,26 @@ enum TokenModelType {
     USER
 }
 
+enum EmailStatus {
+    PENDING
+    PROCESSING
+    SENT
+    FAILED
+    SKIPPED
+}
+
+enum EmailPriority {
+    NORMAL
+    URGENT
+}
+
+enum EmailFrequency {
+    ONCE
+    DAILY
+    WEEKLY
+    MONTHLY
+}
+
 model Token {
     id Int @id @default(autoincrement())
 
@@ -59,6 +79,35 @@ model Token {
     @@index([type])
     @@index([expiresAt])
     @@map("tokens")
+}
+
+model EmailJob {
+    id Int @id @default(autoincrement())
+
+    to      Json
+    cc      Json?
+    bcc     Json?
+    subject String
+    html    String @db.Text
+
+    status   EmailStatus   @default(PENDING)
+    priority EmailPriority @default(NORMAL)
+    frequency EmailFrequency @default(ONCE)
+    action    Json?
+
+    attempts    Int      @default(0)
+    maxAttempts Int      @default(3)
+    message     String?  @db.Text
+    failedAt    DateTime?
+    scheduledAt DateTime @default(now())
+    sentAt      DateTime?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@index([status, scheduledAt])
+    @@index([priority, status, scheduledAt])
+    @@map("email_jobs")
 }
 
 model Team {

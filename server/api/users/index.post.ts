@@ -89,10 +89,10 @@ export default defineEventHandler(async (event) => {
         loginPassword: input.password || undefined,
         resetLink,
       })
-      await sendMail({
+      await queueEmail({
         to: user.email,
         subject: 'Welcome to Maxwell CRM',
-        html,
+        html
       })
     }
 
@@ -103,10 +103,10 @@ export default defineEventHandler(async (event) => {
         loginPassword: input.password,
         loginUrl,
       })
-      await sendMail({
+      await queueEmail({
         to: user.email,
         subject: 'Your password has been updated',
-        html,
+        html
       })
     }
 
@@ -148,10 +148,10 @@ export default defineEventHandler(async (event) => {
     loginPassword: input.password || undefined,
     resetLink,
   })
-  await sendMail({
+  await queueEmail({
     to: user.email,
     subject: 'Welcome to Maxwell CRM',
-    html,
+    html
   })
 
   return user

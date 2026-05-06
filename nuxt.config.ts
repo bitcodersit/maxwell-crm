@@ -5,6 +5,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   runtimeConfig: {
     storageUrl: '', // NUXT_STORAGE_URL
+    emailCronSecret: '', // NUXT_EMAIL_CRON_SECRET
     public: {
       siteUrl: '', // NUXT_PUBLIC_SITE_URL
     },
@@ -13,7 +14,7 @@ export default defineNuxtConfig({
     port: 5173,
   },
   css: ['~/assets/css/main.css'],
-  modules: ['@nuxt/eslint', '@nuxt/ui', '@vueuse/nuxt', 'nuxt-auth-utils', '@nuxt/image'],
+  modules: ['@nuxt/eslint', '@nuxt/ui', '@vueuse/nuxt', 'nuxt-auth-utils', '@nuxt/image', 'nuxt-cron'],
   image: {
     format: ['webp'],
   },
@@ -43,6 +44,10 @@ export default defineNuxtConfig({
     experimental: {
       openAPI: true,
     },
+  },
+  cron: {
+    runOnInit: true,
+    jobsDir: 'cron',
   },
   vite: {
     optimizeDeps: {

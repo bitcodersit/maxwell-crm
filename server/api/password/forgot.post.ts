@@ -67,10 +67,12 @@ export default defineEventHandler(async (event) => {
     expiresInMinutes: 5,
   })
 
-  await sendMail({
+  await queueEmail({
     to: user.email,
     subject: 'Reset your password',
     html,
+    priority: 'URGENT',
+    sendNow: true
   })
 
   return {
