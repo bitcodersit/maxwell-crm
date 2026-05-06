@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
         data: {
           name: input.name,
           description: input.description,
-          rolePermissions: input.permissionIds?.length
+          rolePermissions: input.permissionIds
             ? {
                 createMany: {
                   skipDuplicates: true,

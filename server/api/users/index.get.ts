@@ -39,6 +39,16 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
         },
       },
     }))
+    .id('idsNotIn', (ids) => {
+      if ('in' in ids) {
+        return {
+          id: {
+            notIn: ids.in,
+          },
+        }
+      }
+      return {}
+    })
     .get()
 
   const where: Prisma.UserWhereInput = {

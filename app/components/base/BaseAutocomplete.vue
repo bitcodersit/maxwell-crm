@@ -1,25 +1,34 @@
-<script setup lang="ts">
+<script context="module" lang="ts">
+type TValue = number | string
+type TItem = Record<string, any>
+</script>
+
+<script setup lang="ts" generic="Item extends TItem = TItem, Value extends TValue = TValue">
 import type { ButtonProps, InputTagsProps } from '@nuxt/ui'
 
-type TItem = Record<string, any>
-export type TBaseAutocompleteProps = InputTagsProps & {
+export type TBaseAutocompleteProps<
+  Item extends TItem = TItem,
+  Value extends TValue = TValue
+> = Pick<InputTagsProps, 'size' | 'placeholder'> & {
   api: string
-  optionProps?: ButtonProps | ((item: TItem, index: number, isActive: boolean) => ButtonProps)
-  emptyMessage?: string
+  class?: string
   query?: Record<string, any>
-  itemKey?: (item: TItem) => string
-  itemLabel?: (item: TItem) => string
+  optionProps?: ButtonProps | ((item: Item, index: number, isActive: boolean) => ButtonProps)
+  labelClass?: string
+  emptyMessage?: string
+  itemKey?: (item: Item) => Value
+  getLabel?: (item: Item) => string | VNode
 }
 
-const props = withDefaults(defineProps<TBaseAutocompleteProps>(), {
+const props = withDefaults(defineProps<TBaseAutocompleteProps<Item, Value>>(), {
   emptyMessage: 'No matching items',
-  itemKey: (item: TItem) => item.id,
-  itemLabel: (item: TItem) => item.name,
+  itemKey: (item: Item) => item.id,
+  getLabel: (item: Item) => item.name,
 })
 
 const { api, query } = toRefs(props)
 
-const model = defineModel<TItem[]>({ default: () => [] })
+const model = defineModel<Item[]>({ default: () => [] })
 const rootRef = useTemplateRef<HTMLElement>('rootRef')
 const panelRef = useTemplateRef<HTMLElement>('panelRef')
 const activeIndex = ref(0)
@@ -35,9 +44,10 @@ const { data, status, execute } = useFetchApi({
   query: computed(() => ({
     ...query.value,
     q: searchTermD.value,
+    idsNotIn: model.value.map((x) => props.itemKey(x)).join(','),
   })),
   getDefault() {
-    return toPaginated<TItem>()
+    return toPaginated<Item>()
   },
 })
 
@@ -50,8 +60,7 @@ const onOpenAutoFocus = (event: Event) => {
   event.preventDefault()
 }
 
-const onSelectItem = (item: TItem) => {
-  if (props.max != null && model.value.length >= props.max) return
+const onSelectItem = (item: Item) => {
   if (model.value.some((x) => props.itemKey(x) === props.itemKey(item))) return
   model.value = [...model.value, item]
   const input = inputTagsRef.value?.inputRef
@@ -62,7 +71,7 @@ const onSelectItem = (item: TItem) => {
   activeIndex.value = 0
 }
 
-const getOptionProps = (item: TItem, index: number, isActive: boolean) => {
+const getOptionProps = (item: Item, index: number, isActive: boolean) => {
   if (typeof props.optionProps === 'function') {
     return props.optionProps(item, index, isActive)
   }
@@ -161,20 +170,24 @@ watchEffect((onCleanup) => {
 </script>
 
 <template>
-  <div ref="rootRef" class="relative w-full">
+  <div ref="rootRef" class="relative w-full" :class="class">
     <UInputTags
       v-model="model"
       ref="inputTagsRef"
+      :size="size"
       :placeholder="placeholder"
-      :max="max"
       :add-on-blur="false"
       :add-on-tab="false"
       :add-on-paste="false"
-      :display-value="itemLabel"
-      :ui="ui"
-      :size="size"
       class="w-full"
-    />
+      :ui="{
+        itemText: labelClass,
+      }"
+    >
+      <template #item-text="{ item }">
+        <VNode :value="getLabel(item)" />
+      </template>
+    </UInputTags>
   </div>
   <UPopover
     v-model:open="dropdownOpen"
@@ -185,7 +198,7 @@ watchEffect((onCleanup) => {
     :content="{ side: 'bottom', align: 'start', collisionPadding: 12 }"
     :ui="{
       content:
-        'min-w-(--reka-popper-anchor-width) max-h-60 overflow-y-auto rounded-md border border-default bg-default p-1 shadow-lg z-9999',
+        'w-(--reka-popper-anchor-width) max-h-60 overflow-y-auto rounded-md border border-default bg-default p-1 shadow-lg z-9999',
     }"
     @open-auto-focus="onOpenAutoFocus"
   >
@@ -201,8 +214,7 @@ watchEffect((onCleanup) => {
         <UButton
           v-for="(item, idx) in selectableItems"
           :key="itemKey(item)"
-          :label="itemLabel(item)"
-          :class="idx === activeIndex ? 'bg-elevated/50' : ''"
+          :class="[labelClass, idx === activeIndex ? 'bg-elevated/50' : '']"
           :aria-selected="idx === activeIndex"
           role="option"
           type="button"
@@ -213,7 +225,9 @@ watchEffect((onCleanup) => {
           @mousedown.prevent
           @click="onSelectItem(item)"
           @mouseenter="activeIndex = idx"
-        />
+        >
+          <VNode :value="getLabel(item)" />
+        </UButton>
       </div>
     </template>
   </UPopover>

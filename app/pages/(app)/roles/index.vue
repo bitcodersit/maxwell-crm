@@ -4,6 +4,31 @@ import type { TColumn, TFilter, TField, TGetActions } from '@/components/base/Ba
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
 
+const colorizeName = (name?: string) => {
+  return name?.split('-').map((v) => {
+    return h(
+      'span',
+      {
+        class: ['capitalize', 'text-' + ColorsMap[v] || 'neutral'],
+      },
+      v
+    )
+  })
+}
+
+const labelProps = {
+  labelClass: 'capitalize',
+  getLabel(v: { name?: string }) {
+    return h(
+      'div',
+      {
+        class: 'flex gap-1',
+      },
+      colorizeName(v?.name)
+    )
+  },
+}
+
 const fields: TField[] = [
   {
     name: 'name',
@@ -11,20 +36,19 @@ const fields: TField[] = [
     label: 'Name',
   },
   {
+    name: 'description',
+    type: 'textarea',
+    label: 'Description',
+  },
+  {
     name: 'permissions',
     type: 'autocomplete',
     label: 'Permissions',
     props: {
+      ...labelProps,
       api: '/api/permissions',
-      query: {
-        options: true,
-      },
+      query: { options: true },
     },
-  },
-  {
-    name: 'description',
-    type: 'textarea',
-    label: 'Description',
   },
 ]
 
@@ -66,24 +90,22 @@ const columns = computed<TColumn<TRole>[]>(() => [
       if (!row.original.rolePermissions) return '—'
       if (!row.original.rolePermissions.length) return '—'
       return row.original.rolePermissions
-        .map((rp) => rp.permission?.name)
+        .map((rp) => rp.permission?.name as string)
         .filter(Boolean)
         .map((label) => {
           const modal = (ctx as any).modal
-          return h(UBadge, {
-            label,
-            size: modal ? 'lg' : 'md',
-            class: modal ? 'ml-1 mt-1' : 'mr-1',
-            color: 'neutral',
-            variant: 'subtle',
-          })
+          return h(
+            UBadge,
+            {
+              size: modal ? 'lg' : 'md',
+              class: modal ? 'ml-1 mt-1' : 'mr-1',
+              color: 'neutral',
+              variant: 'subtle',
+            },
+            () => colorizeName(label)
+          )
         })
     },
-  },
-  {
-    accessorKey: 'name',
-    header: 'Slug',
-    sortBy: 'name',
   },
   {
     accessorKey: 'description',
@@ -147,11 +169,10 @@ const filters: TFilter[] = [
     name: 'permissionIds',
     type: 'checkbox-api',
     props: {
+      ...labelProps,
       label: 'Permissions',
       api: '/api/permissions',
-      query: {
-        options: true,
-      },
+      query: { options: true },
     },
   },
   {
