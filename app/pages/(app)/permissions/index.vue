@@ -209,7 +209,7 @@ const getActions: TGetActions<TPermission> = (item, v) => [
     {
       ...actions.delete,
       onSelect() {
-        crudRef.value?.onDelete(`/api/permissions/${item.id}`)
+        crudRef.value?.onDelete(item)
       },
     },
   ],
@@ -228,12 +228,6 @@ const getPostBody = (v: Record<string, any>) => ({
   description: v.description,
   roleIds: v.roles.map((r: any) => r.id),
 })
-
-const onDeleteSelected = () => {
-  crudRef.value?.onDeleteSelected((v) => {
-    return `/api/permissions/${v.map((x) => x.id).join(',')}`
-  })
-}
 </script>
 
 <template>
@@ -242,6 +236,7 @@ const onDeleteSelected = () => {
     get-url="/api/permissions"
     post-url="/api/permissions"
     export-url="/api/permissions/export"
+    delete-url="/api/permissions/{id}"
     persist-key="permissions"
     :fields="fields"
     :columns="columns"
@@ -251,22 +246,5 @@ const onDeleteSelected = () => {
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
-  >
-    <template #bulk-actions="{ count }">
-      <UButton
-        label="Delete"
-        color="error"
-        variant="subtle"
-        icon="i-lucide-trash"
-        :ui="{ leadingIcon: 'size-4' }"
-        @click="onDeleteSelected"
-      >
-        <template #trailing>
-          <UKbd>
-            {{ count }}
-          </UKbd>
-        </template>
-      </UButton>
-    </template>
-  </BaseCrud>
+  />
 </template>

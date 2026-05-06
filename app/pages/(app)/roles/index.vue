@@ -233,7 +233,7 @@ const getActions: TGetActions<TRole> = (item, v) => [
     {
       ...actions.delete,
       onSelect() {
-        crudRef.value?.onDelete(`/api/roles/${item.id}`)
+        crudRef.value?.onDelete(item)
       },
     },
   ],
@@ -252,12 +252,6 @@ const getPostBody = (v: Record<string, any>) => ({
   description: v.description,
   permissionIds: (v.permissions ?? []).map((p: any) => p.id),
 })
-
-const onDeleteSelected = () => {
-  crudRef.value?.onDeleteSelected((rows) => {
-    return `/api/roles/${rows.map((x) => x.id).join(',')}`
-  })
-}
 </script>
 
 <template>
@@ -266,6 +260,7 @@ const onDeleteSelected = () => {
     get-url="/api/roles"
     post-url="/api/roles"
     export-url="/api/roles/export"
+    delete-url="/api/roles/{id}"
     persist-key="roles"
     :fields="fields"
     :columns="columns"
@@ -275,22 +270,5 @@ const onDeleteSelected = () => {
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
-  >
-    <template #bulk-actions="{ count }">
-      <UButton
-        label="Delete"
-        color="error"
-        variant="subtle"
-        icon="i-lucide-trash"
-        :ui="{ leadingIcon: 'size-4' }"
-        @click="onDeleteSelected"
-      >
-        <template #trailing>
-          <UKbd>
-            {{ count }}
-          </UKbd>
-        </template>
-      </UButton>
-    </template>
-  </BaseCrud>
+  />
 </template>

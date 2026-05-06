@@ -23,7 +23,7 @@ type TFormState = Record<string, any>
 //
 </script>
 
-<script setup lang="ts" generic="T extends object">
+<script setup lang="ts" generic="T extends Record<string, any>">
 import type {
   TableData,
   InputProps,
@@ -87,6 +87,7 @@ const props = withDefaults(
     persistKey?: string
     dateFields?: string[]
     perPageOptions?: number[]
+    deleteUrl?: string | ((item: T | T[]) => string)
     getActions?: TGetActions<T>
     getPostBody?: (state: TFormState) => object | FormData
     getFormState?: (item?: T) => TFormState
@@ -113,6 +114,7 @@ const {
   columns,
   postUrl,
   exportUrl,
+  deleteUrl,
   staleTime,
   dateFields,
   persistKey,
@@ -371,12 +373,18 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
 }
 
 const { confirm } = useConfirm()
-const onDelete = async (url: string) => {
+const onDelete = async (item: T | T[]) => {
+  if (!deleteUrl.value) throw new Error('Delete URL is not set')
+  const url =
+    typeof deleteUrl.value === 'function'
+      ? deleteUrl.value(item)
+      : deleteUrl.value.replace(
+          '{id}',
+          Array.isArray(item) ? item.map((x) => x.id).join(',') : item.id
+        )
   if (await confirm('Are you sure you want to delete this item?')) {
     isSubmitting.value = true
-    $fetch(url, {
-      method: 'DELETE',
-    })
+    $fetch(url, { method: 'DELETE' })
       .then(() => {
         toast.add({
           color: 'success',
@@ -409,10 +417,10 @@ const getSelectedRowItems = () => {
   return getSelectedRows().map((row) => row.original)
 }
 
-const onDeleteSelected = (getUrl: (items: T[]) => string) => {
+const onDeleteSelected = () => {
   const items = getSelectedRowItems()
   if (!items?.length) return
-  onDelete(getUrl(items))
+  onDelete(items)
 }
 
 const onGotoFirstPage = () => {
@@ -583,13 +591,21 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
               Clear
             </UButton>
           </UTooltip>
-          <slot
-            name="bulk-actions"
-            v-bind="{
-              count: table?.tableApi?.getFilteredSelectedRowModel().rows.length,
-              selected,
-            }"
-          />
+          <!-- <slot name="bulk-actions" /> -->
+          <UButton
+            label="Delete"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-trash"
+            :ui="{ leadingIcon: 'size-4' }"
+            @click="onDeleteSelected"
+          >
+            <template #trailing>
+              <UKbd>
+                {{ getSelectedRowItems().length }}
+              </UKbd>
+            </template>
+          </UButton>
         </template>
         <UPopover
           v-if="exportUrl"
