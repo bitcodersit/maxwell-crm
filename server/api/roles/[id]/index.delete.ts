@@ -10,11 +10,14 @@ export default defineEventHandler(async (event) => {
     .filter((n) => !Number.isNaN(n))
   if (!ids.length) throw err.notFound()
   try {
-    const data = await prisma.role.deleteMany({
+    const data = await prisma.role.updateMany({
       where: {
         id: {
           in: ids,
         },
+      },
+      data: {
+        deletedAt: new Date(),
       },
     })
     return {

@@ -12,7 +12,7 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
   const { take, skip, paginate } = getPagination(query)
   const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
 
-  const baseWhere = getWhere<Prisma.UserWhereInput>(query)
+  const where = getWhere<Prisma.UserWhereInput>(query, { deletedAt: null })
     .id('id')
     .text('name')
     .text('email')
@@ -50,11 +50,6 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
       return {}
     })
     .get()
-
-  const where: Prisma.UserWhereInput = {
-    deletedAt: null,
-    ...baseWhere,
-  }
 
   const [total, users] = await prisma.$transaction([
     prisma.user.count({ where }),

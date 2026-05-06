@@ -76,8 +76,7 @@ const getDate = (query: any, key: string) => {
   }
 }
 
-export const getWhere = <T extends Record<string, any>>(query: Record<string, any>) => {
-  let where: any = {}
+export const getWhere = <T>(query: Record<string, any>, where: T = {} as T) => {
   return {
     id(key: string, updater: string | ((id: TId) => Partial<T>) = key) {
       const id = getId(query, key)
@@ -85,7 +84,7 @@ export const getWhere = <T extends Record<string, any>>(query: Record<string, an
         if (typeof updater === 'function') {
           where = { ...where, ...updater(id) }
         } else {
-          where[key] = id
+          where = { ...where, [key]: id }
         }
       }
       return this
@@ -94,9 +93,15 @@ export const getWhere = <T extends Record<string, any>>(query: Record<string, an
       const { text, textMode } = getText(query, key)
       if (text) {
         if (typeof updater === 'function') {
-          where = { ...where, ...updater(text, textMode) }
+          where = {
+            ...where,
+            ...updater(text, textMode),
+          }
         } else {
-          where[updater] = textMode === 'contains' ? { contains: text } : text
+          where = {
+            ...where,
+            [updater]: textMode === 'contains' ? { contains: text } : text,
+          }
         }
       }
       return this

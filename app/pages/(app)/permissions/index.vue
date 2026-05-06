@@ -72,7 +72,7 @@ const columns = computed<TColumn<TPermission>[]>(() => [
       if (!row.original.rolePermissions) return '—'
       if (!row.original.rolePermissions.length) return '—'
       return row.original.rolePermissions
-        .map((rp) => rp.role?.name)
+        .map((rp) => rp.role?.name as string)
         .filter(Boolean)
         .map((label) => {
           const modal = (ctx as any).modal
@@ -80,7 +80,7 @@ const columns = computed<TColumn<TPermission>[]>(() => [
             label,
             size: modal ? 'lg' : 'md',
             class: modal ? 'ml-1 mt-1' : 'mr-1',
-            color: 'neutral',
+            color: ColorsMap[label] || 'neutral',
             variant: 'subtle',
           })
         })

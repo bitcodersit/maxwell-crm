@@ -12,7 +12,7 @@ export const getPermissions = async (event: H3Event, query = getQuery(event)) =>
   const { take, skip, paginate } = getPagination(query)
   const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
 
-  const where = getWhere<Prisma.PermissionWhereInput>(query)
+  const where = getWhere<Prisma.PermissionWhereInput>(query, { deletedAt: null })
     .id('id')
     .text('name')
     .text('description')

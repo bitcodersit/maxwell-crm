@@ -33,7 +33,6 @@ const fields: TField[] = [
     label: 'Password',
     props: {
       type: 'password',
-      placeholder: 'Leave blank when updating to keep current password',
     },
   },
   {
