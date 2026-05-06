@@ -242,21 +242,46 @@ const getActions: TGetActions<TUser> = (item, v) => [
         if (!(await confirm(`Send verification email to "${item.email}"?`))) {
           return
         }
+        const toastId = `verify-email-${item.id}`
+        toast.add({
+          id: toastId,
+          color: 'primary',
+          icon: 'i-lucide-loader-circle',
+          title: 'Sending verification email...',
+          description: `Sending to ${item.email}`,
+          duration: 0,
+          ui: {
+            icon: 'animate-spin',
+          },
+        })
         try {
-          const response = await $fetch<{ message?: string }>(`/api/users/${item.id}/verify-email`, {
-            method: 'POST',
-          })
-          toast.add({
+          const response = await $fetch<{ message?: string }>(
+            `/api/users/${item.id}/verify-email`,
+            {
+              method: 'POST',
+            }
+          )
+          toast.update(toastId, {
             color: 'success',
+            icon: 'i-lucide-circle-check',
             title: 'Verification email sent',
             description: response?.message || 'Verification email sent successfully',
+            duration: 3000,
+            ui: {
+              icon: '',
+            },
           })
         } catch (error) {
           const { message } = parseError(error)
-          toast.add({
+          toast.update(toastId, {
             color: 'error',
+            icon: 'i-lucide-circle-x',
             title: 'Failed to send email',
             description: message,
+            duration: 5000,
+            ui: {
+              icon: '',
+            },
           })
         }
       },
