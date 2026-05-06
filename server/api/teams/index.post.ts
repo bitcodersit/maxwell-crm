@@ -57,6 +57,7 @@ export default defineEventHandler(async (event) => {
           id: input.id,
         },
         data: {
+          avatarId: input.avatarId,
           name: input.name,
           description: input.description,
           members: input.members?.length
@@ -96,6 +97,7 @@ export default defineEventHandler(async (event) => {
     const team = await prisma.team.create({
       include,
       data: {
+        avatarId: input.avatarId,
         name: input.name,
         creatorId: user.id,
         description: input.description,
@@ -149,6 +151,7 @@ const include = {
 
 const zTeam = z.object({
   id: z.number().nullish(),
+  avatarId: z.number().nullable().optional(),
   name: z.string().min(1),
   description: z.string().nullish(),
   members: z

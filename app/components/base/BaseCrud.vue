@@ -37,6 +37,7 @@ import type {
 import type { TDateFilterProps } from './BaseDateFilter.vue'
 import type { TInputFilterProps } from './BaseInputFilter.vue'
 import type { TBaseAutocompleteProps } from './BaseAutocomplete.vue'
+import type { TBaseMembersFieldProps } from './BaseMembersField.vue'
 import type { TCheckboxFilterApiProps } from './BaseCheckboxFilterApi.vue'
 import { isVNode } from 'vue'
 
@@ -57,6 +58,7 @@ export type TField = { name: string; label: string; col?: string } & (
   | { type: 'input'; props?: InputProps }
   | { type: 'textarea'; props?: TextareaProps }
   | { type: 'autocomplete'; props: TBaseAutocompleteProps }
+  | { type: 'team-members'; props?: TBaseMembersFieldProps }
 )
 
 export type TBaseCrudModal = {
@@ -791,6 +793,11 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
               />
               <BaseAutocomplete
                 v-else-if="row.type === 'autocomplete'"
+                v-model="formState[row.name]"
+                v-bind="{ ...formItem, ...row.props }"
+              />
+              <BaseMembersField
+                v-else-if="row.type === 'team-members'"
                 v-model="formState[row.name]"
                 v-bind="{ ...formItem, ...row.props }"
               />

@@ -6,6 +6,7 @@ import type {
   TGetActions,
   TBaseCrudModal,
 } from '@/components/base/BaseCrud.vue'
+import { TeamMemberRole } from '~~/prisma/client/enums'
 
 const crudRef = useTemplateRef('crudRef')
 const UAvatar = resolveComponent('UAvatar')
@@ -34,6 +35,22 @@ const fields: TField[] = [
     name: 'description',
     type: 'textarea',
     label: 'Description',
+  },
+  {
+    name: 'members',
+    type: 'team-members',
+    label: 'Members',
+    props: {
+      fields: [
+        {
+          name: 'role',
+          items: [
+            { label: 'Leader', value: TeamMemberRole.LEADER },
+            { label: 'Member', value: TeamMemberRole.MEMBER },
+          ],
+        },
+      ],
+    },
   },
 ]
 
@@ -270,12 +287,28 @@ const getFormState = (v?: TTeam) => ({
   id: v?.id,
   name: v?.name ?? '',
   description: v?.description ?? '',
+  members:
+    v?.members?.map((m) => ({
+      userId: m.userId,
+      role: m.role,
+      user: m.user
+        ? {
+            id: m.user.id,
+            name: m.user.name,
+            avatarId: m.user.avatarId,
+          }
+        : undefined,
+    })) ?? [],
 })
 
 const getPostBody = (v: Record<string, any>) => ({
   id: v.id,
   name: v.name,
   description: v.description,
+  members: (v.members || []).map((m: any) => ({
+    userId: m.userId,
+    role: m.role,
+  })),
 })
 </script>
 
