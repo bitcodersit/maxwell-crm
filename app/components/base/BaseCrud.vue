@@ -11,6 +11,12 @@ type TArrayDisplay = {
   class?: string
 }
 
+type TInfoPopup = {
+  class?: string
+  label: string
+  content: () => string | VNode
+}
+
 type TDisplay = TTextDisplay | TArrayDisplay
 type TFormMode = 'create' | 'update'
 type TFormState = Record<string, any>
@@ -188,7 +194,30 @@ const { data, status } = useFetch<TPaginated<T>>(getUrl, {
 })
 
 const UButton = resolveComponent('UButton')
-const infoModal = useInfoModal()
+const UPopover = resolveComponent('UPopover')
+
+const getInfoPopup = (options: TInfoPopup) => {
+  return h(
+    UPopover,
+    {
+      ui: {
+        content: ['p-3 max-w-md w-full max-h-[50vh] overflow-y-auto', options.class],
+      },
+    },
+    {
+      content: options.content,
+      default: () => [
+        h(UButton, {
+          size: 'xs',
+          class: 'px-0',
+          color: 'primary',
+          variant: 'link',
+          label: options.label,
+        }),
+      ],
+    }
+  )
+}
 
 const mColumns = computed<TableColumn<T>[]>(() => {
   return columns.value.map(({ pinned, cell, sortBy, header, display, ...item }) => {
@@ -205,18 +234,10 @@ const mColumns = computed<TableColumn<T>[]>(() => {
               return h('div', { class: ['flex items-center', display.class] }, [
                 h('div', { class: 'truncate' }, text),
                 text.length > display.length
-                  ? h(UButton, {
-                      size: 'xs',
-                      color: 'primary',
+                  ? getInfoPopup({
+                      class: display.class,
                       label: 'more',
-                      variant: 'link',
-                      class: 'px-0',
-                      onClick() {
-                        infoModal.open({
-                          title: String(header),
-                          body: text,
-                        })
-                      },
+                      content: () => text,
                     })
                   : null,
               ])
@@ -229,18 +250,10 @@ const mColumns = computed<TableColumn<T>[]>(() => {
               return h('div', { class: 'flex items-center' }, [
                 ...visible,
                 hidden > 0
-                  ? h(UButton, {
-                      size: 'xs',
-                      class: 'px-0',
-                      color: 'primary',
-                      variant: 'link',
+                  ? getInfoPopup({
+                      class: display.class,
                       label: `+${hidden} more`,
-                      onClick() {
-                        infoModal.open({
-                          title: String(header),
-                          body: h('div', { class: display.class }, getValue({ modal: true })),
-                        })
-                      },
+                      content: () => getValue({ modal: true }),
                     })
                   : null,
               ])

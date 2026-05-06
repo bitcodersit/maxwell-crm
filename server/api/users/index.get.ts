@@ -67,9 +67,9 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
         id: true,
         name: true,
         email: true,
+        avatarId: true,
         createdAt: true,
         updatedAt: true,
-        deletedAt: true,
         userRoles: {
           select: {
             id: true,

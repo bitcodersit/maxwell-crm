@@ -9,6 +9,9 @@ import type {
 
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
+const UAvatar = resolveComponent('UAvatar')
+
+const { getAttachment } = useGetAttachment()
 
 const fields: TField[] = [
   {
@@ -62,15 +65,16 @@ const columns = computed<TColumn<TUser>[]>(() => [
     accessorKey: 'name',
     header: 'Name',
     sortBy: 'name',
-    cell: ({ row }) =>
-      row.original.name.split('-').map((label) => {
-        return h(UBadge, {
-          label,
-          class: 'mr-1 capitalize',
-          variant: 'subtle',
-          color: ColorsMap[label] || 'neutral',
-        })
-      }),
+    cell: ({ row }) => {
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h(UAvatar, {
+          size: 'sm',
+          src: getAttachment(row.original.avatarId),
+          alt: row.original.name,
+        }),
+        h('div', {}, row.original.name),
+      ])
+    },
   },
   {
     accessorKey: 'email',
@@ -96,7 +100,7 @@ const columns = computed<TColumn<TUser>[]>(() => [
     cell({ row, ...ctx }) {
       if (!row.original.userRoles?.length) return '—'
       return row.original.userRoles
-        .map((ur) => ur.role?.name)
+        .map((ur) => ur.role?.name as string)
         .filter(Boolean)
         .map((label) => {
           const modal = (ctx as any).modal
@@ -104,16 +108,11 @@ const columns = computed<TColumn<TUser>[]>(() => [
             label,
             size: modal ? 'lg' : 'md',
             class: modal ? 'ml-1 mt-1' : 'mr-1',
-            color: 'neutral',
+            color: ColorsMap[label] || 'neutral',
             variant: 'subtle',
           })
         })
     },
-  },
-  {
-    accessorKey: 'name',
-    header: 'Slug',
-    sortBy: 'name',
   },
   {
     accessorKey: 'createdAt',
