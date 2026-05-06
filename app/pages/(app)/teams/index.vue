@@ -66,23 +66,6 @@ const columns = computed<TColumn<TTeam>[]>(() => [
       ]),
   },
   {
-    accessorKey: 'creator',
-    header: 'Creator',
-    sortBy: 'creatorId',
-    cell: ({ row }) => {
-      const creator = row.original.creator
-      if (!creator) return '—'
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(UAvatar, {
-          size: 'sm',
-          src: getAttachment(creator.avatarId),
-          alt: creator.name,
-        }),
-        h('div', creator.name),
-      ])
-    },
-  },
-  {
     accessorKey: 'members',
     header: 'Members',
     display: {
@@ -114,11 +97,12 @@ const columns = computed<TColumn<TTeam>[]>(() => [
               },
             },
             () =>
-              h('div', { class: 'flex items-center gap-1.5' }, [
+              h('div', { class: 'flex items-center gap-1' }, [
                 h(UAvatar, {
                   size: '2xs',
                   src: getAttachment(member.avatarId),
                   alt: member.name,
+                  class: 'bg-primary/20',
                 }),
                 h('span', `${member.name} (${member.role[0]})`),
               ])
@@ -137,6 +121,23 @@ const columns = computed<TColumn<TTeam>[]>(() => [
     },
     cell({ row }) {
       return row.original.description || '—'
+    },
+  },
+  {
+    accessorKey: 'creator',
+    header: 'Creator',
+    sortBy: 'creatorId',
+    cell: ({ row }) => {
+      const creator = row.original.creator
+      if (!creator) return '—'
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h(UAvatar, {
+          size: 'sm',
+          src: getAttachment(creator.avatarId),
+          alt: creator.name,
+        }),
+        h('div', creator.name),
+      ])
     },
   },
   {
@@ -185,19 +186,6 @@ const filters: TFilter[] = [
     },
   },
   {
-    name: 'creatorId',
-    type: 'checkbox-api',
-    props: {
-      label: 'Creators',
-      api: '/api/users',
-      query: {
-        options: true,
-        creatorOfTeam: true,
-      },
-      ...userFilterLabelProps,
-    },
-  },
-  {
     name: 'memberUserIds',
     type: 'checkbox-api',
     props: {
@@ -206,6 +194,19 @@ const filters: TFilter[] = [
       query: {
         options: true,
         memberOfTeam: true,
+      },
+      ...userFilterLabelProps,
+    },
+  },
+  {
+    name: 'creatorId',
+    type: 'checkbox-api',
+    props: {
+      label: 'Creators',
+      api: '/api/users',
+      query: {
+        options: true,
+        creatorOfTeam: true,
       },
       ...userFilterLabelProps,
     },
