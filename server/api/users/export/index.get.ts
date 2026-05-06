@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
       id: true,
       name: true,
       email: true,
+      emailVerifiedAt: true,
       createdAt: true,
       updatedAt: true,
       roles: (v) => v.userRoles?.map((ur) => ur.role?.name).filter(Boolean).join(',') ?? '',

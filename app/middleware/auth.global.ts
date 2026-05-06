@@ -1,13 +1,14 @@
-const unauthenticatedRoutes = ['/login', '/forgot-password', '/reset-password']
+const unauthenticatedOnlyRoutes = ['/login', '/forgot-password', '/reset-password']
+const publicRoutes = ['/verify-email']
 
 export default defineNuxtRouteMiddleware((to, from) => {
   const { user } = useUserSession()
 
-  if (unauthenticatedRoutes.includes(to.path) && user.value) {
+  if (unauthenticatedOnlyRoutes.includes(to.path) && user.value) {
     return navigateTo('/')
   }
 
-  if (!unauthenticatedRoutes.includes(to.path) && !user.value) {
+  if (!unauthenticatedOnlyRoutes.includes(to.path) && !publicRoutes.includes(to.path) && !user.value) {
     return navigateTo('/login')
   }
 })

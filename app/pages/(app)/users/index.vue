@@ -10,6 +10,10 @@ import type {
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
 const UAvatar = resolveComponent('UAvatar')
+const UIcon = resolveComponent('UIcon')
+const UTooltip = resolveComponent('UTooltip')
+const toast = useToast()
+const { confirm } = useConfirm()
 
 const { getAttachment } = useGetAttachment()
 
@@ -85,7 +89,24 @@ const columns = computed<TColumn<TUser>[]>(() => [
       length: 36,
     },
     cell({ row }) {
-      return row.original.email || '—'
+      const verified = !!row.original.emailVerifiedAt
+      const verifiedText = verified
+        ? `Verified at ${$dfc(row.original.emailVerifiedAt)}`
+        : 'Email not verified'
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('span', row.original.email || '—'),
+        h(
+          UTooltip,
+          { text: verifiedText },
+          {
+            default: () =>
+              h(UIcon, {
+                name: verified ? 'i-lucide-circle-check' : 'i-lucide-circle-alert',
+                class: verified ? 'text-success size-4' : 'text-warning size-4',
+              }),
+          }
+        ),
+      ])
     },
   },
   {
@@ -211,6 +232,33 @@ const getActions: TGetActions<TUser> = (item, v) => [
       ...actions.update,
       onSelect() {
         crudRef.value?.onUpdate(item)
+      },
+    },
+    {
+      label: 'Send verify email',
+      icon: 'i-lucide-mail-check',
+      hidden: !!item.emailVerifiedAt,
+      async onSelect() {
+        if (!(await confirm(`Send verification email to "${item.email}"?`))) {
+          return
+        }
+        try {
+          const response = await $fetch<{ message?: string }>(`/api/users/${item.id}/verify-email`, {
+            method: 'POST',
+          })
+          toast.add({
+            color: 'success',
+            title: 'Verification email sent',
+            description: response?.message || 'Verification email sent successfully',
+          })
+        } catch (error) {
+          const { message } = parseError(error)
+          toast.add({
+            color: 'error',
+            title: 'Failed to send email',
+            description: message,
+          })
+        }
       },
     },
   ].filter((action: any) => !action.hidden),

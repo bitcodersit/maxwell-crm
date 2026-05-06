@@ -13,6 +13,7 @@ model User {
     name     String
     email    String  @unique
     password String?
+    emailVerifiedAt DateTime?
 
     avatarId Int?
     avatar   Attachment? @relation(fields: [avatarId], references: [id], onDelete: SetNull)
@@ -28,6 +29,36 @@ model User {
 
     @@index([email])
     @@map("users")
+}
+
+enum TokenType {
+    VERIFY
+    RESET
+    OTP
+}
+
+enum TokenModelType {
+    USER
+}
+
+model Token {
+    id Int @id @default(autoincrement())
+
+    modelId   Int
+    modelType TokenModelType
+    type      TokenType
+    token     String @unique
+
+    expiresAt DateTime?
+    usedAt    DateTime?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@index([modelId, modelType, type])
+    @@index([type])
+    @@index([expiresAt])
+    @@map("tokens")
 }
 
 model Team {

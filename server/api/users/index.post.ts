@@ -16,6 +16,16 @@ export default defineEventHandler(async (event) => {
     if (!can(sessionUser, ['update-any-users'])) {
       throw err.denied()
     }
+    const existing = await prisma.user.findUnique({
+      where: {
+        id: input.id,
+      },
+      select: {
+        email: true,
+      },
+    })
+    if (!existing) throw err.notFound()
+
     const data: Prisma.UserUpdateInput = {
       name: input.name,
       email: input.email,
@@ -35,6 +45,16 @@ export default defineEventHandler(async (event) => {
     }
     if (input.password) {
       data.password = await hashPassword(input.password)
+    }
+    if (existing.email !== input.email) {
+      data.emailVerifiedAt = null
+      await prisma.token.deleteMany({
+        where: {
+          modelId: input.id,
+          modelType: 'USER',
+          type: 'VERIFY',
+        },
+      })
     }
     const user = await prisma.user.update({
       where: {
