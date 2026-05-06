@@ -9,7 +9,7 @@ const zUser = z.object({
   name: z.string().min(1),
   email: z.email(),
   password: z.string().min(8).nullish(),
-  roleIds: z.array(z.number()).nullish(),
+  roleIds: z.array(z.number()).min(1, 'At least one role is required'),
 })
 
 export default defineEventHandler(async (event) => {
@@ -92,7 +92,7 @@ export default defineEventHandler(async (event) => {
       await queueEmail({
         to: user.email,
         subject: 'Welcome to Maxwell CRM',
-        html
+        html,
       })
     }
 
@@ -106,7 +106,7 @@ export default defineEventHandler(async (event) => {
       await queueEmail({
         to: user.email,
         subject: 'Your password has been updated',
-        html
+        html,
       })
     }
 
@@ -151,7 +151,7 @@ export default defineEventHandler(async (event) => {
   await queueEmail({
     to: user.email,
     subject: 'Welcome to Maxwell CRM',
-    html
+    html,
   })
 
   return user

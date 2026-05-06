@@ -40,7 +40,7 @@ const fields: TField[] = [
     },
   },
   {
-    name: 'roles',
+    name: 'roleIds',
     type: 'autocomplete',
     label: 'Roles',
     props: {
@@ -284,7 +284,7 @@ const getFormState = (v?: TUser) => ({
   name: v?.name ?? '',
   email: v?.email ?? '',
   password: '',
-  roles: v?.userRoles?.map((ur) => ur.role).filter(Boolean) ?? [],
+  roleIds: v?.userRoles?.map((ur) => ur.role).filter(Boolean) ?? [],
 })
 
 const getPostBody = (v: Record<string, any>) => {
@@ -292,7 +292,7 @@ const getPostBody = (v: Record<string, any>) => {
     id: v.id,
     name: v.name,
     email: v.email,
-    roleIds: (v.roles ?? []).map((r: any) => r.id),
+    roleIds: (v.roleIds ?? []).map((r: any) => r.id),
   }
   const pwd = typeof v.password === 'string' ? v.password.trim() : ''
   if (pwd) body.password = pwd
