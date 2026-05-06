@@ -252,7 +252,6 @@ const getPostBody = (v: Record<string, any>) => {
     post-url="/api/users"
     export-url="/api/users/export"
     delete-url="/api/users/{id}"
-    persist-key="users"
     :modal="modal"
     :fields="fields"
     :filters="filters"

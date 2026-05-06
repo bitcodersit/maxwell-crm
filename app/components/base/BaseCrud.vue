@@ -84,7 +84,6 @@ const props = withDefaults(
     exportUrl?: string
     formClass?: string
     staleTime?: number
-    persistKey?: string
     dateFields?: string[]
     perPageOptions?: number[]
     deleteUrl?: string | ((item: T | T[]) => string)
@@ -117,7 +116,6 @@ const {
   deleteUrl,
   staleTime,
   dateFields,
-  persistKey,
   getPostBody,
   getFormState,
 } = toRefs(props)
@@ -147,8 +145,8 @@ const getPersisted = <T>(
     } catch {}
     return { ...initial }
   }
-  if (typeof window !== 'undefined' && persistKey.value) {
-    const stored = localStorage.getItem(`${persistKey.value}:${key}`)
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(`${getUrl.value}:${key}`)
     return parser(stored, parse)
   }
   return parser(undefined, parse)
@@ -430,9 +428,8 @@ const onGotoFirstPage = () => {
 watch(
   query,
   (v) => {
-    if (!persistKey.value) return
     localStorage.setItem(
-      `${persistKey.value}:query`,
+      `${getUrl.value}:query`,
       JSON.stringify(
         calendarFormatDates(v, dateFields.value, {
           returnType: 'storage',
@@ -444,8 +441,7 @@ watch(
 )
 
 watch(selected, (v) => {
-  if (!persistKey.value) return
-  localStorage.setItem(`${persistKey.value}:selected`, JSON.stringify(v))
+  localStorage.setItem(`${getUrl.value}:selected`, JSON.stringify(v))
 })
 
 type TViewOptions = {

@@ -237,7 +237,6 @@ const getPostBody = (v: Record<string, any>) => ({
     post-url="/api/permissions"
     export-url="/api/permissions/export"
     delete-url="/api/permissions/{id}"
-    persist-key="permissions"
     :fields="fields"
     :columns="columns"
     :filters="filters"
