@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FormSubmitEvent, AuthFormField } from '@nuxt/ui'
+import type { AuthFormField, FormSubmitEvent } from '@nuxt/ui'
 
 useHead({ title: 'Login' })
 definePageMeta({ layout: 'auth' })
@@ -23,7 +23,7 @@ const fields: AuthFormField[] = [
 ]
 
 const loading = ref(false)
-function onSubmit(event: FormSubmitEvent<any>) {
+const onSubmit = async (event: FormSubmitEvent<any>) => {
   loading.value = true
   $fetch('/api/login', {
     method: 'POST',
@@ -60,12 +60,19 @@ function onSubmit(event: FormSubmitEvent<any>) {
 </script>
 
 <template>
-  <UAuthForm
-    ref="auth"
-    title="Welcome back"
-    description="Enter your email and password to access your account."
-    :fields="fields"
-    :loading="loading"
-    @submit="onSubmit"
-  />
+  <div class="w-full max-w-sm space-y-4">
+    <UAuthForm
+      ref="auth"
+      title="Welcome back"
+      description="Enter your email and password to access your account."
+      :fields="fields"
+      :loading="loading"
+      @submit="onSubmit"
+    />
+    <div class="text-sm text-center">
+      <NuxtLink to="/forgot-password" class="text-primary hover:underline">
+        Forgot your password?
+      </NuxtLink>
+    </div>
+  </div>
 </template>
