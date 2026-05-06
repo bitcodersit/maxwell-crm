@@ -76,6 +76,15 @@ const getDate = (query: any, key: string) => {
   }
 }
 
+const getBool = (query: any, key: string): boolean | undefined => {
+  const value = query[key]
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value === 'boolean') return value
+  if (isTrue(value)) return true
+  if (isFalse(value)) return false
+  return undefined
+}
+
 export const getWhere = <T>(query: Record<string, any>, where: T = {} as T) => {
   return {
     id(key: string, updater: string | ((id: TId) => Partial<T>) = key) {
@@ -119,6 +128,36 @@ export const getWhere = <T>(query: Record<string, any>, where: T = {} as T) => {
       }
       return this
     },
+    bool(key: string, updater: string | ((value: boolean) => Partial<T>) = key) {
+      const value = getBool(query, key)
+      if (typeof value === 'boolean') {
+        if (typeof updater === 'function') {
+          where = { ...where, ...updater(value) }
+        } else {
+          where = { ...where, [updater]: value }
+        }
+      }
+      return this
+    },
+    true(key: string, updater: string | (() => Partial<T>) = key) {
+      return this.bool(key, (value) => {
+        if (!value) return {}
+        if (typeof updater === 'function') {
+          return updater()
+        }
+        return { [updater]: true } as Partial<T>
+      })
+    },
+    false(key: string, updater: string | (() => Partial<T>) = key) {
+      return this.bool(key, (value) => {
+        if (value) return {}
+        if (typeof updater === 'function') {
+          return updater()
+        }
+        return { [updater]: false } as Partial<T>
+      })
+    },
+
     get(): T {
       return where
     },

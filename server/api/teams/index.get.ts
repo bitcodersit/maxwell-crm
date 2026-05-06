@@ -1,3 +1,5 @@
+import { Prisma } from '~~/prisma/client/client'
+
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
 
@@ -8,37 +10,53 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
 
   const { take, skip, paginate } = getPagination(query)
-  const q = (query.q || '').toString().trim()
+  const { orderBy } = getOrderBy(query, { id: 'desc' })
 
-  const search = {
-    OR: [{ name: { contains: q } }, { description: { contains: q } }],
-    deletedAt: null,
-  }
+  const where = getWhere<Prisma.TeamWhereInput>(query, { deletedAt: null })
+    .id('id')
+    .text('name')
+    .text('description')
+    .id('creatorId')
+    .date('createdAt')
+    .date('updatedAt')
+    .text('q', (text) => ({
+      OR: [{ name: { contains: text } }, { description: { contains: text } }]
+    }))
+    .id('memberUserIds', (userId) => ({
+      members: {
+        some: {
+          userId
+        }
+      }
+    }))
+    .get()
 
-  const where = can(user, ['read-any-teams'])
-    ? search
+  const scopedWhere = can(user, ['read-any-teams'])
+    ? where
     : {
-        AND: [{ members: { some: { userId: user.id } } }, search],
+        AND: [where, { members: { some: { userId: user.id } } }]
       }
 
   const [total, teams] = await prisma.$transaction([
-    prisma.team.count({ where }),
+    prisma.team.count({ where: scopedWhere }),
     prisma.team.findMany({
-      where,
+      where: scopedWhere,
       skip,
       take,
-      orderBy: {
-        id: 'desc',
-      },
+      orderBy,
       include: {
         creator: {
           select: {
             id: true,
             name: true,
             email: true,
+            avatarId: true,
           },
         },
         members: {
+          orderBy: {
+            role: 'asc',
+          },
           select: {
             role: true,
             user: {
@@ -46,6 +64,7 @@ export default defineEventHandler(async (event) => {
                 id: true,
                 name: true,
                 email: true,
+                avatarId: true,
               },
             },
             assigner: {
@@ -53,6 +72,7 @@ export default defineEventHandler(async (event) => {
                 id: true,
                 name: true,
                 email: true,
+                avatarId: true,
               },
             },
           },

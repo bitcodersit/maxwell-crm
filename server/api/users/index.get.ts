@@ -39,6 +39,22 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
         },
       },
     }))
+    .true('creatorOfTeam', () => ({
+      teams: {
+        some: {
+          deletedAt: null,
+        },
+      },
+    }))
+    .true('memberOfTeam', () => ({
+      teamMembers: {
+        some: {
+          team: {
+            deletedAt: null,
+          },
+        },
+      },
+    }))
     .id('idsNotIn', (ids) => {
       if ('in' in ids) {
         return {
@@ -51,6 +67,39 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
     })
     .get()
 
+  const selectInclude: {
+    select?: Prisma.UserSelect
+  } = isTrue(query.options)
+    ? {
+        select: {
+          id: true,
+          name: true,
+          avatarId: true,
+        },
+      }
+    : {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          emailVerifiedAt: true,
+          avatarId: true,
+          createdAt: true,
+          updatedAt: true,
+          userRoles: {
+            select: {
+              id: true,
+              role: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      }
+
   const [total, users] = await prisma.$transaction([
     prisma.user.count({ where }),
     prisma.user.findMany({
@@ -58,26 +107,7 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
       take,
       where,
       orderBy,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        emailVerifiedAt: true,
-        avatarId: true,
-        createdAt: true,
-        updatedAt: true,
-        userRoles: {
-          select: {
-            id: true,
-            role: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      ...selectInclude,
     }),
   ])
 

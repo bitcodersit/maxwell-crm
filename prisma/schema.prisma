@@ -10,15 +10,14 @@ datasource db {
 model User {
     id Int @id @default(autoincrement())
 
-    name     String
-    email    String  @unique
-    password String?
+    name            String
+    email           String    @unique
+    password        String?
+    avatarId        Int?
     emailVerifiedAt DateTime?
 
-    avatarId Int?
-    avatar   Attachment? @relation(fields: [avatarId], references: [id], onDelete: SetNull)
-
     teams               Team[]
+    avatar              Attachment?  @relation(fields: [avatarId], references: [id], onDelete: SetNull)
     userRoles           UserRole[]
     teamMembers         TeamMember[]
     teamMembersAssigned TeamMember[] @relation("TeamMemberAssigner")
@@ -67,7 +66,7 @@ model Token {
     modelId   Int
     modelType TokenModelType
     type      TokenType
-    token     String @unique
+    token     String         @unique
 
     expiresAt DateTime?
     usedAt    DateTime?
@@ -90,16 +89,16 @@ model EmailJob {
     subject String
     html    String @db.Text
 
-    status   EmailStatus   @default(PENDING)
-    priority EmailPriority @default(NORMAL)
+    status    EmailStatus    @default(PENDING)
+    priority  EmailPriority  @default(NORMAL)
     frequency EmailFrequency @default(ONCE)
     action    Json?
 
-    attempts    Int      @default(0)
-    maxAttempts Int      @default(3)
-    message     String?  @db.Text
+    attempts    Int       @default(0)
+    maxAttempts Int       @default(3)
+    message     String?   @db.Text
     failedAt    DateTime?
-    scheduledAt DateTime @default(now())
+    scheduledAt DateTime  @default(now())
     sentAt      DateTime?
 
     createdAt DateTime @default(now())
@@ -115,8 +114,11 @@ model Team {
 
     name        String  @unique
     description String? @db.Text
-    creatorId   Int?
 
+    avatarId  Int?
+    creatorId Int?
+
+    avatar  Attachment?  @relation(fields: [avatarId], references: [id], onDelete: SetNull)
     creator User?        @relation(fields: [creatorId], references: [id], onDelete: SetNull)
     members TeamMember[]
 
@@ -146,7 +148,9 @@ model TeamMember {
     user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
     assigner User? @relation("TeamMemberAssigner", fields: [assignerId], references: [id], onDelete: SetNull)
 
-    createdAt DateTime @default(now())
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
 
     @@unique([teamId, userId])
     @@index([teamId])
@@ -236,6 +240,7 @@ model Attachment {
     mime String?
 
     users User[]
+    teams Team[]
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt

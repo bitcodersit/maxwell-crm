@@ -21,6 +21,15 @@ const links = computed(() => {
         },
       },
       {
+        label: 'Teams',
+        icon: 'i-lucide-users-round',
+        to: '/teams',
+        visible: can(user.value, ['read-any-teams', 'read-own-teams']),
+        onSelect: () => {
+          open.value = false
+        },
+      },
+      {
         label: 'Users',
         icon: 'i-lucide-users',
         to: '/users',
