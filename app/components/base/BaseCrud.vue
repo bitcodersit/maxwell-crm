@@ -12,6 +12,7 @@ type TArrayDisplay = {
 }
 
 type TDisplay = TTextDisplay | TArrayDisplay
+type TFormMode = 'create' | 'update'
 type TFormState = Record<string, any>
 //
 </script>
@@ -52,6 +53,10 @@ export type TField = { name: string; label: string; col?: string } & (
   | { type: 'autocomplete'; props: TBaseAutocompleteProps }
 )
 
+export type TBaseCrudModal = {
+  form?: (v: { mode: TFormMode }) => ModalProps
+}
+
 export type TQuery = {
   page: number
   perPage: number
@@ -64,6 +69,7 @@ export type TGetActions<T> = (item: T, options?: { view?: boolean }) => Dropdown
 const props = withDefaults(
   defineProps<{
     getUrl: string
+    modal?: TBaseCrudModal
     fields?: TField[]
     filters?: TFilter[]
     columns?: TColumn<T>[]
@@ -75,16 +81,6 @@ const props = withDefaults(
     persistKey?: string
     dateFields?: string[]
     perPageOptions?: number[]
-    formModal?: {
-      create?: {
-        title?: string
-        description?: string
-      }
-      update?: {
-        title?: string
-        description?: string
-      }
-    }
     getActions?: TGetActions<T>
     getPostBody?: (state: TFormState) => object | FormData
     getFormState?: (item?: T) => TFormState
@@ -311,7 +307,7 @@ const onClearOrderBy = () => {
 }
 
 const formOpen = ref(false)
-const formMode = ref<'create' | 'update'>('create')
+const formMode = ref<TFormMode>('create')
 const formState = ref<TFormState>({})
 const isSubmitting = ref(false)
 
@@ -747,11 +743,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
         </table>
       </template>
     </UModal>
-    <UModal
-      v-model:open="formOpen"
-      :title="formModal?.[formMode]?.title"
-      :description="formModal?.[formMode]?.description"
-    >
+    <UModal v-model:open="formOpen" v-bind="modal?.form?.({ mode: formMode })">
       <template #body>
         <UForm ref="formRef" :state="formState" @submit="onSubmit">
           <div :class="formClass" class="grid grid-cols-1 gap-4">

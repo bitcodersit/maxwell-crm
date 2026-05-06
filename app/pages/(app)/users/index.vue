@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import type { TColumn, TFilter, TField, TGetActions } from '@/components/base/BaseCrud.vue'
+import type {
+  TColumn,
+  TFilter,
+  TField,
+  TGetActions,
+  TBaseCrudModal,
+} from '@/components/base/BaseCrud.vue'
 
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
@@ -181,15 +187,11 @@ const filters: TFilter[] = [
   },
 ]
 
-const formModal = {
-  create: {
-    title: 'Add New User',
-    description: 'Create a user account',
-  },
-  update: {
-    title: 'Update User',
-    description: 'Update user details',
-  },
+const modal: TBaseCrudModal = {
+  form: ({ mode }) => ({
+    title: mode === 'create' ? 'Add New User' : 'Update User',
+    description: mode === 'create' ? 'Create a user account' : 'Update user details',
+  }),
 }
 
 const getActions: TGetActions<TUser> = (item, v) => [
@@ -261,7 +263,7 @@ const onDeleteSelected = () => {
     :fields="fields"
     :columns="columns"
     :filters="filters"
-    :form-modal="formModal"
+    :modal="modal"
     :date-fields="['createdAt', 'updatedAt']"
     :get-actions="getActions"
     :get-post-body="getPostBody"

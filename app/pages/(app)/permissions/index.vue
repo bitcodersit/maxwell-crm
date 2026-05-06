@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import type { TColumn, TFilter, TField, TGetActions } from '@/components/base/BaseCrud.vue'
+import type {
+  TColumn,
+  TFilter,
+  TField,
+  TGetActions,
+  TBaseCrudModal,
+} from '@/components/base/BaseCrud.vue'
 
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
@@ -170,15 +176,11 @@ const filters: TFilter[] = [
   },
 ]
 
-const formModal = {
-  create: {
-    title: 'Add New Permission',
-    description: 'Add a new permission to the system',
-  },
-  update: {
-    title: 'Update Permission',
-    description: 'Update the permission',
-  },
+const modal: TBaseCrudModal = {
+  form: ({ mode }) => ({
+    title: mode === 'create' ? 'Add New Permission' : 'Update Permission',
+    description: mode === 'create' ? 'Add a new permission to the system' : 'Update the permission',
+  }),
 }
 
 const getActions: TGetActions<TPermission> = (item, v) => [
@@ -244,7 +246,7 @@ const onDeleteSelected = () => {
     :fields="fields"
     :columns="columns"
     :filters="filters"
-    :form-modal="formModal"
+    :modal="modal"
     :date-fields="['createdAt', 'updatedAt']"
     :get-actions="getActions"
     :get-post-body="getPostBody"
