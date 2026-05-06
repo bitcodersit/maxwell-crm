@@ -7,12 +7,12 @@ import type {
   TBaseCrudModal,
 } from '@/components/base/BaseCrud.vue'
 
+const toastP = usePromiseToast()
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
 const UAvatar = resolveComponent('UAvatar')
 const UIcon = resolveComponent('UIcon')
 const UTooltip = resolveComponent('UTooltip')
-const toast = useToast()
 const { confirm } = useConfirm()
 
 const { getAttachment } = useGetAttachment()
@@ -242,48 +242,30 @@ const getActions: TGetActions<TUser> = (item, v) => [
         if (!(await confirm(`Send verification email to "${item.email}"?`))) {
           return
         }
-        const toastId = `verify-email-${item.id}`
-        toast.add({
-          id: toastId,
-          color: 'primary',
-          icon: 'i-lucide-loader-circle',
-          title: 'Sending verification email...',
-          description: `Sending to ${item.email}`,
-          duration: 0,
-          ui: {
-            icon: 'animate-spin',
-          },
-        })
-        try {
-          const response = await $fetch<{ message?: string }>(
-            `/api/users/${item.id}/verify-email`,
-            {
+        toastP(
+          (toast) => {
+            return $fetch(`/api/users/${item.id}/verify-email`, {
               method: 'POST',
-            }
-          )
-          toast.update(toastId, {
-            color: 'success',
-            icon: 'i-lucide-circle-check',
+            })
+              .then(toast.onSuccess)
+              .catch(toast.onError)
+          },
+          {
+            title: 'Sending verification email...',
+            description: `Sending to ${item.email}`,
+          },
+          (res) => ({
             title: 'Verification email sent',
-            description: response?.message || 'Verification email sent successfully',
-            duration: 3000,
-            ui: {
-              icon: '',
-            },
-          })
-        } catch (error) {
-          const { message } = parseError(error)
-          toast.update(toastId, {
-            color: 'error',
-            icon: 'i-lucide-circle-x',
-            title: 'Failed to send email',
-            description: message,
-            duration: 5000,
-            ui: {
-              icon: '',
-            },
-          })
-        }
+            description: res?.message || 'Verification email sent successfully',
+          }),
+          (err) => {
+            const { message } = parseError(err)
+            return {
+              title: 'Failed to send email',
+              description: message,
+            }
+          }
+        )
       },
     },
   ].filter((action: any) => !action.hidden),
