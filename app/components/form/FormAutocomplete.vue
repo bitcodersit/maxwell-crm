@@ -5,21 +5,21 @@ type TItem = Record<string, any>
 
 <script setup lang="ts" generic="Item extends TItem = TItem, Value extends TValue = TValue">
 import type { InputTagsProps } from '@nuxt/ui'
-import type { TBaseSearchboxPopoverProps } from './BaseSearchboxPopover.vue'
+import type { TBaseSearchboxProviderProps } from '@/components/base/BaseSearchboxProvider.vue'
 
-export type TBaseAutocompleteProps<
+export type TFormAutocompleteProps<
   Item extends TItem = TItem,
   Value extends TValue = TValue
-> = TBaseSearchboxPopoverProps<Item, Value> &
+> = TBaseSearchboxProviderProps<Item, Value> &
   Pick<InputTagsProps, 'size' | 'placeholder'> & {
-  labelClass?: string
-  itemKey?: (item: Item) => Value
-}
+    labelClass?: string
+    itemKey?: (item: Item) => Value
+  }
 
-const props = defineProps<TBaseAutocompleteProps<Item, Value>>()
+const props = defineProps<TFormAutocompleteProps<Item, Value>>()
 const model = defineModel<Item[]>({ default: () => [] })
 
-const popoverProps = computed(() => {
+const providerProps = computed(() => {
   const { size, placeholder, labelClass, itemKey, getValue, ...rest } = props
   return {
     ...rest,
@@ -29,7 +29,7 @@ const popoverProps = computed(() => {
 </script>
 
 <template>
-  <BaseSearchboxPopover v-model="model" v-bind="popoverProps" class="w-full">
+  <BaseSearchboxProvider v-model="model" v-bind="providerProps" class="w-full">
     <template #default="{ onInput, onFocus, onKeydown, setInputRef }">
       <UInputTags
         :ref="setInputRef"
@@ -52,5 +52,5 @@ const popoverProps = computed(() => {
         </template>
       </UInputTags>
     </template>
-  </BaseSearchboxPopover>
+  </BaseSearchboxProvider>
 </template>

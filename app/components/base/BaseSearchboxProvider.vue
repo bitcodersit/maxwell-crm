@@ -5,30 +5,32 @@ type TItem = Record<string, any>
 
 <script setup lang="ts" generic="Item extends TItem = TItem, Value extends TValue = TValue">
 import type { ClassValue } from 'vue'
+import type { TBaseOrderByItem, TBaseOrderBy } from './BaseOrderByDropdown.vue'
 
-export type TBaseSearchboxPopoverSlotProps = {
+export type TBaseSearchboxProviderSlotProps = {
   searchTerm: string
-  setSearchTerm: (value: string) => void
   onInput: (event: Event | string) => void
   onFocus: () => void
   onKeydown: (event: KeyboardEvent) => void
   setInputRef: (el: any) => void
+  setSearchTerm: (value: string) => void
 }
 
-export type TBaseSearchboxPopoverProps<
+export type TBaseSearchboxProviderProps<
   Item extends TItem = TItem,
   Value extends TValue = TValue
 > = {
   api: string
   class?: ClassValue
   query?: Record<string, any>
+  orderByItems?: TBaseOrderByItem[]
   hideOnSelect?: boolean
   clearOnSelect?: boolean
   getValue?: (item: Item) => Value
   getLabel?: (item: Item) => string | VNode
 }
 
-const props = withDefaults(defineProps<TBaseSearchboxPopoverProps<Item, Value>>(), {
+const props = withDefaults(defineProps<TBaseSearchboxProviderProps<Item, Value>>(), {
   getValue: (item: Item) => item.id,
   getLabel: (item: Item) => item.name,
 })
@@ -42,6 +44,7 @@ const popoverReference = computed(() => rootRef.value ?? undefined)
 
 const activeIndex = ref(0)
 const dropdownOpen = ref(false)
+const orderBy = ref<TBaseOrderBy>({})
 const inputRef = shallowRef<HTMLInputElement | null>(null)
 
 const { state: searchTerm, stateD: searchTermD } = useDebouncedState('', 300)
@@ -52,6 +55,7 @@ const { data, status, execute } = useFetchApi({
   query: computed(() => ({
     ...query.value,
     q: searchTermD.value,
+    orderBy: orderBy.value,
     idsNotIn: model.value.map((x) => props.getValue(x)).join(','),
   })),
   getDefault() {
@@ -149,7 +153,7 @@ const onKeydown = (e: KeyboardEvent) => {
   }
 }
 
-const slotProps = computed<TBaseSearchboxPopoverSlotProps>(() => ({
+const slotProps = computed<TBaseSearchboxProviderSlotProps>(() => ({
   searchTerm: searchTerm.value,
   setSearchTerm,
   onInput,
@@ -194,7 +198,7 @@ watch(dropdownOpen, async (open) => {
     :content="{ side: 'bottom', align: 'start', collisionPadding: 12 }"
     :ui="{
       content:
-        'w-(--reka-popper-anchor-width) max-h-60 overflow-y-auto rounded-md border border-accented bg-elevated p-1 shadow-lg z-9999',
+        'w-(--reka-popper-anchor-width) max-h-60 overflow-visible rounded-md border border-accented bg-elevated p-1 shadow-lg z-9999',
     }"
     @open-auto-focus="onOpenAutoFocus"
   >
@@ -202,34 +206,34 @@ watch(dropdownOpen, async (open) => {
       <span class="sr-only" aria-hidden="true" />
     </template>
     <template #content>
-      <div ref="panelRef" role="listbox" class="overflow-hidden">
+      <div ref="panelRef" role="listbox" class="overflow-visible">
         <div v-if="status === 'pending'" class="absolute inset-x-0 top-0 px-1.5">
           <UProgress size="sm" animation="swing" />
         </div>
+        <div class="flex justify-start px-2 py-1">
+          <BaseOrderByDropdown v-model="orderBy" :items="orderByItems" />
+        </div>
         <div v-if="!selectableItems.length" class="text-muted p-3 text-sm">No matching items</div>
-        <template v-for="(item, idx) in selectableItems">
-          <USeparator
-            v-if="idx > 0"
-            :key="`divider-${idx}`"
-            :ui="{ border: 'border-accented', root: 'px-2' }"
-          />
-          <UButton
-            v-if="true"
-            :key="getValue(item)"
-            :class="[idx === activeIndex ? 'bg-elevated/50' : '']"
-            :aria-selected="idx === activeIndex"
-            role="option"
-            type="button"
-            color="neutral"
-            class="w-full"
-            variant="soft"
-            @mousedown.prevent
-            @click="onSelectItem(item)"
-            @mouseenter="activeIndex = idx"
-          >
-            <VNode :value="getLabel(item)" />
-          </UButton>
-        </template>
+        <div v-else class="max-h-48 overflow-y-auto">
+          <template v-for="(item, idx) in selectableItems" :key="getValue(item)">
+            <USeparator :ui="{ border: 'border-accented', root: 'px-2' }" />
+            <UButton
+              v-if="true"
+              :class="[idx === activeIndex ? 'bg-elevated/50' : '']"
+              :aria-selected="idx === activeIndex"
+              role="option"
+              type="button"
+              color="neutral"
+              class="w-full"
+              variant="soft"
+              @mousedown.prevent
+              @click="onSelectItem(item)"
+              @mouseenter="activeIndex = idx"
+            >
+              <VNode :value="getLabel(item)" />
+            </UButton>
+          </template>
+        </div>
       </div>
     </template>
   </UPopover>

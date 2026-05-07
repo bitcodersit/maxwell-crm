@@ -24,15 +24,15 @@ type TMemberField = TMemberSelectField | TMemberInputField
 
 <script setup lang="ts" generic="ModelValue extends TModelValue">
 import type { InputProps } from '@nuxt/ui'
-import type { TBaseSearchboxProps } from './BaseSearchbox.vue'
+import type { TFormSearchboxProps } from './FormSearchbox.vue'
 
-export type TBaseUserPivotBoxProps = Partial<
-  Omit<TBaseSearchboxProps<TUser, number>, 'api' | 'query' | 'getValue' | 'getLabel'>
+export type TFormUsersPivotProps = Partial<
+  Omit<TFormSearchboxProps<TUser, number>, 'api' | 'query' | 'getValue' | 'getLabel'>
 > & {
   fields?: TMemberField[]
 }
 
-const props = withDefaults(defineProps<TBaseUserPivotBoxProps>(), {
+const props = withDefaults(defineProps<TFormUsersPivotProps>(), {
   fields: () => [],
   placeholder: 'Search user',
 })
@@ -105,7 +105,7 @@ const onRemoveItem = (item: ModelValue) => {
         />
       </div>
     </div>
-    <BaseSearchbox
+    <FormSearchbox
       v-model="selectedUsers"
       :size="size"
       :class="class"

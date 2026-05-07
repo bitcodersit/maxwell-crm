@@ -1,52 +1,53 @@
 <script setup lang="ts">
-import type { CalendarProps } from '@nuxt/ui'
-
-type TValue = CalendarProps['modelValue']
-type TMode = 'single' | 'range' | 'multiple'
-
-export type TDateFilterProps = CalendarProps & {
-  mode?: TMode
+export type TFilterInputProps = {
+  mode?: string
   label?: string
+  modeable?: boolean
+  modelValue?: string
+  placeholder?: string
 }
 
-const props = withDefaults(defineProps<TDateFilterProps>(), {
-  mode: 'single',
-})
+const props = defineProps<TFilterInputProps>()
 
 const emit = defineEmits<{
-  (e: 'update:mode', mode?: TMode): void
-  (e: 'update:modelValue', value?: TValue): void
+  (e: 'update:mode', mode?: string): void
+  (e: 'update:modelValue', value?: string): void
 }>()
 
-const { mode: modelMode, modelValue } = toRefs(props)
+const { mode: modelMode, modelValue, modeable } = toRefs(props)
 
 const open = ref(false)
-const mode = ref<TMode>(modelMode.value)
-const value = ref<any>(modelValue.value)
+
+const value = ref(modelValue.value)
+const mode = ref(modelMode.value ?? 'contains')
 
 const onClear = () => {
-  value.value = undefined
-  emit('update:mode', undefined)
+  value.value = ''
   emit('update:modelValue', undefined)
+  if (modeable.value) {
+    emit('update:mode', undefined)
+  }
   open.value = false
 }
 
 const onApply = () => {
-  if (!value.value) return
-  emit('update:mode', mode.value)
-  emit('update:modelValue', value.value)
+  const v = value.value?.trim()
+  if (!v) return
+  emit('update:modelValue', v)
+  if (modeable.value) {
+    emit('update:mode', mode.value)
+  }
   open.value = false
 }
 
 watch(modelValue, (v) => {
-  if (!v) return
-  if (v == value.value) return
+  if (v === value.value) return
   value.value = v
 })
 
 watch(modelMode, (v) => {
   if (v === mode.value) return
-  mode.value = v ?? 'single'
+  mode.value = v ?? 'contains'
 })
 </script>
 
@@ -63,17 +64,13 @@ watch(modelMode, (v) => {
         color="primary"
         variant="subtle"
         :ui="{ leadingIcon: 'size-4' }"
+        @click:trailing="onClear"
         @click="open = true"
       >
-        {{ label ?? 'Date' }}
-        <template v-if="modelValue">
-          |
-          {{
-            calendarFormatDate(modelValue, {
-              returnType: 'display',
-            })
-          }}
-        </template>
+        {{ label ?? 'Text' }}
+        <template v-if="modelValue"> | </template>
+        <template v-if="modelValue && modeable"> {{ mode }} |</template>
+        {{ modelValue }}
         <template v-if="modelValue" #trailing>
           <UButton
             icon="i-lucide-x"
@@ -88,16 +85,15 @@ watch(modelMode, (v) => {
     </UChip>
     <template #content>
       <URadioGroup
+        v-if="modeable"
         v-model="mode"
         orientation="horizontal"
-        @change="value = undefined"
         :items="[
-          { label: 'Single', value: 'single' },
-          { label: 'Range', value: 'range' },
-          { label: 'Multiple', value: 'multiple' },
+          { label: 'Contains', value: 'contains' },
+          { label: 'Exact', value: 'exact' },
         ]"
       />
-      <UCalendar v-model="value" :range="mode === 'range'" :multiple="mode === 'multiple'" />
+      <UInput v-model="value" :autofocus="true" :placeholder="placeholder" @keyup.enter="onApply" />
       <div class="flex items-center gap-2 justify-end">
         <UButton
           v-if="modelValue"
@@ -114,7 +110,7 @@ watch(modelMode, (v) => {
           color="primary"
           variant="solid"
           size="sm"
-          :disabled="!value"
+          :disabled="!value?.trim()"
           @click="onApply"
         >
           Apply

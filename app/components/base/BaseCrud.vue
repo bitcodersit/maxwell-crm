@@ -34,11 +34,11 @@ import type {
   DropdownMenuItem,
   ModalProps,
 } from '@nuxt/ui'
-import type { TDateFilterProps } from './BaseDateFilter.vue'
-import type { TInputFilterProps } from './BaseInputFilter.vue'
-import type { TBaseAutocompleteProps } from './BaseAutocomplete.vue'
-import type { TBaseUserPivotBoxProps } from './BaseUserPivotBox.vue'
-import type { TCheckboxFilterApiProps } from './BaseCheckboxFilterApi.vue'
+import type { TFilterDateProps } from '@/components/filter/FilterDate.vue'
+import type { TFilterInputProps } from '@/components/filter/FilterInput.vue'
+import type { TFormUsersPivotProps } from '@/components/form/FormUsersPivot.vue'
+import type { TFilterCheckboxProps } from '@/components/filter/FilterCheckbox.vue'
+import type { TFormAutocompleteProps } from '@/components/form/FormAutocomplete.vue'
 import { isVNode } from 'vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
@@ -48,17 +48,17 @@ export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
 }
 
 export type TFilter = { name: string } & (
-  | { type: 'date'; props?: TDateFilterProps }
-  | { type: 'input'; props?: TInputFilterProps }
+  | { type: 'date'; props?: TFilterDateProps }
+  | { type: 'input'; props?: TFilterInputProps }
   | { type: 'select'; props?: SelectProps }
-  | { type: 'checkbox-api'; props: TCheckboxFilterApiProps }
+  | { type: 'checkbox-api'; props: TFilterCheckboxProps }
 )
 
 export type TField = { name: string; label: string; col?: string } & (
   | { type: 'input'; props?: InputProps }
   | { type: 'textarea'; props?: TextareaProps }
-  | { type: 'autocomplete'; props: TBaseAutocompleteProps }
-  | { type: 'team-members'; props?: TBaseUserPivotBoxProps }
+  | { type: 'autocomplete'; props: TFormAutocompleteProps }
+  | { type: 'team-members'; props?: TFormUsersPivotProps }
 )
 
 export type TBaseCrudModal = {
@@ -524,21 +524,21 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <div class="flex items-center gap-2 flex-wrap">
         <template v-for="row in filters" :key="row.name">
-          <BaseInputFilter
+          <FilterInput
             v-if="row.type === 'input'"
             v-bind="row.props"
             v-model="query[row.name]"
             v-model:mode="query[row.name + 'Mode']"
             @update:model-value="onGotoFirstPage"
           />
-          <BaseDateFilter
+          <FilterDate
             v-else-if="row.type === 'date'"
             v-bind="row.props"
             v-model="query[row.name]"
             v-model:mode="query[row.name + 'Mode']"
             @update:model-value="onGotoFirstPage"
           />
-          <BaseCheckboxFilterApi
+          <FilterCheckbox
             v-else-if="row.type === 'checkbox-api'"
             v-bind="row.props"
             v-model="query[row.name]"
@@ -791,12 +791,12 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                 v-model="formState[row.name]"
                 v-bind="{ ...formItem, ...row.props }"
               />
-              <BaseAutocomplete
+              <FormAutocomplete
                 v-else-if="row.type === 'autocomplete'"
                 v-model="formState[row.name]"
                 v-bind="{ ...formItem, ...row.props }"
               />
-              <BaseUserPivotBox
+              <FormUsersPivot
                 v-else-if="row.type === 'team-members'"
                 v-model="formState[row.name]"
                 v-bind="{ ...formItem, ...row.props }"

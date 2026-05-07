@@ -5,24 +5,24 @@ type TItem = Record<string, any>
 
 <script setup lang="ts" generic="Item extends TItem = TItem, Value extends TValue = TValue">
 import type { InputProps } from '@nuxt/ui'
-import type { TBaseSearchboxPopoverProps } from './BaseSearchboxPopover.vue'
+import type { TBaseSearchboxProviderProps } from '@/components/base/BaseSearchboxProvider.vue'
 
-export type TBaseSearchboxProps<
+export type TFormSearchboxProps<
   Item extends TItem = TItem,
   Value extends TValue = TValue
-> = TBaseSearchboxPopoverProps<Item, Value> & Pick<InputProps, 'size' | 'placeholder'>
+> = TBaseSearchboxProviderProps<Item, Value> & Pick<InputProps, 'size' | 'placeholder'>
 
-const props = defineProps<TBaseSearchboxProps<Item, Value>>()
+const props = defineProps<TFormSearchboxProps<Item, Value>>()
 const model = defineModel<Item[]>({ required: true })
 
-const popoverProps = computed(() => {
+const providerProps = computed(() => {
   const { size, placeholder, ...rest } = props
   return rest
 })
 </script>
 
 <template>
-  <BaseSearchboxPopover v-model="model" v-bind="popoverProps">
+  <BaseSearchboxProvider v-model="model" v-bind="providerProps">
     <template #default="{ searchTerm, onInput, onFocus, onKeydown, setInputRef }">
       <UInput
         :ref="setInputRef"
@@ -35,5 +35,5 @@ const popoverProps = computed(() => {
         @keydown="onKeydown"
       />
     </template>
-  </BaseSearchboxPopover>
+  </BaseSearchboxProvider>
 </template>
