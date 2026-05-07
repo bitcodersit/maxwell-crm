@@ -4,6 +4,8 @@ type TItem = Record<string, any>
 </script>
 
 <script setup lang="ts" generic="Item extends TItem = TItem, Value extends TValue = TValue">
+import type { ClassValue } from 'vue'
+
 export type TBaseSearchboxPopoverSlotProps = {
   searchTerm: string
   setSearchTerm: (value: string) => void
@@ -18,8 +20,10 @@ export type TBaseSearchboxPopoverProps<
   Value extends TValue = TValue
 > = {
   api: string
-  class?: string
+  class?: ClassValue
   query?: Record<string, any>
+  hideOnSelect?: boolean
+  clearOnSelect?: boolean
   getValue?: (item: Item) => Value
   getLabel?: (item: Item) => string | VNode
 }
@@ -29,7 +33,7 @@ const props = withDefaults(defineProps<TBaseSearchboxPopoverProps<Item, Value>>(
   getLabel: (item: Item) => item.name,
 })
 
-const { api, query } = toRefs(props)
+const { api, query, hideOnSelect, clearOnSelect } = toRefs(props)
 const model = defineModel<Item[]>({ required: true })
 
 const rootRef = useTemplateRef<HTMLElement>('rootRef')
@@ -75,11 +79,16 @@ const onSelectItem = (item?: Item) => {
   if (!item) return
   if (model.value.some((x) => props.getValue(x) === props.getValue(item))) return
   model.value = [...model.value, item]
-  searchTerm.value = ''
-  focusInput()
-  dropdownOpen.value = true
-  activeIndex.value = 0
-  execute()
+  if (clearOnSelect.value) searchTerm.value = ''
+  if (hideOnSelect.value) {
+    dropdownOpen.value = false
+    inputRef.value?.blur()
+  } else {
+    focusInput()
+    dropdownOpen.value = true
+    activeIndex.value = 0
+    execute()
+  }
 }
 
 const setInputRef = (el: any) => {
@@ -185,7 +194,7 @@ watch(dropdownOpen, async (open) => {
     :content="{ side: 'bottom', align: 'start', collisionPadding: 12 }"
     :ui="{
       content:
-        'w-(--reka-popper-anchor-width) max-h-60 overflow-y-auto rounded-md border border-default bg-default p-1 shadow-lg z-9999',
+        'w-(--reka-popper-anchor-width) max-h-60 overflow-y-auto rounded-md border border-accented bg-elevated p-1 shadow-lg z-9999',
     }"
     @open-auto-focus="onOpenAutoFocus"
   >
@@ -198,22 +207,29 @@ watch(dropdownOpen, async (open) => {
           <UProgress size="sm" animation="swing" />
         </div>
         <div v-if="!selectableItems.length" class="text-muted p-3 text-sm">No matching items</div>
-        <UButton
-          v-for="(item, idx) in selectableItems"
-          :key="getValue(item)"
-          :class="[idx === activeIndex ? 'bg-elevated/50' : '']"
-          :aria-selected="idx === activeIndex"
-          role="option"
-          type="button"
-          color="neutral"
-          class="w-full"
-          variant="ghost"
-          @mousedown.prevent
-          @click="onSelectItem(item)"
-          @mouseenter="activeIndex = idx"
-        >
-          <VNode :value="getLabel(item)" />
-        </UButton>
+        <template v-for="(item, idx) in selectableItems">
+          <USeparator
+            v-if="idx > 0"
+            :key="`divider-${idx}`"
+            :ui="{ border: 'border-accented', root: 'px-2' }"
+          />
+          <UButton
+            v-if="true"
+            :key="getValue(item)"
+            :class="[idx === activeIndex ? 'bg-elevated/50' : '']"
+            :aria-selected="idx === activeIndex"
+            role="option"
+            type="button"
+            color="neutral"
+            class="w-full"
+            variant="soft"
+            @mousedown.prevent
+            @click="onSelectItem(item)"
+            @mouseenter="activeIndex = idx"
+          >
+            <VNode :value="getLabel(item)" />
+          </UButton>
+        </template>
       </div>
     </template>
   </UPopover>

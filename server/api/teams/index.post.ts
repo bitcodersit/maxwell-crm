@@ -161,5 +161,11 @@ const zTeam = z.object({
         role: z.enum(TeamMemberRole).default(TeamMemberRole.MEMBER),
       })
     )
-    .nullish(),
+    .min(1, 'At least one member is required')
+    .refine((v) => v.some((m) => m.role === TeamMemberRole.LEADER), {
+      message: 'At least one leader is required',
+    })
+    .refine((v) => v.some((m) => m.role === TeamMemberRole.MEMBER), {
+      message: 'At least one member is required',
+    }),
 })

@@ -10,13 +10,13 @@ import type { TBaseSearchboxPopoverProps } from './BaseSearchboxPopover.vue'
 export type TBaseSearchboxProps<
   Item extends TItem = TItem,
   Value extends TValue = TValue
-> = TBaseSearchboxPopoverProps<Item, Value> & Pick<InputProps, 'size'>
+> = TBaseSearchboxPopoverProps<Item, Value> & Pick<InputProps, 'size' | 'placeholder'>
 
 const props = defineProps<TBaseSearchboxProps<Item, Value>>()
 const model = defineModel<Item[]>({ required: true })
 
 const popoverProps = computed(() => {
-  const { size, ...rest } = props
+  const { size, placeholder, ...rest } = props
   return rest
 })
 </script>
@@ -28,6 +28,7 @@ const popoverProps = computed(() => {
         :ref="setInputRef"
         :model-value="searchTerm"
         :size="size"
+        :placeholder="placeholder"
         class="w-full"
         @update:model-value="(v) => onInput(v)"
         @focus="onFocus"
