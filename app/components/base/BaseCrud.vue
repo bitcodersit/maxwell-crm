@@ -490,19 +490,14 @@ const exportState = ref({
 })
 
 const { exporting, execute: onExport } = useExport()
+
 const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>) => {
   if (!exportUrl.value) return console.error('Export URL is not set')
   if (
     exportState.value.selection === 'selected' &&
     !table.value?.tableApi?.getFilteredSelectedRowModel().rows.length
-  ) {
-    toast.add({
-      color: 'error',
-      title: 'Error! 😭',
-      description: 'No selected rows',
-    })
+  )
     return
-  }
   await onExport(exportUrl.value, {
     ...fetchQuery.value,
     ...exportState.value,
@@ -654,7 +649,15 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                 />
               </UFormField>
               <div class="flex justify-end">
-                <UButton type="submit" icon="i-lucide-download" :loading="exporting">
+                <UButton
+                  type="submit"
+                  icon="i-lucide-download"
+                  :loading="exporting"
+                  :disabled="
+                    exportState.selection === 'selected' &&
+                    !table?.tableApi?.getFilteredSelectedRowModel().rows.length
+                  "
+                >
                   Export
                 </UButton>
               </div>

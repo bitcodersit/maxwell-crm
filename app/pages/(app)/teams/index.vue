@@ -341,6 +341,7 @@ const getPostBody = (v: Record<string, any>) => ({
     ref="crudRef"
     get-url="/api/teams"
     post-url="/api/teams"
+    export-url="/api/teams/export"
     delete-url="/api/teams/{id}"
     :fields="fields"
     :columns="columns"
