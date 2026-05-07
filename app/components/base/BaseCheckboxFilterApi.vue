@@ -4,6 +4,8 @@ type TItem = Record<string, any>
 </script>
 
 <script setup lang="ts" generic="Value extends TValue = TValue, Item extends TItem = TItem">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 export type TCheckboxFilterApiProps<Value extends TValue = TValue, Item extends TItem = TItem> = {
   api: string
   label?: string
@@ -11,23 +13,29 @@ export type TCheckboxFilterApiProps<Value extends TValue = TValue, Item extends 
   valueKey?: string
   modelValue?: Value[]
   labelClass?: string
-  getLabel?: (item: Item) => string
+  orderByItems?: { label: string; value: string }[]
+  getLabel?: (item: Item) => string | VNode
 }
 
 const props = withDefaults(defineProps<TCheckboxFilterApiProps<Value, Item>>(), {
   valueKey: 'id',
   getLabel: (item: Item) => item.name,
+  orderByItems: () => [
+    { label: 'Id', value: 'id' },
+    { label: 'Name', value: 'name' },
+  ],
 })
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value?: Value[]): void
 }>()
 
-const { api, label, query, modelValue } = toRefs(props)
+const { api, label, query, modelValue, orderByItems } = toRefs(props)
 const { state: searchTerm, stateD: searchTermD } = useDebouncedState('', 300)
 
 const defaultPerPage = query.value?.perPage ?? 10
 const perPage = ref(defaultPerPage)
+const orderBy = ref<Record<string, 'asc' | 'desc'>>({})
 
 const { data, status, execute } = useFetchApi({
   api,
@@ -37,6 +45,7 @@ const { data, status, execute } = useFetchApi({
     ...query.value,
     q: searchTermD.value,
     perPage: perPage.value,
+    orderBy: orderBy.value,
   })),
   getDefault() {
     return toPaginated<Item>()
@@ -65,6 +74,27 @@ const onClear = () => {
 watch(modelValue, (v) => {
   if (v == state.value) return
   state.value = v
+})
+
+// Order by
+const mOrderByItems = computed(() => {
+  return orderByItems.value.reduce<DropdownMenuItem[]>((acc, item) => {
+    return [
+      ...acc,
+      {
+        label: item.label + ' (asc)',
+        onSelect() {
+          orderBy.value = { [item.value]: 'asc' }
+        },
+      },
+      {
+        label: item.label + ' (desc)',
+        onSelect() {
+          orderBy.value = { [item.value]: 'desc' }
+        },
+      },
+    ]
+  }, [])
 })
 </script>
 
@@ -101,19 +131,7 @@ watch(modelValue, (v) => {
       </UButton>
     </UChip>
     <template #content>
-      <div class="flex items-center gap-2 justify-end">
-        <span
-          role="button"
-          class="text-primary underline text-sm cursor-pointer"
-          @click="state = data.data.map((item: Item) => item[valueKey])"
-        >
-          Select all
-        </span>
-        <span role="button" class="text-error underline text-sm cursor-pointer" @click="state = []">
-          Clear
-        </span>
-      </div>
-      <div class="mt-1">
+      <div class="">
         <UInput
           v-model="searchTerm"
           :autofocus="true"
@@ -123,7 +141,42 @@ watch(modelValue, (v) => {
         />
         <UProgress v-if="status === 'pending'" size="sm" animation="swing" />
       </div>
-      <div v-if="status !== 'pending' && !data.data.length" class="text-muted py-1 text-sm mt-3">
+      <div class="flex items-center justify-between gap-2 mt-1">
+        <div class="flex items-center gap-2">
+          <span
+            role="button"
+            class="text-primary underline text-xs cursor-pointer"
+            @click="state = data.data.map((item: Item) => item[valueKey])"
+          >
+            Select all
+          </span>
+          <span
+            v-if="state?.length"
+            role="button"
+            class="text-error underline text-xs cursor-pointer"
+            @click="state = []"
+          >
+            Clear
+          </span>
+        </div>
+        <div>
+          <UDropdownMenu :items="mOrderByItems">
+            <span role="button" class="underline text-xs cursor-pointer text-primary">
+              <template v-if="Object.keys(orderBy).length">
+                {{
+                  Object.entries(orderBy)
+                    .reduce<string[]>((acc, [key, value]) => {
+                      return [...acc, `${key.charAt(0).toUpperCase() + key.slice(1)} (${value})`]
+                    }, [])
+                    .join(', ')
+                }}
+              </template>
+              <template v-else> Sort by </template>
+            </span>
+          </UDropdownMenu>
+        </div>
+      </div>
+      <div v-if="status !== 'pending' && !data.data.length" class="text-muted py-1 text-sm mt-1">
         No results found
       </div>
       <UCheckboxGroup
@@ -133,13 +186,13 @@ watch(modelValue, (v) => {
         :items="data.data"
         :value-key="valueKey"
         :ui="{
-          root: 'overflow-y-auto mt-3',
+          root: 'overflow-y-auto mt-1',
           label: labelClass,
         }"
         @keyup.enter="onApply"
       >
         <template #label="{ item }">
-          {{ getLabel(item) }}
+          <VNode :value="getLabel(item)" />
         </template>
       </UCheckboxGroup>
       <UButton

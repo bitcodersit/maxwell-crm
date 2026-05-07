@@ -21,10 +21,19 @@ const links = computed(() => {
         },
       },
       {
+        label: 'Teams',
+        icon: 'i-lucide-users-round',
+        to: '/teams',
+        visible: can(user.value, ['read-any-teams', 'read-own-teams']),
+        onSelect: () => {
+          open.value = false
+        },
+      },
+      {
         label: 'Users',
         icon: 'i-lucide-users',
         to: '/users',
-        visible: can(user.value, ['read-any-users', 'read-own-users']),
+        visible: can(user.value, ['read-any-users']),
         onSelect: () => {
           open.value = false
         },
@@ -33,7 +42,7 @@ const links = computed(() => {
         label: 'Roles',
         icon: 'i-lucide-list-todo',
         to: '/roles',
-        visible: can(user.value, ['read-any-roles', 'read-own-roles']),
+        visible: can(user.value, ['read-any-roles']),
         onSelect: () => {
           open.value = false
         },
@@ -42,7 +51,7 @@ const links = computed(() => {
         label: 'Permissions',
         icon: 'i-lucide-list-todo',
         to: '/permissions',
-        visible: can(user.value, ['read-any-permissions', 'read-own-permissions']),
+        visible: can(user.value, ['read-any-permissions']),
         onSelect: () => {
           open.value = false
         },

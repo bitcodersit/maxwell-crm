@@ -57,6 +57,10 @@ const titlesMap = [
     title: 'Users',
   },
   {
+    path: '/teams',
+    title: 'Teams',
+  },
+  {
     path: '/roles',
     title: 'Roles',
   },

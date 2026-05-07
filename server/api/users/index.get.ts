@@ -1,43 +1,123 @@
-export default defineEventHandler(async (event) => {
+import type { H3Event } from 'h3'
+import { Prisma } from '~~/prisma/client/client'
+
+export const getUsers = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['read-any-users'])) {
-    throw err.denied()
+    return {
+      error: err.denied(),
+    }
   }
 
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      createdAt: true,
-      updatedAt: true,
-      deletedAt: true,
+  const { take, skip, paginate } = getPagination(query)
+  const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
+
+  const where = getWhere<Prisma.UserWhereInput>(query, { deletedAt: null })
+    .id('id')
+    .text('name')
+    .text('email')
+    .date('createdAt')
+    .date('updatedAt')
+    .text('q', (text) => ({
+      OR: [
+        {
+          name: {
+            contains: text,
+          },
+        },
+        {
+          email: {
+            contains: text,
+          },
+        },
+      ],
+    }))
+    .id('roleIds', (roleId) => ({
       userRoles: {
+        some: {
+          roleId,
+        },
+      },
+    }))
+    .true('creatorOfTeam', () => ({
+      teams: {
+        some: {
+          deletedAt: null,
+        },
+      },
+    }))
+    .true('memberOfTeam', () => ({
+      teamMembers: {
+        some: {
+          team: {
+            deletedAt: null,
+          },
+        },
+      },
+    }))
+    .id('idsNotIn', (ids) => {
+      if ('in' in ids) {
+        return {
+          id: {
+            notIn: ids.in,
+          },
+        }
+      }
+      return {}
+    })
+    .get()
+
+  const selectInclude: {
+    select?: Prisma.UserSelect
+  } = isTrue(query.options)
+    ? {
         select: {
           id: true,
-          role: {
+          name: true,
+          avatarId: true,
+        },
+      }
+    : {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          emailVerifiedAt: true,
+          avatarId: true,
+          createdAt: true,
+          updatedAt: true,
+          userRoles: {
             select: {
               id: true,
-              name: true,
-              rolePermissions: {
+              role: {
                 select: {
                   id: true,
-                  permission: {
-                    select: {
-                      id: true,
-                      name: true,
-                    },
-                  },
+                  name: true,
                 },
               },
             },
           },
         },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
-  return users
+      }
+
+  const [total, users] = await prisma.$transaction([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      skip,
+      take,
+      where,
+      orderBy,
+      ...selectInclude,
+    }),
+  ])
+
+  return {
+    data: paginate(users, total),
+  }
+}
+
+export default defineEventHandler(async (event) => {
+  const { error, data } = await getUsers(event)
+  if (error) throw error
+  return data
 })

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `email_jobs` MODIFY `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);

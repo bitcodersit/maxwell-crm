@@ -1,106 +1,322 @@
 <script setup lang="ts">
-const { data: users, refresh } = useAsyncData('users', () => $fetch('/api/users'))
+import type {
+  TColumn,
+  TFilter,
+  TField,
+  TGetActions,
+  TBaseCrudModal,
+} from '@/components/base/BaseCrud.vue'
 
-const id = ref<number | null>(null)
-const name = ref('')
-const email = ref('')
-const password = ref('')
+const toastP = usePromiseToast()
+const crudRef = useTemplateRef('crudRef')
+const UBadge = resolveComponent('UBadge')
+const UAvatar = resolveComponent('UAvatar')
+const UIcon = resolveComponent('UIcon')
+const UTooltip = resolveComponent('UTooltip')
+const { confirm } = useConfirm()
 
-const createUser = () => {
-  $fetch('/api/users', {
-    method: 'POST',
-    body: {
-      id: id.value,
-      name: name.value,
-      email: email.value,
-      password: password.value,
+const { getAttachment } = useGetAttachment()
+
+const fields: TField[] = [
+  {
+    name: 'name',
+    type: 'input',
+    label: 'Name',
+  },
+  {
+    name: 'email',
+    type: 'input',
+    label: 'Email',
+    props: {
+      type: 'email',
     },
-  }).then(() => {
-    refresh()
-    id.value = null
-    name.value = ''
-    email.value = ''
-    password.value = ''
-  })
+  },
+  {
+    name: 'password',
+    type: 'input',
+    label: 'Password',
+    props: {
+      type: 'password',
+    },
+  },
+  {
+    name: 'roleIds',
+    type: 'autocomplete',
+    label: 'Roles',
+    props: {
+      api: '/api/roles',
+      query: {
+        options: true,
+      },
+    },
+  },
+]
+
+const columns = computed<TColumn<TUser>[]>(() => [
+  {
+    id: 'select',
+    size: 48,
+  },
+  {
+    accessorKey: 'id',
+    header: 'ID',
+    pinned: 'left',
+    sortBy: 'id',
+    size: 48,
+  },
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    sortBy: 'name',
+    cell: ({ row }) => {
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h(UAvatar, {
+          size: 'sm',
+          src: getAttachment(row.original.avatarId),
+          alt: row.original.name,
+          ui: {
+            fallback: 'text-xs',
+          },
+        }),
+        h('div', {}, row.original.name),
+      ])
+    },
+  },
+  {
+    accessorKey: 'email',
+    header: 'Email',
+    sortBy: 'email',
+    display: {
+      type: 'text',
+      class: 'min-w-48',
+      length: 36,
+    },
+    cell({ row }) {
+      const verified = !!row.original.emailVerifiedAt
+      const verifiedText = verified
+        ? `Verified at ${$dfc(row.original.emailVerifiedAt)}`
+        : 'Email not verified'
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('span', row.original.email || '—'),
+        h(
+          UTooltip,
+          { text: verifiedText },
+          {
+            default: () =>
+              h(UIcon, {
+                name: verified ? 'i-lucide-circle-check' : 'i-lucide-circle-alert',
+                class: verified ? 'text-success size-4' : 'text-warning size-4',
+              }),
+          }
+        ),
+      ])
+    },
+  },
+  {
+    accessorKey: 'roles',
+    header: 'Roles',
+    display: {
+      type: 'array',
+      slice: 3,
+      class: 'flex flex-wrap -ml-1 -mt-1',
+    },
+    cell({ row, ...ctx }) {
+      if (!row.original.userRoles?.length) return '—'
+      return row.original.userRoles
+        .map((ur) => ur.role?.name as string)
+        .filter(Boolean)
+        .map((label) => {
+          const modal = (ctx as any).modal
+          return h(UBadge, {
+            label,
+            size: modal ? 'lg' : 'md',
+            class: modal ? 'ml-1 mt-1' : 'mr-1',
+            color: ColorsMap[label] || 'neutral',
+            variant: 'subtle',
+          })
+        })
+    },
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Created',
+    sortBy: 'createdAt',
+    cell: ({ row }) => $dfc(row.original.createdAt),
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: 'Updated',
+    sortBy: 'updatedAt',
+    cell: ({ row }) => $dfc(row.original.updatedAt),
+  },
+  {
+    id: 'action',
+    pinned: 'right',
+  },
+])
+
+const filters: TFilter[] = [
+  {
+    name: 'id',
+    type: 'input',
+    props: {
+      label: 'ID',
+      placeholder: 'eg 1 or 1,2,3 or 1-10',
+    },
+  },
+  {
+    name: 'name',
+    type: 'input',
+    props: {
+      label: 'Name',
+      placeholder: 'Search by name',
+      modeable: true,
+    },
+  },
+  {
+    name: 'email',
+    type: 'input',
+    props: {
+      label: 'Email',
+      placeholder: 'Search by email',
+      modeable: true,
+    },
+  },
+  {
+    name: 'roleIds',
+    type: 'checkbox-api',
+    props: {
+      label: 'Roles',
+      api: '/api/roles',
+      query: {
+        options: true,
+      },
+    },
+  },
+  {
+    name: 'createdAt',
+    type: 'date',
+    props: {
+      label: 'Created',
+    },
+  },
+  {
+    name: 'updatedAt',
+    type: 'date',
+    props: {
+      label: 'Updated',
+    },
+  },
+]
+
+const modal: TBaseCrudModal = {
+  form: ({ mode }) => ({
+    title: mode === 'create' ? 'Add New User' : 'Update User',
+    description: mode === 'create' ? 'Create a user account' : 'Update user details',
+  }),
 }
 
-const openEditUser = (user: any) => {
-  id.value = user.id
-  name.value = user.name
-  email.value = user.email
-  password.value = user.password
-}
+const getActions: TGetActions<TUser> = (item, v) => [
+  [
+    {
+      ...actions.view,
+      hidden: v?.view,
+      onSelect() {
+        crudRef.value?.onView(item, {
+          modal: {
+            ui: {
+              content: 'max-w-2xl',
+            },
+          },
+        })
+      },
+    },
+    {
+      ...actions.update,
+      onSelect() {
+        crudRef.value?.onUpdate(item)
+      },
+    },
+    {
+      label: 'Send verify email',
+      icon: 'i-lucide-mail-check',
+      hidden: !!item.emailVerifiedAt,
+      async onSelect() {
+        if (!(await confirm(`Send verification email to "${item.email}"?`))) {
+          return
+        }
+        toastP(
+          (toast) => {
+            return $fetch(`/api/users/${item.id}/verify-email`, {
+              method: 'POST',
+            })
+              .then(toast.onSuccess)
+              .catch(toast.onError)
+          },
+          {
+            title: 'Sending verification email...',
+            description: `Sending to ${item.email}`,
+          },
+          (res) => ({
+            title: 'Verification email sent',
+            description: res?.message || 'Verification email sent successfully',
+          }),
+          (err) => {
+            const { message } = parseError(err)
+            return {
+              title: 'Failed to send email',
+              description: message,
+            }
+          }
+        )
+      },
+    },
+  ].filter((action: any) => !action.hidden),
+  [
+    {
+      ...actions.delete,
+      onSelect() {
+        crudRef.value?.onDelete(item)
+      },
+    },
+  ],
+]
 
-const deleteUser = (id: number) => {
-  if (confirm('Are you sure you want to delete this user?')) {
-    $fetch(`/api/users/${id}`, {
-      method: 'DELETE',
-    }).then(() => {
-      refresh()
-    })
+const getFormState = (v?: TUser) => ({
+  id: v?.id,
+  name: v?.name ?? '',
+  email: v?.email ?? '',
+  password: '',
+  roleIds: v?.userRoles?.map((ur) => ur.role).filter(Boolean) ?? [],
+})
+
+const getPostBody = (v: Record<string, any>) => {
+  const body: Record<string, unknown> = {
+    id: v.id,
+    name: v.name,
+    email: v.email,
+    roleIds: (v.roleIds ?? []).map((r: any) => r.id),
   }
+  const pwd = typeof v.password === 'string' ? v.password.trim() : ''
+  if (pwd) body.password = pwd
+  return body
 }
 </script>
 
 <template>
-  <div class="p-4">
-    <form @submit.prevent="createUser" class="flex gap-2">
-      <input
-        type="text"
-        v-model="name"
-        name="name"
-        placeholder="Name"
-        class="border rounded-md p-2 dark:bg-neutral-800"
-      />
-      <input
-        type="email"
-        v-model="email"
-        name="email"
-        placeholder="Email"
-        class="border rounded-md p-2 dark:bg-neutral-800"
-      />
-      <input
-        type="password"
-        v-model="password"
-        name="password"
-        placeholder="Password"
-        class="border rounded-md p-2 dark:bg-neutral-800"
-      />
-      <button type="submit" class="bg-blue-500 text-white px-4 rounded-md">
-        {{ id ? 'Update User' : 'Create User' }}
-      </button>
-    </form>
-
-    <div class="mt-4">
-      <table class="w-full border-collapse border border-neutral-200 dark:border-neutral-800">
-        <thead>
-          <tr>
-            <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">Name</th>
-            <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">Email</th>
-            <th class="border border-neutral-200 dark:border-neutral-800 p-2 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="user in users"
-            :key="user.id"
-            class="border border-neutral-200 dark:border-neutral-800"
-          >
-            <td class="border border-neutral-200 dark:border-neutral-800 p-2">{{ user.name }}</td>
-            <td class="border border-neutral-200 dark:border-neutral-800 p-2">
-              {{ user.email }}
-            </td>
-            <td class="border border-neutral-200 dark:border-neutral-800 p-2 flex gap-2">
-              <button @click="openEditUser(user)" class="bg-blue-500 text-white px-2 rounded-md">
-                Edit
-              </button>
-              <button @click="deleteUser(user.id)" class="bg-red-500 text-white px-2 rounded-md">
-                Delete
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <BaseCrud
+    ref="crudRef"
+    get-url="/api/users"
+    post-url="/api/users"
+    export-url="/api/users/export"
+    delete-url="/api/users/{id}"
+    :modal="modal"
+    :fields="fields"
+    :filters="filters"
+    :columns="columns"
+    :date-fields="['createdAt', 'updatedAt']"
+    :get-actions="getActions"
+    :get-post-body="getPostBody"
+    :get-form-state="getFormState"
+  />
 </template>

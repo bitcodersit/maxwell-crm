@@ -1,0 +1,220 @@
+<script context="module" lang="ts">
+type TValue = number | string
+type TItem = Record<string, any>
+</script>
+
+<script setup lang="ts" generic="Item extends TItem = TItem, Value extends TValue = TValue">
+export type TBaseSearchboxPopoverSlotProps = {
+  searchTerm: string
+  setSearchTerm: (value: string) => void
+  onInput: (event: Event | string) => void
+  onFocus: () => void
+  onKeydown: (event: KeyboardEvent) => void
+  setInputRef: (el: any) => void
+}
+
+export type TBaseSearchboxPopoverProps<
+  Item extends TItem = TItem,
+  Value extends TValue = TValue
+> = {
+  api: string
+  class?: string
+  query?: Record<string, any>
+  getValue?: (item: Item) => Value
+  getLabel?: (item: Item) => string | VNode
+}
+
+const props = withDefaults(defineProps<TBaseSearchboxPopoverProps<Item, Value>>(), {
+  getValue: (item: Item) => item.id,
+  getLabel: (item: Item) => item.name,
+})
+
+const { api, query } = toRefs(props)
+const model = defineModel<Item[]>({ required: true })
+
+const rootRef = useTemplateRef<HTMLElement>('rootRef')
+const panelRef = useTemplateRef<HTMLElement>('panelRef')
+const popoverReference = computed(() => rootRef.value ?? undefined)
+
+const activeIndex = ref(0)
+const dropdownOpen = ref(false)
+const inputRef = shallowRef<HTMLInputElement | null>(null)
+
+const { state: searchTerm, stateD: searchTermD } = useDebouncedState('', 300)
+const { data, status, execute } = useFetchApi({
+  api,
+  immediate: false,
+  staleTime: 10 * 1000,
+  query: computed(() => ({
+    ...query.value,
+    q: searchTermD.value,
+    idsNotIn: model.value.map((x) => props.getValue(x)).join(','),
+  })),
+  getDefault() {
+    return toPaginated<Item>()
+  },
+})
+
+const selectableItems = computed(() => {
+  const selected = new Set(model.value.map((x) => props.getValue(x)))
+  return (data.value.data || []).filter((row): row is Item => {
+    if (!row) return false
+    return !selected.has(props.getValue(row))
+  })
+})
+
+const onOpenAutoFocus = (event: Event) => {
+  event.preventDefault()
+}
+
+const focusInput = () => {
+  inputRef.value?.focus({ preventScroll: true })
+}
+
+const onSelectItem = (item?: Item) => {
+  if (!item) return
+  if (model.value.some((x) => props.getValue(x) === props.getValue(item))) return
+  model.value = [...model.value, item]
+  searchTerm.value = ''
+  focusInput()
+  dropdownOpen.value = true
+  activeIndex.value = 0
+  execute()
+}
+
+const setInputRef = (el: any) => {
+  inputRef.value = el?.inputRef || el?.$el?.querySelector?.('input') || el || null
+}
+
+const setSearchTerm = (value: string) => {
+  searchTerm.value = value
+}
+
+const onInput = (event: Event | string) => {
+  const value = typeof event === 'string' ? event : (event.target as HTMLInputElement)?.value || ''
+  searchTerm.value = value
+  dropdownOpen.value = true
+}
+
+const onFocus = () => {
+  dropdownOpen.value = true
+  activeIndex.value = 0
+  execute()
+}
+
+const onKeydown = (e: KeyboardEvent) => {
+  if (e.isComposing) return
+
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault()
+    e.stopPropagation()
+    if (
+      e.key === 'Enter' &&
+      dropdownOpen.value &&
+      status.value !== 'pending' &&
+      selectableItems.value.length
+    ) {
+      const item = selectableItems.value[activeIndex.value]
+      if (item) onSelectItem(item)
+    }
+    return
+  }
+
+  if (e.key === 'Escape' && dropdownOpen.value) {
+    e.preventDefault()
+    e.stopPropagation()
+    dropdownOpen.value = false
+    return
+  }
+
+  if (!dropdownOpen.value || status.value === 'pending' || !selectableItems.value.length) return
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    e.stopPropagation()
+    activeIndex.value = Math.min(activeIndex.value + 1, selectableItems.value.length - 1)
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    e.stopPropagation()
+    activeIndex.value = Math.max(activeIndex.value - 1, 0)
+  }
+}
+
+const slotProps = computed<TBaseSearchboxPopoverSlotProps>(() => ({
+  searchTerm: searchTerm.value,
+  setSearchTerm,
+  onInput,
+  onFocus,
+  onKeydown,
+  setInputRef,
+}))
+
+onClickOutside(
+  rootRef,
+  () => {
+    dropdownOpen.value = false
+  },
+  { ignore: [panelRef] }
+)
+
+watch(selectableItems, (list) => {
+  if (!list.length) {
+    activeIndex.value = 0
+    return
+  }
+  if (activeIndex.value >= list.length) activeIndex.value = list.length - 1
+})
+
+watch(dropdownOpen, async (open) => {
+  if (!open) return
+  await nextTick()
+  focusInput()
+})
+</script>
+
+<template>
+  <div ref="rootRef" class="relative" :class="class">
+    <slot v-bind="slotProps" />
+  </div>
+  <UPopover
+    v-model:open="dropdownOpen"
+    :reference="popoverReference"
+    :modal="false"
+    :dismissible="false"
+    :portal="true"
+    :content="{ side: 'bottom', align: 'start', collisionPadding: 12 }"
+    :ui="{
+      content:
+        'w-(--reka-popper-anchor-width) max-h-60 overflow-y-auto rounded-md border border-default bg-default p-1 shadow-lg z-9999',
+    }"
+    @open-auto-focus="onOpenAutoFocus"
+  >
+    <template #default>
+      <span class="sr-only" aria-hidden="true" />
+    </template>
+    <template #content>
+      <div ref="panelRef" role="listbox" class="overflow-hidden">
+        <div v-if="status === 'pending'" class="absolute inset-x-0 top-0 px-1.5">
+          <UProgress size="sm" animation="swing" />
+        </div>
+        <div v-if="!selectableItems.length" class="text-muted p-3 text-sm">No matching items</div>
+        <UButton
+          v-for="(item, idx) in selectableItems"
+          :key="getValue(item)"
+          :class="[idx === activeIndex ? 'bg-elevated/50' : '']"
+          :aria-selected="idx === activeIndex"
+          role="option"
+          type="button"
+          color="neutral"
+          class="w-full"
+          variant="ghost"
+          @mousedown.prevent
+          @click="onSelectItem(item)"
+          @mouseenter="activeIndex = idx"
+        >
+          <VNode :value="getLabel(item)" />
+        </UButton>
+      </div>
+    </template>
+  </UPopover>
+</template>

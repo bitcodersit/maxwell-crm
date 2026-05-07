@@ -1,46 +1,81 @@
+import type { H3Event } from 'h3'
 import { Prisma } from '~~/prisma/client/client'
 
-export default defineEventHandler(async (event) => {
+export const getRoles = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['read-any-roles'])) {
-    throw err.denied()
+    return {
+      error: err.denied(),
+    }
   }
-
-  const query = getQuery(event)
 
   const { take, skip, paginate } = getPagination(query)
-  const { orderBy } = getOrderBy(query)
+  const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
 
-  const q = (query.q || '').toString().trim()
-  const where = {
-    OR: [{ name: { contains: q } }],
-  }
+  const where = getWhere<Prisma.RoleWhereInput>(query, { deletedAt: null })
+    .id('id')
+    .text('name')
+    .text('description')
+    .date('createdAt')
+    .date('updatedAt')
+    .text('q', (text) => ({
+      OR: [
+        {
+          name: {
+            contains: text,
+          },
+        },
+        {
+          description: {
+            contains: text,
+          },
+        },
+      ],
+    }))
+    .id('permissionIds', (permissionId) => ({
+      rolePermissions: {
+        some: {
+          permissionId,
+        },
+      },
+    }))
+    .id('idsNotIn', (ids) => {
+      if ('in' in ids) {
+        return {
+          id: {
+            notIn: ids.in,
+          },
+        }
+      }
+      return {}
+    })
+    .get()
 
   const selectInclude: {
     select?: Prisma.RoleSelect
     include?: Prisma.RoleInclude
-  } = {}
-
-  if (isTrue(query.options)) {
-    selectInclude.select = {
-      id: true,
-      name: true,
-    }
-  } else {
-    selectInclude.include = {
-      rolePermissions: {
+  } = isTrue(query.options)
+    ? {
         select: {
           id: true,
-          permission: {
+          name: true,
+        },
+      }
+    : {
+        include: {
+          rolePermissions: {
             select: {
               id: true,
-              name: true,
+              permission: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
           },
         },
-      },
-    }
-  }
+      }
 
   const [total, roles] = await prisma.$transaction([
     prisma.role.count({ where }),
@@ -53,5 +88,13 @@ export default defineEventHandler(async (event) => {
     }),
   ])
 
-  return paginate(roles, total)
+  return {
+    data: paginate(roles, total),
+  }
+}
+
+export default defineEventHandler(async (event) => {
+  const { error, data } = await getRoles(event)
+  if (error) throw error
+  return data
 })

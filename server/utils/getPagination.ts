@@ -1,5 +1,5 @@
 export const getPagination = (query: any) => {
-  const paginate = query.paginate ? isTrue(query.paginate) : true
+  const paginate = 'paginate' in query ? isTrue(query.paginate) : true
 
   const page = Number(query.page) || 1
   const take = Number(query.perPage) || 10

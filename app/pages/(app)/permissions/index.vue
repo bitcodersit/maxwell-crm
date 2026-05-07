@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import type { TColumn, TFilter, TField, TQuery, TGetActions } from '@/components/base/BaseCrud.vue'
-import { format } from 'date-fns'
+import type {
+  TColumn,
+  TFilter,
+  TField,
+  TGetActions,
+  TBaseCrudModal,
+} from '@/components/base/BaseCrud.vue'
 
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
@@ -67,7 +72,7 @@ const columns = computed<TColumn<TPermission>[]>(() => [
       if (!row.original.rolePermissions) return '—'
       if (!row.original.rolePermissions.length) return '—'
       return row.original.rolePermissions
-        .map((rp) => rp.role?.name)
+        .map((rp) => rp.role?.name as string)
         .filter(Boolean)
         .map((label) => {
           const modal = (ctx as any).modal
@@ -75,7 +80,7 @@ const columns = computed<TColumn<TPermission>[]>(() => [
             label,
             size: modal ? 'lg' : 'md',
             class: modal ? 'ml-1 mt-1' : 'mr-1',
-            color: 'neutral',
+            color: ColorsMap[label] || 'neutral',
             variant: 'subtle',
           })
         })
@@ -103,17 +108,13 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     accessorKey: 'createdAt',
     header: 'Created',
     sortBy: 'createdAt',
-    cell: ({ row }) => {
-      return format(new Date(row.original.createdAt), 'MMM d, yyyy h:mm a')
-    },
+    cell: ({ row }) => $dfc(row.original.createdAt),
   },
   {
     accessorKey: 'updatedAt',
     header: 'Updated',
     sortBy: 'updatedAt',
-    cell: ({ row }) => {
-      return format(new Date(row.original.updatedAt), 'MMM d, yyyy h:mm a')
-    },
+    cell: ({ row }) => $dfc(row.original.updatedAt),
   },
   {
     id: 'action',
@@ -175,48 +176,17 @@ const filters: TFilter[] = [
   },
 ]
 
-const formModal = {
-  create: {
-    title: 'Add New Permission',
-    description: 'Add a new permission to the system',
-  },
-  update: {
-    title: 'Update Permission',
-    description: 'Update the permission',
-  },
-}
-
-const persist = {
-  key: 'permissions',
-  parse: (v: string) => {
-    const data = JSON.parse(v)
-    return {
-      ...data,
-      ...calendarFormatDates(data, ['createdAt', 'updatedAt'], {
-        returnType: 'dateValue',
-      }),
-    }
-  },
-  stringify: (v: TQuery) => {
-    return JSON.stringify(
-      calendarFormatDates(v, ['createdAt', 'updatedAt'], {
-        returnType: 'storage',
-      })
-    )
-  },
-}
-
-const getQuery = (query: TQuery) => {
-  return calendarFormatDates(query, ['createdAt', 'updatedAt'], {
-    formatStr: 'yyyy-MM-dd',
-  })
+const modal: TBaseCrudModal = {
+  form: ({ mode }) => ({
+    title: mode === 'create' ? 'Add New Permission' : 'Update Permission',
+    description: mode === 'create' ? 'Add a new permission to the system' : 'Update the permission',
+  }),
 }
 
 const getActions: TGetActions<TPermission> = (item, v) => [
   [
     {
-      label: 'View Details',
-      icon: 'i-lucide-eye',
+      ...actions.view,
       hidden: v?.view,
       onSelect() {
         crudRef.value?.onView(item, {
@@ -229,20 +199,17 @@ const getActions: TGetActions<TPermission> = (item, v) => [
       },
     },
     {
-      label: 'Update',
-      icon: 'i-lucide-pencil',
+      ...actions.update,
       onSelect() {
         crudRef.value?.onUpdate(item)
       },
     },
-  ].filter((v) => !v.hidden),
+  ].filter((v: any) => !v.hidden),
   [
     {
-      label: 'Delete',
-      icon: 'i-lucide-trash',
-      color: 'error',
+      ...actions.delete,
       onSelect() {
-        crudRef.value?.onDelete(`/api/permissions/${item.id}`)
+        crudRef.value?.onDelete(item)
       },
     },
   ],
@@ -261,12 +228,6 @@ const getPostBody = (v: Record<string, any>) => ({
   description: v.description,
   roleIds: v.roles.map((r: any) => r.id),
 })
-
-const onDeleteSelected = () => {
-  crudRef.value?.onDeleteSelected((v) => {
-    return `/api/permissions/${v.map((x) => x.id).join(',')}`
-  })
-}
 </script>
 
 <template>
@@ -274,31 +235,15 @@ const onDeleteSelected = () => {
     ref="crudRef"
     get-url="/api/permissions"
     post-url="/api/permissions"
+    export-url="/api/permissions/export"
+    delete-url="/api/permissions/{id}"
     :fields="fields"
     :columns="columns"
     :filters="filters"
-    :form-modal="formModal"
-    :get-query="getQuery"
+    :modal="modal"
+    :date-fields="['createdAt', 'updatedAt']"
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
-    :persist="persist"
-  >
-    <template #bulk-actions="{ count }">
-      <UButton
-        label="Delete"
-        color="error"
-        variant="subtle"
-        icon="i-lucide-trash"
-        :ui="{ leadingIcon: 'size-4' }"
-        @click="onDeleteSelected"
-      >
-        <template #trailing>
-          <UKbd>
-            {{ count }}
-          </UKbd>
-        </template>
-      </UButton>
-    </template>
-  </BaseCrud>
+  />
 </template>

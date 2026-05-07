@@ -11,12 +11,19 @@ type TArrayDisplay = {
   class?: string
 }
 
+type TInfoPopup = {
+  class?: string
+  label: string
+  content: () => string | VNode
+}
+
 type TDisplay = TTextDisplay | TArrayDisplay
+type TFormMode = 'create' | 'update'
 type TFormState = Record<string, any>
 //
 </script>
 
-<script setup lang="ts" generic="T extends object">
+<script setup lang="ts" generic="T extends Record<string, any>">
 import type {
   TableData,
   InputProps,
@@ -30,6 +37,7 @@ import type {
 import type { TDateFilterProps } from './BaseDateFilter.vue'
 import type { TInputFilterProps } from './BaseInputFilter.vue'
 import type { TBaseAutocompleteProps } from './BaseAutocomplete.vue'
+import type { TBaseMembersFieldProps } from './BaseMembersField.vue'
 import type { TCheckboxFilterApiProps } from './BaseCheckboxFilterApi.vue'
 import { isVNode } from 'vue'
 
@@ -50,7 +58,12 @@ export type TField = { name: string; label: string; col?: string } & (
   | { type: 'input'; props?: InputProps }
   | { type: 'textarea'; props?: TextareaProps }
   | { type: 'autocomplete'; props: TBaseAutocompleteProps }
+  | { type: 'team-members'; props?: TBaseMembersFieldProps }
 )
+
+export type TBaseCrudModal = {
+  form?: (v: { mode: TFormMode }) => ModalProps
+}
 
 export type TQuery = {
   page: number
@@ -64,44 +77,28 @@ export type TGetActions<T> = (item: T, options?: { view?: boolean }) => Dropdown
 const props = withDefaults(
   defineProps<{
     getUrl: string
-    sticky?: boolean
+    modal?: TBaseCrudModal
     fields?: TField[]
     filters?: TFilter[]
     columns?: TColumn<T>[]
     postUrl?: string
-    staleTime?: number
-    perPageOptions?: number[]
-    enableRowSelection?: boolean
-    formClass?: string
     formItem?: Record<string, any>
-    formModal?: {
-      create?: {
-        title?: string
-        description?: string
-      }
-      update?: {
-        title?: string
-        description?: string
-      }
-    }
-    persist?: {
-      key: string
-      parse?: (v: string) => TQuery
-      stringify?: (v: TQuery) => string
-    }
-    getQuery?: (query: TQuery) => TQuery
+    exportUrl?: string
+    formClass?: string
+    staleTime?: number
+    dateFields?: string[]
+    perPageOptions?: number[]
+    deleteUrl?: string | ((item: T | T[]) => string)
     getActions?: TGetActions<T>
     getPostBody?: (state: TFormState) => object | FormData
     getFormState?: (item?: T) => TFormState
   }>(),
   {
-    sticky: true,
     staleTime: 30 * 1000,
-    enableRowSelection: true,
     fields: () => [],
     filters: () => [],
     columns: () => [],
-    getQuery: (v: TQuery) => v,
+    dateFields: () => [],
     getActions: () => [],
     getPostBody: (state: TFormState) => state,
     getFormState: (v?: T) => ({ ...(v ?? {}) }),
@@ -113,8 +110,17 @@ const props = withDefaults(
   }
 )
 
-const { getUrl, columns, postUrl, getFormState, getPostBody, getQuery, persist, staleTime } =
-  toRefs(props)
+const {
+  getUrl,
+  columns,
+  postUrl,
+  exportUrl,
+  deleteUrl,
+  staleTime,
+  dateFields,
+  getPostBody,
+  getFormState,
+} = toRefs(props)
 
 const def = toPaginated<T>()
 const table = useTemplateRef('table')
@@ -127,23 +133,30 @@ const initialQuery = {
 
 const getPersisted = <T>(
   key: string,
-  parser: (v: string | undefined, parse: (v: string) => T) => T
+  parser: (v: TMaybe<string>, parse: (value: string, initial?: T) => T) => T
 ) => {
-  const parse = typeof persist.value?.parse === 'function' ? persist.value.parse : JSON.parse
-  if (typeof window !== 'undefined' && persist.value?.key) {
-    const stored = localStorage.getItem(`${persist.value.key}:${key}`)
-    if (stored)
-      return parser(
-        stored,
-        typeof persist.value.parse === 'function' ? persist.value.parse : JSON.parse
-      )
+  const parse = <T>(value: string, initial?: T) => {
+    try {
+      const parsed = JSON.parse(value)
+      return {
+        ...parsed,
+        ...calendarFormatDates(parsed, dateFields.value, {
+          returnType: 'dateValue',
+        }),
+      }
+    } catch {}
+    return { ...initial }
+  }
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(`${getUrl.value}:${key}`)
+    return parser(stored, parse)
   }
   return parser(undefined, parse)
 }
 
 const query = ref(
   getPersisted<TQuery>('query', (v, parse) => {
-    return v ? parse(v) : { ...initialQuery }
+    return v ? parse(v, initialQuery) : { ...initialQuery }
   })
 )
 
@@ -157,11 +170,17 @@ const nuxtApp = useNuxtApp()
 const refreshKey = ref(0)
 const key = computed(() => `${getUrl.value}:${refreshKey.value}:${JSON.stringify(query.value)}`)
 
+const fetchQuery = computed(() => {
+  return calendarFormatDates(query.value, dateFields.value, {
+    formatStr: 'yyyy-MM-dd',
+  })
+})
+
 const { data, status } = useFetch<TPaginated<T>>(getUrl, {
   key,
-  query: computed(() => getQuery.value(query.value)),
   lazy: true,
   server: false,
+  query: fetchQuery,
   default: () => def,
   getCachedData(key) {
     const data = nuxtApp.payload.data[key]
@@ -177,7 +196,30 @@ const { data, status } = useFetch<TPaginated<T>>(getUrl, {
 })
 
 const UButton = resolveComponent('UButton')
-const infoModal = useInfoModal()
+const UPopover = resolveComponent('UPopover')
+
+const getInfoPopup = (options: TInfoPopup) => {
+  return h(
+    UPopover,
+    {
+      ui: {
+        content: ['p-3 max-w-md w-full max-h-[50vh] overflow-y-auto', options.class],
+      },
+    },
+    {
+      content: options.content,
+      default: () => [
+        h(UButton, {
+          size: 'xs',
+          class: 'px-0',
+          color: 'primary',
+          variant: 'link',
+          label: options.label,
+        }),
+      ],
+    }
+  )
+}
 
 const mColumns = computed<TableColumn<T>[]>(() => {
   return columns.value.map(({ pinned, cell, sortBy, header, display, ...item }) => {
@@ -194,18 +236,10 @@ const mColumns = computed<TableColumn<T>[]>(() => {
               return h('div', { class: ['flex items-center', display.class] }, [
                 h('div', { class: 'truncate' }, text),
                 text.length > display.length
-                  ? h(UButton, {
-                      size: 'xs',
-                      color: 'primary',
+                  ? getInfoPopup({
+                      class: display.class,
                       label: 'more',
-                      variant: 'link',
-                      class: 'px-0',
-                      onClick() {
-                        infoModal.open({
-                          title: String(header),
-                          body: text,
-                        })
-                      },
+                      content: () => text,
                     })
                   : null,
               ])
@@ -218,18 +252,10 @@ const mColumns = computed<TableColumn<T>[]>(() => {
               return h('div', { class: 'flex items-center' }, [
                 ...visible,
                 hidden > 0
-                  ? h(UButton, {
-                      size: 'xs',
-                      class: 'px-0',
-                      color: 'primary',
-                      variant: 'link',
+                  ? getInfoPopup({
+                      class: display.class,
                       label: `+${hidden} more`,
-                      onClick() {
-                        infoModal.open({
-                          title: String(header),
-                          body: h('div', { class: display.class }, getValue({ modal: true })),
-                        })
-                      },
+                      content: () => getValue({ modal: true }),
                     })
                   : null,
               ])
@@ -296,7 +322,7 @@ const onClearOrderBy = () => {
 }
 
 const formOpen = ref(false)
-const formMode = ref<'create' | 'update'>('create')
+const formMode = ref<TFormMode>('create')
 const formState = ref<TFormState>({})
 const isSubmitting = ref(false)
 
@@ -347,12 +373,18 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
 }
 
 const { confirm } = useConfirm()
-const onDelete = async (url: string) => {
+const onDelete = async (item: T | T[]) => {
+  if (!deleteUrl.value) throw new Error('Delete URL is not set')
+  const url =
+    typeof deleteUrl.value === 'function'
+      ? deleteUrl.value(item)
+      : deleteUrl.value.replace(
+          '{id}',
+          Array.isArray(item) ? item.map((x) => x.id).join(',') : item.id
+        )
   if (await confirm('Are you sure you want to delete this item?')) {
     isSubmitting.value = true
-    $fetch(url, {
-      method: 'DELETE',
-    })
+    $fetch(url, { method: 'DELETE' })
       .then(() => {
         toast.add({
           color: 'success',
@@ -377,10 +409,18 @@ const onDelete = async (url: string) => {
   }
 }
 
-const onDeleteSelected = (getUrl: (items: T[]) => string) => {
-  const items = table.value?.tableApi?.getFilteredSelectedRowModel().rows.map((row) => row.original)
+const getSelectedRows = () => {
+  return table.value?.tableApi?.getFilteredSelectedRowModel().rows ?? []
+}
+
+const getSelectedRowItems = () => {
+  return getSelectedRows().map((row) => row.original)
+}
+
+const onDeleteSelected = () => {
+  const items = getSelectedRowItems()
   if (!items?.length) return
-  onDelete(getUrl(items))
+  onDelete(items)
 }
 
 const onGotoFirstPage = () => {
@@ -390,23 +430,21 @@ const onGotoFirstPage = () => {
 watch(
   query,
   (v) => {
-    if (!persist.value?.key) return
     localStorage.setItem(
-      `${persist.value.key}:query`,
-      typeof persist.value.stringify === 'function' ? persist.value.stringify(v) : JSON.stringify(v)
+      `${getUrl.value}:query`,
+      JSON.stringify(
+        calendarFormatDates(v, dateFields.value, {
+          returnType: 'storage',
+        })
+      )
     )
   },
   { deep: true }
 )
 
-watch(
-  selected,
-  (v) => {
-    if (!persist.value?.key) return
-    localStorage.setItem(`${persist.value.key}:selected`, JSON.stringify(v))
-  },
-  { deep: true }
-)
+watch(selected, (v) => {
+  localStorage.setItem(`${getUrl.value}:selected`, JSON.stringify(v))
+})
 
 type TViewOptions = {
   modal?: ModalProps
@@ -443,12 +481,48 @@ defineExpose({
   onDelete,
   onDeleteSelected,
 })
+
+// Export
+const exportOpen = ref(false)
+const exportState = ref({
+  format: 'excel',
+  selection: 'all',
+})
+
+const { exporting, execute: onExport } = useExport()
+const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>) => {
+  if (!exportUrl.value) return console.error('Export URL is not set')
+  if (
+    exportState.value.selection === 'selected' &&
+    !table.value?.tableApi?.getFilteredSelectedRowModel().rows.length
+  ) {
+    toast.add({
+      color: 'error',
+      title: 'Error! 😭',
+      description: 'No selected rows',
+    })
+    return
+  }
+  await onExport(exportUrl.value, {
+    ...fetchQuery.value,
+    ...exportState.value,
+    ...(exportState.value.selection === 'selected'
+      ? {
+          id: getSelectedRowItems()
+            .map((item: any) => item.id)
+            .join(','),
+        }
+      : {}),
+  })
+  exportOpen.value = false
+}
+//
 </script>
 
 <template>
   <ClientOnly>
-    <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-2">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap">
         <template v-for="row in filters" :key="row.name">
           <BaseInputFilter
             v-if="row.type === 'input'"
@@ -502,7 +576,7 @@ defineExpose({
           </UButton>
         </UTooltip>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <template v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length">
           <UTooltip text="Clear selection">
             <UButton
@@ -515,14 +589,78 @@ defineExpose({
               Clear
             </UButton>
           </UTooltip>
-          <slot
-            name="bulk-actions"
-            v-bind="{
-              count: table?.tableApi?.getFilteredSelectedRowModel().rows.length,
-              selected,
-            }"
-          />
+          <!-- <slot name="bulk-actions" /> -->
+          <UButton
+            label="Delete"
+            color="error"
+            variant="subtle"
+            icon="i-lucide-trash"
+            :ui="{ leadingIcon: 'size-4' }"
+            @click="onDeleteSelected"
+          >
+            <template #trailing>
+              <UKbd>
+                {{ getSelectedRowItems().length }}
+              </UKbd>
+            </template>
+          </UButton>
         </template>
+        <UPopover
+          v-if="exportUrl"
+          v-model:open="exportOpen"
+          :ui="{ content: 'p-4 max-w-sm w-full' }"
+          :content="{ align: 'end', side: 'bottom' }"
+        >
+          <UTooltip text="Export">
+            <UButton icon="i-lucide-download" color="primary" variant="solid" label="Export" />
+          </UTooltip>
+          <template #content>
+            <UForm
+              :state="exportState"
+              :loading="exporting"
+              class="flex flex-col gap-4"
+              @submit="onSubmitExport"
+            >
+              <UFormField label="Selection">
+                <URadioGroup
+                  v-model="exportState.selection"
+                  variant="table"
+                  orientation="horizontal"
+                  :items="[
+                    {
+                      label: 'All',
+                      value: 'all',
+                    },
+                    {
+                      label: 'Selected',
+                      value: 'selected',
+                    },
+                    {
+                      label: 'Current Page',
+                      value: 'current-page',
+                    },
+                  ]"
+                />
+              </UFormField>
+              <UFormField label="Format">
+                <URadioGroup
+                  v-model="exportState.format"
+                  variant="table"
+                  orientation="horizontal"
+                  :items="[
+                    { label: 'Excel', value: 'excel' },
+                    { label: 'CSV', value: 'csv' },
+                  ]"
+                />
+              </UFormField>
+              <div class="flex justify-end">
+                <UButton type="submit" icon="i-lucide-download" :loading="exporting">
+                  Export
+                </UButton>
+              </div>
+            </UForm>
+          </template>
+        </UPopover>
         <UTooltip text="Add new item">
           <UButton icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
             Add New
@@ -530,61 +668,56 @@ defineExpose({
         </UTooltip>
       </div>
     </div>
-    <div class="overflow-auto max-w-full">
-      <UTable
-        ref="table"
-        v-model:row-selection="selected"
-        :data="data.data"
-        :sticky="sticky"
-        :columns="mColumns"
-        :loading="status === 'pending'"
-        :ui="{
-          base: 'table-fixed border-separate border-spacing-0',
-          thead: '[&>tr]:after:content-none',
-          tbody: '[&>tr]:last:[&>td]:border-b-0',
-          th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-          td: 'border-b border-default',
-          separator: 'h-0',
-        }"
-      >
-        <template #select-header="{ column, table }">
-          <div class="pr-4">
-            <UCheckbox
-              :model-value="
-                table.getIsSomePageRowsSelected()
-                  ? 'indeterminate'
-                  : table.getIsAllPageRowsSelected()
-              "
-              aria-label="Select all"
-              @update:model-value="(v) => table.toggleAllPageRowsSelected(!!v)"
-            />
-          </div>
-          {{ !column.getIsPinned() ? column.pin('left') : '' }}
-        </template>
-        <template #select-cell="{ row }">
+    <UTable
+      ref="table"
+      v-model:row-selection="selected"
+      class="flex-1"
+      :sticky="true"
+      :data="data.data"
+      :columns="mColumns"
+      :loading="status === 'pending'"
+      :ui="{
+        base: 'table-fixed border-separate border-spacing-0',
+        thead: '[&>tr]:after:content-none',
+        tbody: '[&>tr]:last:[&>td]:border-b-0',
+        th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
+        td: 'border-b border-default',
+        separator: 'h-0',
+      }"
+    >
+      <template #select-header="{ column, table }">
+        <div class="pr-4">
           <UCheckbox
-            :model-value="row.getIsSelected()"
-            aria-label="Select row"
-            @update:model-value="(v) => row.toggleSelected(!!v)"
+            :model-value="
+              table.getIsSomePageRowsSelected() ? 'indeterminate' : table.getIsAllPageRowsSelected()
+            "
+            aria-label="Select all"
+            @update:model-value="(v) => table.toggleAllPageRowsSelected(!!v)"
           />
-        </template>
-        <template #action-cell="{ row }">
-          <UDropdownMenu :items="getActions(row.original)">
-            <UButton
-              icon="i-lucide-ellipsis-vertical"
-              color="neutral"
-              variant="ghost"
-              aria-label="Actions"
-            />
-          </UDropdownMenu>
-        </template>
-      </UTable>
-    </div>
+        </div>
+        {{ !column.getIsPinned() ? column.pin('left') : '' }}
+      </template>
+      <template #select-cell="{ row }">
+        <UCheckbox
+          :model-value="row.getIsSelected()"
+          aria-label="Select row"
+          @update:model-value="(v) => row.toggleSelected(!!v)"
+        />
+      </template>
+      <template #action-cell="{ row }">
+        <UDropdownMenu :items="getActions(row.original)">
+          <UButton
+            icon="i-lucide-ellipsis-vertical"
+            color="neutral"
+            variant="ghost"
+            aria-label="Actions"
+          />
+        </UDropdownMenu>
+      </template>
+    </UTable>
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
       <div
-        v-if="
-          (enableRowSelection && table?.tableApi?.getFilteredSelectedRowModel().rows.length) || 0
-        "
+        v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
         class="text-sm text-muted"
       >
         {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
@@ -637,11 +770,7 @@ defineExpose({
         </table>
       </template>
     </UModal>
-    <UModal
-      v-model:open="formOpen"
-      :title="formModal?.[formMode]?.title"
-      :description="formModal?.[formMode]?.description"
-    >
+    <UModal v-model:open="formOpen" v-bind="modal?.form?.({ mode: formMode })">
       <template #body>
         <UForm ref="formRef" :state="formState" @submit="onSubmit">
           <div :class="formClass" class="grid grid-cols-1 gap-4">
@@ -664,6 +793,11 @@ defineExpose({
               />
               <BaseAutocomplete
                 v-else-if="row.type === 'autocomplete'"
+                v-model="formState[row.name]"
+                v-bind="{ ...formItem, ...row.props }"
+              />
+              <BaseMembersField
+                v-else-if="row.type === 'team-members'"
                 v-model="formState[row.name]"
                 v-bind="{ ...formItem, ...row.props }"
               />

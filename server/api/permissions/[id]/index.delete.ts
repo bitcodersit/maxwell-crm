@@ -6,11 +6,14 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   const ids = (id || '').split(',').map(Number)
   try {
-    const data = await prisma.permission.deleteMany({
+    const data = await prisma.permission.updateMany({
       where: {
         id: {
           in: ids,
         },
+      },
+      data: {
+        deletedAt: new Date(),
       },
     })
     return {

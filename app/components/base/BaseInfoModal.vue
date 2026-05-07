@@ -2,7 +2,7 @@
 export type TInfoModalProps = {
   title?: string
   description?: string
-  body?: string | VNode
+  body?: string | VNode | ((v: { close: () => void }) => string | VNode)
   class?: string
 }
 withDefaults(defineProps<TInfoModalProps>(), {
@@ -12,11 +12,8 @@ withDefaults(defineProps<TInfoModalProps>(), {
 
 <template>
   <UModal :title="title" :description="description">
-    <template #body>
-      <div :class="class" v-if="typeof body === 'string'">
-        {{ body }}
-      </div>
-      <component :is="body" v-else />
+    <template #body="props">
+      <VNode :value="body ? (typeof body === 'function' ? body(props) : body) : undefined" />
     </template>
   </UModal>
 </template>
