@@ -1,4 +1,4 @@
-import VerifyEmail from '@/components/emails/VerifyEmail.vue'
+import EmailVerifyEmail from '@/components/emails/EmailVerifyEmail.vue'
 import { render } from '@vue-email/render'
 import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
 
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const verifyLink = await createVerifyEmailLink(event, target.id)
-  const html = await render(VerifyEmail, {
+  const html = await render(EmailVerifyEmail, {
     verifyLink,
     name: target.name,
   })

@@ -1,4 +1,4 @@
-import MagicLink from '@/components/emails/MagicLink.vue'
+import EmailMagicLink from '@/components/emails/EmailMagicLink.vue'
 import { render } from '@vue-email/render'
 
 const zMagic = z.object({
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig(event)
   const magicLink = `${config.public.siteUrl}/login/magic?token=${encodeURIComponent(token)}`
-  const html = await render(MagicLink, { magicLink })
+  const html = await render(EmailMagicLink, { magicLink })
 
   await sendMail({
     to: input.email,

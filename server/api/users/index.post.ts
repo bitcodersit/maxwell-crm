@@ -1,6 +1,6 @@
 import { Prisma } from '~~/prisma/client/client'
-import WelcomeUser from '@/components/emails/WelcomeUser.vue'
-import PasswordUpdated from '@/components/emails/PasswordUpdated.vue'
+import EmailWelcomeUser from '@/components/emails/EmailWelcomeUser.vue'
+import EmailPasswordUpdated from '@/components/emails/EmailPasswordUpdated.vue'
 import { render } from '@vue-email/render'
 import { createResetPasswordLink } from '~~/server/utils/passwordReset'
 import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
@@ -84,7 +84,7 @@ export default defineEventHandler(async (event) => {
       const needsResetLink = !input.password && !existing.password
       const resetLink = needsResetLink ? await createResetPasswordLink(event, user.id) : undefined
       const verifyLink = await createVerifyEmailLink(event, user.id)
-      const html = await render(WelcomeUser, {
+      const html = await render(EmailWelcomeUser, {
         name: user.name,
         loginEmail: user.email,
         loginUrl,
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
     }
 
     if (input.password) {
-      const html = await render(PasswordUpdated, {
+      const html = await render(EmailPasswordUpdated, {
         name: user.name,
         loginEmail: user.email,
         loginPassword: input.password,
@@ -145,7 +145,7 @@ export default defineEventHandler(async (event) => {
   const loginUrl = `${config.public.siteUrl}/login`
   const resetLink = !input.password ? await createResetPasswordLink(event, user.id) : undefined
   const verifyLink = await createVerifyEmailLink(event, user.id)
-  const html = await render(WelcomeUser, {
+  const html = await render(EmailWelcomeUser, {
     name: user.name,
     loginEmail: user.email,
     loginUrl,

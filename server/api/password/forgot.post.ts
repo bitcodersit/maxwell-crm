@@ -1,4 +1,4 @@
-import ResetPassword from '@/components/emails/ResetPassword.vue'
+import EmailResetPassword from '@/components/emails/EmailResetPassword.vue'
 import { render } from '@vue-email/render'
 import { createResetPasswordLink } from '~~/server/utils/passwordReset'
 
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const resetLink = await createResetPasswordLink(event, user.id)
-  const html = await render(ResetPassword, {
+  const html = await render(EmailResetPassword, {
     name: user.name,
     resetLink,
     expiresInMinutes: 5,

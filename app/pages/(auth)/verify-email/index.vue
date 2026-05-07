@@ -3,6 +3,7 @@ useHead({ title: 'Verify Email' })
 definePageMeta({ layout: false })
 
 const route = useRoute()
+const { user, fetch: fetchSession } = useUserSession()
 
 const token = computed(() => {
   const value = route.query.token
@@ -11,27 +12,50 @@ const token = computed(() => {
 
 const loading = ref(true)
 const success = ref(false)
+const flow = ref<'normal' | 'email-change'>('normal')
+const title = ref('Email Verification')
 const message = ref('Verifying your email...')
+const isLoggedIn = computed(() => !!user.value?.id)
+
+const closeWindow = () => {
+  window.close()
+}
 
 const verifyEmail = async () => {
   if (!token.value) {
     loading.value = false
     success.value = false
+    title.value = 'Verification failed'
     message.value = 'Invalid verification link'
     return
   }
 
   loading.value = true
   try {
-    const response = await $fetch<{ message?: string }>('/api/users/verify-email', {
+    const response = await $fetch<{
+      message?: string
+      flow?: 'normal' | 'email-change'
+      forceLogout?: boolean
+    }>('/api/users/verify-email', {
       query: {
         token: token.value,
       },
     })
     success.value = true
-    message.value = response?.message || 'Email verified successfully'
+    flow.value = (response?.flow as typeof flow.value) || 'normal'
+    if (flow.value === 'email-change') {
+      title.value = 'Email change successful'
+      message.value = 'Email change success. You must login with your new email.'
+    } else {
+      title.value = 'Email verified'
+      message.value = 'Email has been verified. You can now close this window.'
+    }
+    if (response?.forceLogout) {
+      await fetchSession()
+    }
   } catch (error: any) {
     success.value = false
+    title.value = 'Verification failed'
     message.value = error?.data?.message || error?.message || 'Verification failed'
   } finally {
     loading.value = false
@@ -51,20 +75,53 @@ onMounted(verifyEmail)
               loading
                 ? 'i-lucide-loader-circle'
                 : success
-                  ? 'i-lucide-badge-check'
-                  : 'i-lucide-circle-alert'
+                ? 'i-lucide-badge-check'
+                : 'i-lucide-circle-alert'
             "
-            :class="[loading ? 'animate-spin text-primary' : success ? 'text-success' : 'text-error']"
+            :class="[
+              loading ? 'animate-spin text-primary' : success ? 'text-success' : 'text-error',
+            ]"
           />
-          <span>Email Verification</span>
+          <span>{{ title }}</span>
         </div>
       </template>
 
       <p class="text-sm text-muted">{{ message }}</p>
 
       <template #footer>
-        <div class="flex justify-end">
-          <UButton to="/login" icon="i-lucide-log-in" :disabled="loading"> Go to login </UButton>
+        <div class="flex justify-end gap-2">
+          <template v-if="success && flow === 'normal'">
+            <UButton v-if="isLoggedIn" to="/settings" icon="i-lucide-user" :disabled="loading">
+              Go to profile
+            </UButton>
+            <UButton v-else to="/login" icon="i-lucide-log-in" :disabled="loading"
+              >Go to login</UButton
+            >
+            <UButton
+              color="neutral"
+              variant="soft"
+              icon="i-lucide-x"
+              :disabled="loading"
+              @click="closeWindow"
+            >
+              Close window
+            </UButton>
+          </template>
+          <template v-else-if="success && flow === 'email-change'">
+            <UButton to="/login" icon="i-lucide-log-in" :disabled="loading">Go to login</UButton>
+            <UButton
+              color="neutral"
+              variant="soft"
+              icon="i-lucide-x"
+              :disabled="loading"
+              @click="closeWindow"
+            >
+              Close window
+            </UButton>
+          </template>
+          <template v-else>
+            <UButton to="/login" icon="i-lucide-log-in" :disabled="loading">Go to login</UButton>
+          </template>
         </div>
       </template>
     </UCard>

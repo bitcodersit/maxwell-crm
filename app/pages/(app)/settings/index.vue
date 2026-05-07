@@ -7,6 +7,9 @@ const pendingFile = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)
 const clearAvatar = ref(false)
 const loading = ref(false)
+const emailEditable = ref(false)
+const pendingEmail = ref<string | null>(null)
+const pendingEmailStage = ref<string | null>(null)
 
 const { user, fetch: fetchSession } = useUserSession()
 
@@ -14,12 +17,14 @@ const { getAttachment } = useGetAttachment()
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Too short'),
+  email: z.email('Invalid email address'),
 })
 
 type ProfileSchema = z.output<typeof profileSchema>
 
 const profile = reactive({
   name: '',
+  email: '',
 })
 
 watch(
@@ -27,6 +32,8 @@ watch(
   (u) => {
     if (u) {
       profile.name = u.name
+      profile.email = u.email
+      emailEditable.value = false
     }
   },
   { immediate: true }
@@ -60,9 +67,33 @@ const avatarSrc = computed(() => {
 
 const toast = useToast()
 
+const isFetchingPendingEmailChange = ref(false)
+const fetchPendingEmailChange = async () => {
+  try {
+    isFetchingPendingEmailChange.value = true
+    const res = await $fetch<{
+      pendingEmail: string | null
+      stage: string | null
+    }>('/api/me/pending-email-change')
+    pendingEmail.value = res.pendingEmail
+    pendingEmailStage.value = res.stage
+  } catch {
+    pendingEmail.value = null
+    pendingEmailStage.value = null
+  } finally {
+    isFetchingPendingEmailChange.value = false
+  }
+}
+
+onMounted(fetchPendingEmailChange)
+
 async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
   try {
     loading.value = true
+    const currentEmail = user.value?.email || ''
+    const requestedEmail = event.data.email.trim().toLowerCase()
+    const isEmailChangeRequested = requestedEmail !== currentEmail.toLowerCase()
+
     let newAvatarId: number | undefined
     if (pendingFile.value) {
       const fd = new FormData()
@@ -74,8 +105,9 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
       newAvatarId = up.id
     }
 
-    const body: { name?: string; avatarId?: number | null } = {
+    const body: { name?: string; email?: string; avatarId?: number | null } = {
       name: event.data.name,
+      email: requestedEmail,
     }
     if (clearAvatar.value) {
       body.avatarId = null
@@ -90,11 +122,15 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 
     pendingFile.value = null
     clearAvatar.value = false
+    emailEditable.value = false
     await fetchSession()
+    await fetchPendingEmailChange()
 
     toast.add({
       title: 'Success',
-      description: 'Your settings have been updated.',
+      description: isEmailChangeRequested
+        ? 'Profile updated. Please confirm from your old email address.'
+        : 'Your settings have been updated.',
       icon: 'i-lucide-check',
       color: 'success',
     })
@@ -127,6 +163,17 @@ function onClearAvatar() {
   pendingFile.value = null
   clearAvatar.value = true
 }
+
+const emailCache = ref<string>('')
+const onChangeEmail = () => {
+  emailEditable.value = true
+  emailCache.value = profile.email
+}
+
+const onCancelEmailChange = () => {
+  emailEditable.value = false
+  profile.email = emailCache.value
+}
 </script>
 
 <template>
@@ -151,44 +198,68 @@ function onClearAvatar() {
 
     <UPageCard variant="subtle">
       <UFormField
+        required
         name="name"
-        label="Name"
+        label="Full Name"
         description="Will appear on receipts, invoices, and other communication."
-        required
         class="flex max-sm:flex-col justify-between items-start gap-4"
       >
-        <UInput v-model="profile.name" autocomplete="off" />
-      </UFormField>
-      <!--
-      <USeparator />
-      <UFormField
-        name="email"
-        label="Email"
-        description="Used to sign in, for email receipts and product updates."
-        required
-        class="flex max-sm:flex-col justify-between items-start gap-4"
-      >
-        <UInput
-          v-model="profile.email"
-          type="email"
-          autocomplete="off"
-        />
+        <UInput v-model="profile.name" autocomplete="off" class="min-w-48 w-full" />
       </UFormField>
       <USeparator />
-      <UFormField
-        name="username"
-        label="Username"
-        description="Your unique username for logging in and your profile URL."
-        required
-        class="flex max-sm:flex-col justify-between items-start gap-4"
-      >
-        <UInput
-          v-model="profile.username"
-          type="username"
-          autocomplete="off"
-        />
-      </UFormField>
-      -->
+      <div>
+        <UFormField
+          required
+          name="email"
+          label="Email Address"
+          class="flex max-sm:flex-col justify-between items-start gap-4"
+        >
+          <template #description>
+            <ClientOnly>
+              <div>Used to sign in, for email receipts and product updates.</div>
+              <template v-if="pendingEmail">
+                <div v-if="pendingEmailStage === 'old-confirm'" class="text-warning">
+                  You have a pending email <b class="underline">`{{ pendingEmail }}`</b> change
+                  request. Please check your current email address to confirm the change.
+                </div>
+                <div v-else-if="pendingEmailStage === 'new-verify'" class="text-warning">
+                  Email is not verified. An email has been sent to
+                  <b class="underline">`{{ pendingEmail }}`</b> to verify.
+                </div>
+              </template>
+            </ClientOnly>
+          </template>
+          <UInput
+            v-model="profile.email"
+            type="email"
+            autocomplete="off"
+            class="min-w-48 w-full"
+            :disabled="!emailEditable"
+          />
+        </UFormField>
+        <ClientOnly>
+          <div v-if="!isFetchingPendingEmailChange" class="flex justify-end">
+            <UButton
+              v-if="!emailEditable && pendingEmailStage !== 'old-confirm'"
+              size="xs"
+              color="neutral"
+              variant="soft"
+              @click="onChangeEmail"
+            >
+              Change email
+            </UButton>
+            <UButton
+              v-else-if="emailEditable"
+              size="xs"
+              color="error"
+              variant="outline"
+              @click="onCancelEmailChange"
+            >
+              Cancel
+            </UButton>
+          </div>
+        </ClientOnly>
+      </div>
       <USeparator />
       <UFormField
         name="avatar"
