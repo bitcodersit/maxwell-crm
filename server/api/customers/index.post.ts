@@ -8,7 +8,7 @@ const zCustomer = z.object({
   phone: z.string().min(4).max(32)
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user: sessionUser } = await requireUserSession(event)
 
   const body = await readBody(event)

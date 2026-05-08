@@ -65,7 +65,7 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
         }
       }
     }))
-    .id('idsNotIn', (ids) => {
+    .id('idsNotIn', ids => {
       if ('in' in ids) {
         return {
           id: {
@@ -80,14 +80,14 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
   const selectInclude: {
     select?: Prisma.UserSelect
   } = isTrue(query.options)
-      ? {
+    ? {
         select: {
           id: true,
           name: true,
           avatarId: true
         }
       }
-      : {
+    : {
         select: {
           id: true,
           name: true,
@@ -126,7 +126,7 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
   }
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { error, data } = await getUsers(event)
   if (error) throw error
   return data

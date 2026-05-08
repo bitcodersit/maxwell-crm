@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { H3Event } from 'h3'
 import type { Prisma } from '~~/prisma/client/client'
 import { CUSTOMER_ROLE_NAME } from '~~/server/utils/customerRole'
@@ -49,7 +48,7 @@ export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
         }
       ]
     }))
-    .id('idsNotIn', (ids) => {
+    .id('idsNotIn', ids => {
       if ('in' in ids) {
         return {
           id: {
@@ -112,7 +111,7 @@ export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
   }
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { error, data } = await getCustomers(event)
   if (error) throw error
   return data

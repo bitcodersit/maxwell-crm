@@ -1,11 +1,10 @@
-/* eslint-disable sort-imports */
 import type { Prisma } from '~~/prisma/client/client'
 import { render } from '@vue-email/render'
-import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
-import { createResetPasswordLink } from '~~/server/utils/passwordReset'
-import { CUSTOMER_ROLE_NAME, isCustomerRoleName } from '~~/server/utils/customerRole'
 import EmailPasswordUpdated from '@/components/emails/EmailPasswordUpdated.vue'
 import EmailWelcomeUser from '@/components/emails/EmailWelcomeUser.vue'
+import { CUSTOMER_ROLE_NAME, isCustomerRoleName } from '~~/server/utils/customerRole'
+import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
+import { createResetPasswordLink } from '~~/server/utils/passwordReset'
 
 const zUser = z.object({
   id: z.number().nullish(),
@@ -37,7 +36,7 @@ const validateNonCustomerRoles = async (roleIds: number[]) => {
   }
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user: sessionUser } = await requireUserSession(event)
   const body = await readBody(event)
   const input = await validate(body, zUser)
@@ -119,9 +118,9 @@ export default defineEventHandler(async (event) => {
 
     const config = useRuntimeConfig(event)
     const loginUrl = `${config.public.siteUrl}/login`
-    const emailChanged = existing.email !== input.email
+    const emailChanged = existing.email && existing.email !== input.email
 
-    if (emailChanged) {
+    if (emailChanged && user.email) {
       const needsResetLink = !input.password && !existing.password
       const resetLink = needsResetLink ? await createResetPasswordLink(event, user.id) : undefined
       const verifyLink = await createVerifyEmailLink(event, user.id)
@@ -140,7 +139,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    if (input.password) {
+    if (input.password && user.email) {
       const html = await render(EmailPasswordUpdated, {
         name: user.name,
         loginEmail: user.email,
@@ -182,23 +181,25 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const config = useRuntimeConfig(event)
-  const loginUrl = `${config.public.siteUrl}/login`
-  const resetLink = !input.password ? await createResetPasswordLink(event, user.id) : undefined
-  const verifyLink = await createVerifyEmailLink(event, user.id)
-  const html = await render(EmailWelcomeUser, {
-    name: user.name,
-    loginEmail: user.email,
-    loginUrl,
-    loginPassword: input.password || undefined,
-    resetLink,
-    verifyLink
-  })
-  await queueEmail({
-    to: user.email,
-    subject: 'Welcome to Maxwell CRM',
-    html
-  })
+  if (user.email) {
+    const config = useRuntimeConfig(event)
+    const loginUrl = `${config.public.siteUrl}/login`
+    const resetLink = !input.password ? await createResetPasswordLink(event, user.id) : undefined
+    const verifyLink = await createVerifyEmailLink(event, user.id)
+    const html = await render(EmailWelcomeUser, {
+      name: user.name,
+      loginEmail: user.email,
+      loginUrl,
+      loginPassword: input.password || undefined,
+      resetLink,
+      verifyLink
+    })
+    await queueEmail({
+      to: user.email,
+      subject: 'Welcome to Maxwell CRM',
+      html
+    })
+  }
 
   return user
 })

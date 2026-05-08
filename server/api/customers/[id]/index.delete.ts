@@ -1,6 +1,6 @@
 import { getOrCreateCustomerRole } from '~~/server/utils/customerRole'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['delete-any-users'])) {
     throw err.denied()

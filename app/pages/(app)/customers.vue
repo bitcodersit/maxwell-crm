@@ -4,161 +4,158 @@ import type {
   TColumn,
   TField,
   TFilter,
-  TGetActions,
-} from "@/components/base/BaseCrud.vue";
+  TGetActions
+} from '@/components/base/BaseCrud.vue'
 
-const crudRef = useTemplateRef("crudRef");
-const UAvatar = resolveComponent("UAvatar");
+const crudRef = useTemplateRef('crudRef')
+const UAvatar = resolveComponent('UAvatar')
 
-const { getAttachment } = useGetAttachment();
+const { getAttachment } = useGetAttachment()
 
 const fields: TField[] = [
   {
-    name: "name",
-    type: "input",
-    label: "Name",
+    name: 'name',
+    type: 'input',
+    label: 'Name'
   },
   {
-    name: "phone",
-    type: "input",
-    label: "Phone",
+    name: 'phone',
+    type: 'input',
+    label: 'Phone'
   },
   {
-    name: "email",
-    type: "input",
-    label: "Email (optional)",
+    name: 'email',
+    type: 'input',
+    label: 'Email (optional)',
     props: {
-      type: "email",
-    },
-  },
-];
+      type: 'email'
+    }
+  }
+]
 
 const columns = computed<TColumn<TUser>[]>(() => [
   {
-    id: "select",
-    size: 48,
+    id: 'select',
+    size: 48
   },
   {
-    accessorKey: "id",
-    header: "ID",
-    pinned: "left",
-    sortBy: "id",
-    size: 48,
+    accessorKey: 'id',
+    header: 'ID',
+    pinned: 'left',
+    sortBy: 'id',
+    size: 48
   },
   {
-    accessorKey: "name",
-    header: "Name",
-    sortBy: "name",
+    accessorKey: 'name',
+    header: 'Name',
+    sortBy: 'name',
     cell: ({ row }) => {
-      return h("div", { class: "flex items-center gap-2" }, [
+      return h('div', { class: 'flex items-center gap-2' }, [
         h(UAvatar, {
-          size: "sm",
+          size: 'sm',
           src: getAttachment(row.original.avatarId),
           alt: row.original.name,
           ui: {
-            fallback: "text-xs",
-          },
+            fallback: 'text-xs'
+          }
         }),
-        h("div", {}, row.original.name),
-      ]);
-    },
+        h('div', {}, row.original.name)
+      ])
+    }
   },
   {
-    accessorKey: "email",
-    header: "Email",
-    sortBy: "email",
+    accessorKey: 'email',
+    header: 'Email',
+    sortBy: 'email',
     display: {
-      type: "text",
-      class: "min-w-48",
-      length: 36,
+      type: 'text',
+      class: 'min-w-48',
+      length: 36
     },
-    cell: ({ row }) => row.original.email || "—",
+    cell: ({ row }) => row.original.email || '—'
   },
   {
-    accessorKey: "phone",
-    header: "Phone",
-    sortBy: "phone",
-    cell: ({ row }) => row.original.phone || "—",
+    accessorKey: 'phone',
+    header: 'Phone',
+    sortBy: 'phone',
+    cell: ({ row }) => row.original.phone || '—'
   },
   {
-    accessorKey: "createdAt",
-    header: "Created",
-    sortBy: "createdAt",
-    cell: ({ row }) => $dfc(row.original.createdAt),
+    accessorKey: 'createdAt',
+    header: 'Created',
+    sortBy: 'createdAt',
+    cell: ({ row }) => $dfc(row.original.createdAt)
   },
   {
-    accessorKey: "updatedAt",
-    header: "Updated",
-    sortBy: "updatedAt",
-    cell: ({ row }) => $dfc(row.original.updatedAt),
+    accessorKey: 'updatedAt',
+    header: 'Updated',
+    sortBy: 'updatedAt',
+    cell: ({ row }) => $dfc(row.original.updatedAt)
   },
   {
-    id: "action",
-    pinned: "right",
-  },
-]);
+    id: 'action',
+    pinned: 'right'
+  }
+])
 
 const filters: TFilter[] = [
   {
-    name: "id",
-    type: "input",
+    name: 'id',
+    type: 'input',
     props: {
-      label: "ID",
-      placeholder: "eg 1 or 1,2,3 or 1-10",
-    },
+      label: 'ID',
+      placeholder: 'eg 1 or 1,2,3 or 1-10'
+    }
   },
   {
-    name: "name",
-    type: "input",
+    name: 'name',
+    type: 'input',
     props: {
-      label: "Name",
-      placeholder: "Search by name",
-      modeable: true,
-    },
+      label: 'Name',
+      placeholder: 'Search by name',
+      modeable: true
+    }
   },
   {
-    name: "email",
-    type: "input",
+    name: 'email',
+    type: 'input',
     props: {
-      label: "Email",
-      placeholder: "Search by email",
-      modeable: true,
-    },
+      label: 'Email',
+      placeholder: 'Search by email',
+      modeable: true
+    }
   },
   {
-    name: "phone",
-    type: "input",
+    name: 'phone',
+    type: 'input',
     props: {
-      label: "Phone",
-      placeholder: "Search by phone",
-      modeable: true,
-    },
+      label: 'Phone',
+      placeholder: 'Search by phone',
+      modeable: true
+    }
   },
   {
-    name: "createdAt",
-    type: "date",
+    name: 'createdAt',
+    type: 'date',
     props: {
-      label: "Created",
-    },
+      label: 'Created'
+    }
   },
   {
-    name: "updatedAt",
-    type: "date",
+    name: 'updatedAt',
+    type: 'date',
     props: {
-      label: "Updated",
-    },
-  },
-];
+      label: 'Updated'
+    }
+  }
+]
 
 const modal: TBaseCrudModal = {
   form: ({ mode }) => ({
-    title: mode === "create" ? "Add New Customer" : "Update Customer",
-    description:
-      mode === "create"
-        ? "Create a customer profile"
-        : "Update customer details",
-  }),
-};
+    title: mode === 'create' ? 'Add New Customer' : 'Update Customer',
+    description: mode === 'create' ? 'Create a customer profile' : 'Update customer details'
+  })
+}
 
 const getActions: TGetActions<TUser> = (item, v) => [
   [
@@ -169,44 +166,42 @@ const getActions: TGetActions<TUser> = (item, v) => [
         crudRef.value?.onView(item, {
           modal: {
             ui: {
-              content: "max-w-2xl",
-            },
-          },
-        });
-      },
+              content: 'max-w-2xl'
+            }
+          }
+        })
+      }
     },
     {
       ...actions.update,
       onSelect() {
-        crudRef.value?.onUpdate(item);
-      },
-    },
-  ].filter((action) => !("hidden" in action) || !action.hidden),
+        crudRef.value?.onUpdate(item)
+      }
+    }
+  ].filter(action => !('hidden' in action) || !action.hidden),
   [
     {
       ...actions.delete,
       onSelect() {
-        crudRef.value?.onDelete(item);
-      },
-    },
-  ],
-];
+        crudRef.value?.onDelete(item)
+      }
+    }
+  ]
+]
 
 const getFormState = (v?: TUser) => ({
   id: v?.id,
-  name: v?.name ?? "",
-  email: v?.email ?? "",
-  phone: v?.phone ?? "",
-});
+  name: v?.name ?? '',
+  email: v?.email ?? '',
+  phone: v?.phone ?? ''
+})
 
 const getPostBody = (v: Record<string, unknown>) => ({
   id: v.id,
   name: v.name,
-  email:
-    typeof v.email === "string" && v.email.trim() ? v.email.trim() : undefined,
-  phone:
-    typeof v.phone === "string" && v.phone.trim() ? v.phone.trim() : undefined,
-});
+  email: typeof v.email === 'string' && v.email.trim() ? v.email.trim() : undefined,
+  phone: typeof v.phone === 'string' && v.phone.trim() ? v.phone.trim() : undefined
+})
 </script>
 
 <template>
