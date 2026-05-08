@@ -83,7 +83,6 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
     ? {
         select: {
           id: true,
-          name: true,
           avatarId: true
         }
       }
@@ -93,6 +92,8 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
           name: true,
           email: true,
           emailVerifiedAt: true,
+          phone: true,
+          phoneVerifiedAt: true,
           avatarId: true,
           createdAt: true,
           updatedAt: true,

@@ -3,6 +3,6 @@ export const useDebouncedState = <T>(value: T, delay: number) => {
   const stateD = refDebounced(state, delay)
   return {
     state,
-    stateD,
+    stateD
   }
 }

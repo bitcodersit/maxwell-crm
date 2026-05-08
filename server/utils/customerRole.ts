@@ -11,13 +11,12 @@ export const isCustomerRoleName = (name?: string | null) => {
 export const getOrCreateCustomerRole = async (client: TRoleClient) => {
   return client.role.upsert({
     where: {
-      name: CUSTOMER_ROLE_NAME,
+      name: CUSTOMER_ROLE_NAME
     },
     update: {},
     create: {
       name: CUSTOMER_ROLE_NAME,
-      description: 'Customer account used for lead and CRM management',
-    },
+      description: 'Customer account used for lead and CRM management'
+    }
   })
 }
-

@@ -11,10 +11,8 @@ const toastP = usePromiseToast()
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
 const UAvatar = resolveComponent('UAvatar')
-const UIcon = resolveComponent('UIcon')
-const UTooltip = resolveComponent('UTooltip')
-const { confirm } = useConfirm()
 
+const { confirm } = useConfirm()
 const { getAttachment } = useGetAttachment()
 
 const fields: TField[] = [
@@ -49,6 +47,14 @@ const fields: TField[] = [
         options: true,
         excludeCustomer: true
       }
+    }
+  },
+  {
+    name: 'phone',
+    type: 'input',
+    label: 'Phone',
+    props: {
+      type: 'tel'
     }
   }
 ]
@@ -87,29 +93,21 @@ const columns = computed<TColumn<TUser>[]>(() => [
     accessorKey: 'email',
     header: 'Email',
     sortBy: 'email',
-    display: {
-      type: 'text',
-      class: 'min-w-48',
-      length: 36
-    },
     cell({ row }) {
-      const verified = !!row.original.emailVerifiedAt
-      const verifiedText = verified
-        ? `Verified at ${$dfc(row.original.emailVerifiedAt)}`
-        : 'Email not verified'
       return h('div', { class: 'flex items-center gap-2' }, [
         h('span', row.original.email || '—'),
-        h(
-          UTooltip,
-          { text: verifiedText },
-          {
-            default: () =>
-              h(UIcon, {
-                name: verified ? 'i-lucide-circle-check' : 'i-lucide-circle-alert',
-                class: verified ? 'text-success size-4' : 'text-warning size-4'
-              })
-          }
-        )
+        hVerified(row.original.email, row.original.emailVerifiedAt, 'Email not verified')
+      ])
+    }
+  },
+  {
+    accessorKey: 'phone',
+    header: 'Phone',
+    sortBy: 'phone',
+    cell({ row }) {
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('span', row.original.phone || '—'),
+        hVerified(row.original.phone, row.original.phoneVerifiedAt, 'Phone not verified')
       ])
     }
   },
@@ -126,7 +124,7 @@ const columns = computed<TColumn<TUser>[]>(() => [
       return row.original.userRoles
         .map(ur => ur.role?.name as string)
         .filter(Boolean)
-        .map((label) => {
+        .map(label => {
           const modal = Boolean((ctx as { modal?: boolean }).modal)
           return h(UBadge, {
             label,
@@ -180,6 +178,15 @@ const filters: TFilter[] = [
     props: {
       label: 'Email',
       placeholder: 'Search by email',
+      modeable: true
+    }
+  },
+  {
+    name: 'phone',
+    type: 'input',
+    props: {
+      label: 'Phone',
+      placeholder: 'Search by phone',
       modeable: true
     }
   },
@@ -248,7 +255,7 @@ const getActions: TGetActions<TUser> = (item, v) => [
           return
         }
         toastP(
-          (toast) => {
+          toast => {
             return $fetch(`/api/users/${item.id}/verify-email`, {
               method: 'POST'
             })
@@ -263,7 +270,7 @@ const getActions: TGetActions<TUser> = (item, v) => [
             title: 'Verification email sent',
             description: res?.message || 'Verification email sent successfully'
           }),
-          (err) => {
+          err => {
             const { message } = parseError(err)
             return {
               title: 'Failed to send email',
@@ -273,7 +280,7 @@ const getActions: TGetActions<TUser> = (item, v) => [
         )
       }
     }
-  ].filter(action => !action.hidden),
+  ].filter(v => 'hidden' in v && !v.hidden),
   [
     {
       ...actions.delete,
@@ -289,6 +296,7 @@ const getFormState = (v?: TUser) => ({
   name: v?.name ?? '',
   email: v?.email ?? '',
   password: '',
+  phone: v?.phone ?? '',
   roleIds: v?.userRoles?.map(ur => ur.role).filter(Boolean) ?? []
 })
 
@@ -300,6 +308,7 @@ const getPostBody = (v: Record<string, unknown>) => {
     id: v.id,
     name: v.name,
     email: v.email,
+    phone: v.phone,
     roleIds
   }
   const pwd = typeof v.password === 'string' ? v.password.trim() : ''

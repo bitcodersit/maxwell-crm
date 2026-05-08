@@ -1,12 +1,18 @@
 import { Prisma } from '~~/prisma/client/client'
-import { getOrCreateCustomerRole } from '~~/server/utils/customerRole'
 
-const zCustomer = z.object({
-  id: z.number().nullish(),
-  name: z.string().min(1),
-  email: z.email().nullish(),
-  phone: z.string().min(4).max(32)
-})
+const zCustomer = z
+  .object({
+    id: z.number().nullish(),
+    name: zName(),
+    email: zEmail().nullish(),
+    phone: zPhone()
+  })
+  .transform(data => {
+    return {
+      ...data,
+      phone: zPhoneParse(data.phone)
+    }
+  })
 
 export default defineEventHandler(async event => {
   const { user: sessionUser } = await requireUserSession(event)

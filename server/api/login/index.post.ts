@@ -1,11 +1,11 @@
 import { isCustomerRoleName } from '~~/server/utils/customerRole'
 
 const zLogin = z.object({
-  email: z.email(),
-  password: z.string().min(8)
+  email: zEmail(),
+  password: zPassword()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
   if (session.user) {
     throw createError({

@@ -1,13 +1,12 @@
-/* eslint-disable sort-imports */
-import EmailMagicLink from '@/components/emails/EmailMagicLink.vue'
 import { render } from '@vue-email/render'
+import EmailMagicLink from '@/components/emails/EmailMagicLink.vue'
 import { isCustomerRoleName } from '~~/server/utils/customerRole'
 
 const zMagic = z.object({
   email: z.email()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const body = await readBody(event)
   const input = await validate(body, zMagic)
 

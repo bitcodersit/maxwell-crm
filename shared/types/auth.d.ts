@@ -3,7 +3,8 @@ declare module '#auth-utils' {
   interface User {
     id: number
     name: string
-    email: string
+    email: string | null
+    phone: string | null
     roles: string[]
     permissions: string[]
     avatarId?: number | null

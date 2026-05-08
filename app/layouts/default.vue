@@ -39,6 +39,15 @@ const links = computed(() => {
         }
       },
       {
+        label: 'Customers',
+        icon: 'i-lucide-user-round-search',
+        to: '/customers',
+        visible: can(user.value, ['read-any-users']),
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      {
         label: 'Roles',
         icon: 'i-lucide-list-todo',
         to: '/roles',
@@ -65,15 +74,6 @@ const links = computed(() => {
       //     open.value = false
       //   },
       // },
-      {
-        label: 'Customers',
-        icon: 'i-lucide-user-round-search',
-        to: '/customers',
-        visible: can(user.value, ['read-any-users']),
-        onSelect: () => {
-          open.value = false
-        }
-      },
       {
         label: 'Settings',
         to: '/settings',
@@ -199,7 +199,10 @@ useUiColors()
         <TeamsMenu :collapsed="collapsed" />
       </template>
       <template #default="{ collapsed }">
-        <UDashboardSearchButton :collapsed="collapsed" class="bg-transparent ring-default" />
+        <UDashboardSearchButton
+          :collapsed="collapsed"
+          class="bg-transparent ring-default"
+        />
         <UNavigationMenu
           :collapsed="collapsed"
           :items="links[0]"
@@ -227,33 +230,51 @@ useUiColors()
           </template>
           <template #right>
             <!-- Search -->
-            <UTooltip text="Search" :shortcuts="['S']">
+            <UTooltip
+              text="Search"
+              :shortcuts="['S']"
+            >
               <UButton
                 color="neutral"
                 variant="ghost"
                 square
                 @click="isSearchOpen = true"
               >
-                <UIcon name="i-lucide-search" class="size-5 shrink-0" />
+                <UIcon
+                  name="i-lucide-search"
+                  class="size-5 shrink-0"
+                />
               </UButton>
             </UTooltip>
 
             <!-- Notifications -->
-            <UTooltip text="Notifications" :shortcuts="['N']">
+            <UTooltip
+              text="Notifications"
+              :shortcuts="['N']"
+            >
               <UButton
                 color="neutral"
                 variant="ghost"
                 square
                 @click="isNotificationsOpen = true"
               >
-                <UChip color="error" inset>
-                  <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
+                <UChip
+                  color="error"
+                  inset
+                >
+                  <UIcon
+                    name="i-lucide-bell"
+                    class="size-5 shrink-0"
+                  />
                 </UChip>
               </UButton>
             </UTooltip>
 
             <!-- Appearance -->
-            <UTooltip text="Appearance" :shortcuts="['C']">
+            <UTooltip
+              text="Appearance"
+              :shortcuts="['C']"
+            >
               <UColorModeButton />
             </UTooltip>
 
@@ -262,7 +283,11 @@ useUiColors()
           </template>
         </UDashboardNavbar>
         <UDashboardToolbar v-if="!!panelLinks.length">
-          <UNavigationMenu :items="panelLinks" highlight class="-mx-1 flex-1" />
+          <UNavigationMenu
+            :items="panelLinks"
+            highlight
+            class="-mx-1 flex-1"
+          />
         </UDashboardToolbar>
       </template>
       <template #body>
@@ -270,6 +295,9 @@ useUiColors()
       </template>
     </UDashboardPanel>
     <NotificationsSlideover />
-    <UDashboardSearch v-model:open="isSearchOpen" :groups="groups" />
+    <UDashboardSearch
+      v-model:open="isSearchOpen"
+      :groups="groups"
+    />
   </UDashboardGroup>
 </template>

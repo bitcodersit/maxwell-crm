@@ -17,6 +17,7 @@ export default withNuxt({
       }
     ],
     'no-unused-vars': 'error',
+    '@typescript-eslint/no-explicit-any': 'off',
     'prettier/prettier': 'error',
     'vue/no-multiple-template-root': 'off',
     'vue/max-attributes-per-line': [

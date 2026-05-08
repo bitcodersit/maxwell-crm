@@ -67,18 +67,23 @@ const columns = computed<TColumn<TUser>[]>(() => [
     accessorKey: 'email',
     header: 'Email',
     sortBy: 'email',
-    display: {
-      type: 'text',
-      class: 'min-w-48',
-      length: 36
-    },
-    cell: ({ row }) => row.original.email || '—'
+    cell({ row }) {
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('span', row.original.email || '—'),
+        hVerified(row.original.email, row.original.emailVerifiedAt, 'Email not verified')
+      ])
+    }
   },
   {
     accessorKey: 'phone',
     header: 'Phone',
     sortBy: 'phone',
-    cell: ({ row }) => row.original.phone || '—'
+    cell({ row }) {
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('span', row.original.phone || '—'),
+        hVerified(row.original.phone, row.original.phoneVerifiedAt, 'Phone not verified')
+      ])
+    }
   },
   {
     accessorKey: 'createdAt',
@@ -99,6 +104,13 @@ const columns = computed<TColumn<TUser>[]>(() => [
 ])
 
 const filters: TFilter[] = [
+  {
+    name: 'q',
+    type: 'inline-input',
+    props: {
+      placeholder: 'Search...'
+    }
+  },
   {
     name: 'id',
     type: 'input',
