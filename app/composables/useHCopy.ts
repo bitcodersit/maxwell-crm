@@ -12,18 +12,16 @@ export const useHCopy = () => {
         delayDuration: 0,
         disableClosingTrigger: true
       },
-      {
-        default: () =>
-          h(UButton, {
-            size: 'xs',
-            icon: 'i-lucide-copy',
-            color: 'neutral',
-            variant: 'ghost',
-            class: 'text-muted/70',
-            ui: { leadingIcon: 'size-3.5' },
-            onClick: () => copy(v)
-          })
-      }
+      () =>
+        h(UButton, {
+          size: 'xs',
+          icon: 'i-lucide-copy',
+          color: 'neutral',
+          variant: 'ghost',
+          class: 'text-muted/70',
+          ui: { leadingIcon: 'size-3.5' },
+          onClick: () => copy(v)
+        })
     )
   }
   return {

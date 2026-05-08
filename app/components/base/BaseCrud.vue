@@ -464,8 +464,7 @@ const onView = (item: T, props = viewProps.value) => {
   viewProps.value = props || {}
   viewItems.value = columns.value
     .filter(v => !(v.id && ['select'].includes(v.id)))
-    .map((item: any) => {
-      const { id, accessorKey, header, cell } = item as T
+    .map(({ id, accessorKey, header, cell }: any) => {
       const td = cell
         ? typeof cell === 'function'
           ? cell({ row: { original: item } })
