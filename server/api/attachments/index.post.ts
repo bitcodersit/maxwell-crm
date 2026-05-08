@@ -9,11 +9,11 @@ export default defineEventHandler(async (event) => {
   const userId = session.user.id
 
   const form = await readMultipartFormData(event)
-  const file = form?.find((p) => p.name === 'file' && p.filename)
+  const file = form?.find(p => p.name === 'file' && p.filename)
   if (!file?.data?.length || !file.filename) {
     throw createError({
       statusCode: 422,
-      message: 'File is required',
+      message: 'File is required'
     })
   }
 
@@ -21,13 +21,13 @@ export default defineEventHandler(async (event) => {
   if (!ALLOWED_MIME.has(mime)) {
     throw createError({
       statusCode: 422,
-      message: 'Unsupported file type',
+      message: 'Unsupported file type'
     })
   }
   if (file.data.length > MAX_BYTES) {
     throw createError({
       statusCode: 422,
-      message: 'File too large',
+      message: 'File too large'
     })
   }
 
@@ -44,8 +44,8 @@ export default defineEventHandler(async (event) => {
       path: key,
       name: file.filename,
       mime,
-      size: buf.length,
-    },
+      size: buf.length
+    }
   })
 
   return attachment
