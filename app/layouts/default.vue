@@ -18,7 +18,7 @@ const links = computed(() => {
         to: '/',
         onSelect: () => {
           open.value = false
-        },
+        }
       },
       {
         label: 'Teams',
@@ -27,7 +27,7 @@ const links = computed(() => {
         visible: can(user.value, ['read-any-teams', 'read-own-teams']),
         onSelect: () => {
           open.value = false
-        },
+        }
       },
       {
         label: 'Users',
@@ -36,7 +36,7 @@ const links = computed(() => {
         visible: can(user.value, ['read-any-users']),
         onSelect: () => {
           open.value = false
-        },
+        }
       },
       {
         label: 'Roles',
@@ -45,7 +45,7 @@ const links = computed(() => {
         visible: can(user.value, ['read-any-roles']),
         onSelect: () => {
           open.value = false
-        },
+        }
       },
       {
         label: 'Permissions',
@@ -54,7 +54,7 @@ const links = computed(() => {
         visible: can(user.value, ['read-any-permissions']),
         onSelect: () => {
           open.value = false
-        },
+        }
       },
       // {
       //   label: 'Inbox',
@@ -65,14 +65,15 @@ const links = computed(() => {
       //     open.value = false
       //   },
       // },
-      // {
-      //   label: 'Customers',
-      //   icon: 'i-lucide-users',
-      //   to: '/customers',
-      //   onSelect: () => {
-      //     open.value = false
-      //   },
-      // },
+      {
+        label: 'Customers',
+        icon: 'i-lucide-user-round-search',
+        to: '/customers',
+        visible: can(user.value, ['read-any-users']),
+        onSelect: () => {
+          open.value = false
+        }
+      },
       {
         label: 'Settings',
         to: '/settings',
@@ -86,7 +87,7 @@ const links = computed(() => {
             exact: true,
             onSelect: () => {
               open.value = false
-            },
+            }
           },
           // {
           //   label: 'Members',
@@ -107,25 +108,25 @@ const links = computed(() => {
             to: '/settings/security',
             onSelect: () => {
               open.value = false
-            },
-          },
-        ],
-      },
-    ].filter((v) => (typeof v.visible === 'boolean' ? v.visible : true)),
+            }
+          }
+        ]
+      }
+    ].filter(v => (typeof v.visible === 'boolean' ? v.visible : true)),
     [
       {
         label: 'Feedback',
         icon: 'i-lucide-message-circle',
         to: 'https://github.com/nuxt-ui-templates/dashboard',
-        target: '_blank',
+        target: '_blank'
       },
       {
         label: 'Help & Support',
         icon: 'i-lucide-info',
         to: 'https://github.com/nuxt-ui-templates/dashboard',
-        target: '_blank',
-      },
-    ],
+        target: '_blank'
+      }
+    ]
   ] satisfies NavigationMenuItem[][]
 })
 
@@ -133,7 +134,7 @@ const groups = computed(() => [
   {
     id: 'links',
     label: 'Go to',
-    items: links.value.flat(),
+    items: links.value.flat()
   },
   {
     id: 'code',
@@ -146,10 +147,10 @@ const groups = computed(() => [
         to: `https://github.com/nuxt-ui-templates/dashboard/blob/main/app/pages${
           route.path === '/' ? '/index' : route.path
         }.vue`,
-        target: '_blank',
-      },
-    ],
-  },
+        target: '_blank'
+      }
+    ]
+  }
 ])
 
 onMounted(async () => {
@@ -169,14 +170,14 @@ onMounted(async () => {
         variant: 'outline',
         onClick: () => {
           cookie.value = 'accepted'
-        },
+        }
       },
       {
         label: 'Opt out',
         color: 'neutral',
-        variant: 'ghost',
-      },
-    ],
+        variant: 'ghost'
+      }
+    ]
   })
 })
 
@@ -227,14 +228,24 @@ useUiColors()
           <template #right>
             <!-- Search -->
             <UTooltip text="Search" :shortcuts="['S']">
-              <UButton color="neutral" variant="ghost" square @click="isSearchOpen = true">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                square
+                @click="isSearchOpen = true"
+              >
                 <UIcon name="i-lucide-search" class="size-5 shrink-0" />
               </UButton>
             </UTooltip>
 
             <!-- Notifications -->
             <UTooltip text="Notifications" :shortcuts="['N']">
-              <UButton color="neutral" variant="ghost" square @click="isNotificationsOpen = true">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                square
+                @click="isNotificationsOpen = true"
+              >
                 <UChip color="error" inset>
                   <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
                 </UChip>
@@ -246,7 +257,7 @@ useUiColors()
               <UColorModeButton />
             </UTooltip>
 
-            <!-- Current user menu-->
+            <!-- Current user menu -->
             <UserMenu />
           </template>
         </UDashboardNavbar>

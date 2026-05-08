@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { Prisma } from '~~/prisma/client/client'
+import { CUSTOMER_ROLE_NAME } from '~~/server/utils/customerRole'
 
 export const getRoles = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
@@ -16,6 +17,11 @@ export const getRoles = async (event: H3Event, query = getQuery(event)) => {
     .id('id')
     .text('name')
     .text('description')
+    .true('excludeCustomer', () => ({
+      name: {
+        not: CUSTOMER_ROLE_NAME,
+      },
+    }))
     .date('createdAt')
     .date('updatedAt')
     .text('q', (text) => ({

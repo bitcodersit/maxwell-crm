@@ -1,9 +1,11 @@
+/* eslint-disable sort-imports */
 import EmailResetPassword from '@/components/emails/EmailResetPassword.vue'
 import { render } from '@vue-email/render'
+import { CUSTOMER_ROLE_NAME } from '~~/server/utils/customerRole'
 import { createResetPasswordLink } from '~~/server/utils/passwordReset'
 
 const zForgotPassword = z.object({
-  email: z.email(),
+  email: z.email()
 })
 
 const RESEND_COOLDOWN_SECONDS = 30
@@ -15,19 +17,26 @@ export default defineEventHandler(async (event) => {
     where: {
       email: input.email,
       deletedAt: null,
+      userRoles: {
+        none: {
+          role: {
+            name: CUSTOMER_ROLE_NAME
+          }
+        }
+      }
     },
     select: {
       id: true,
       name: true,
-      email: true,
-    },
+      email: true
+    }
   })
 
   const message = 'If that email exists, we sent a password reset link.'
   if (!user) {
     return {
       message,
-      retryAfterSec: RESEND_COOLDOWN_SECONDS,
+      retryAfterSec: RESEND_COOLDOWN_SECONDS
     }
   }
 
@@ -35,14 +44,14 @@ export default defineEventHandler(async (event) => {
     where: {
       modelId: user.id,
       modelType: 'USER',
-      type: 'RESET',
+      type: 'RESET'
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: 'desc'
     },
     select: {
-      createdAt: true,
-    },
+      createdAt: true
+    }
   })
 
   if (lastToken) {
@@ -54,8 +63,8 @@ export default defineEventHandler(async (event) => {
         statusCode: 429,
         message: `Please wait ${retryAfterSec}s before requesting another reset email.`,
         data: {
-          retryAfterSec,
-        },
+          retryAfterSec
+        }
       })
     }
   }
@@ -64,7 +73,7 @@ export default defineEventHandler(async (event) => {
   const html = await render(EmailResetPassword, {
     name: user.name,
     resetLink,
-    expiresInMinutes: 5,
+    expiresInMinutes: 5
   })
 
   await queueEmail({
@@ -77,6 +86,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     message,
-    retryAfterSec: RESEND_COOLDOWN_SECONDS,
+    retryAfterSec: RESEND_COOLDOWN_SECONDS
   }
 })

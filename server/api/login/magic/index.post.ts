@@ -1,8 +1,10 @@
+/* eslint-disable sort-imports */
 import EmailMagicLink from '@/components/emails/EmailMagicLink.vue'
 import { render } from '@vue-email/render'
+import { isCustomerRoleName } from '~~/server/utils/customerRole'
 
 const zMagic = z.object({
-  email: z.email(),
+  email: z.email()
 })
 
 export default defineEventHandler(async (event) => {
@@ -11,11 +13,25 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({
     where: {
-      email: input.email,
+      email: input.email
     },
+    include: {
+      userRoles: {
+        include: {
+          role: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
+    }
   })
 
   if (!user) throw err.notFound()
+  if (user.userRoles.some(ur => isCustomerRoleName(ur.role?.name))) {
+    throw err.unauth('Customer portal is not available yet')
+  }
 
   const token = Math.random().toString(36).substring(2, 15)
 
@@ -26,10 +42,10 @@ export default defineEventHandler(async (event) => {
   await sendMail({
     to: input.email,
     subject: 'Magic Link',
-    html,
+    html
   })
 
   return {
-    message: 'Magic link sent to email',
+    message: 'Magic link sent to email'
   }
 })

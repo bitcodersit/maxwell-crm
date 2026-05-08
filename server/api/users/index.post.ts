@@ -1,36 +1,77 @@
-import { Prisma } from '~~/prisma/client/client'
-import EmailWelcomeUser from '@/components/emails/EmailWelcomeUser.vue'
-import EmailPasswordUpdated from '@/components/emails/EmailPasswordUpdated.vue'
+/* eslint-disable sort-imports */
+import type { Prisma } from '~~/prisma/client/client'
 import { render } from '@vue-email/render'
-import { createResetPasswordLink } from '~~/server/utils/passwordReset'
 import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
+import { createResetPasswordLink } from '~~/server/utils/passwordReset'
+import { CUSTOMER_ROLE_NAME, isCustomerRoleName } from '~~/server/utils/customerRole'
+import EmailPasswordUpdated from '@/components/emails/EmailPasswordUpdated.vue'
+import EmailWelcomeUser from '@/components/emails/EmailWelcomeUser.vue'
 
 const zUser = z.object({
   id: z.number().nullish(),
   name: z.string().min(1),
   email: z.email(),
   password: z.string().min(8).nullish(),
-  roleIds: z.array(z.number()).min(1, 'At least one role is required'),
+  roleIds: z.array(z.number()).min(1, 'At least one role is required')
 })
+
+const validateNonCustomerRoles = async (roleIds: number[]) => {
+  if (!roleIds.length) return
+  const roles = await prisma.role.findMany({
+    where: {
+      id: {
+        in: roleIds
+      }
+    },
+    select: {
+      name: true
+    }
+  })
+  const hasCustomerRole = roles.some(role => isCustomerRoleName(role.name))
+  if (hasCustomerRole) {
+    throw err.unprocessable({
+      roleIds: {
+        errors: [`Use the Customers module to assign ${CUSTOMER_ROLE_NAME} role`]
+      }
+    })
+  }
+}
 
 export default defineEventHandler(async (event) => {
   const { user: sessionUser } = await requireUserSession(event)
   const body = await readBody(event)
   const input = await validate(body, zUser)
+  await validateNonCustomerRoles(input.roleIds)
   if (input.id) {
     if (!can(sessionUser, ['update-any-users'])) {
       throw err.denied()
     }
     const existing = await prisma.user.findUnique({
       where: {
-        id: input.id,
+        id: input.id
       },
       select: {
         email: true,
         password: true,
-      },
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                name: true
+              }
+            }
+          }
+        }
+      }
     })
     if (!existing) throw err.notFound()
+    if (existing.userRoles.some(ur => isCustomerRoleName(ur.role?.name))) {
+      throw err.unprocessable({
+        id: {
+          errors: ['Use the Customers module to update customer accounts']
+        }
+      })
+    }
 
     const data: Prisma.UserUpdateInput = {
       name: input.name,
@@ -39,15 +80,15 @@ export default defineEventHandler(async (event) => {
         ? {
             createMany: {
               skipDuplicates: true,
-              data: input.roleIds.map((roleId) => ({ roleId })),
+              data: input.roleIds.map(roleId => ({ roleId }))
             },
             deleteMany: {
               roleId: {
-                notIn: input.roleIds,
-              },
-            },
+                notIn: input.roleIds
+              }
+            }
           }
-        : undefined,
+        : undefined
     }
     if (input.password) {
       data.password = await hashPassword(input.password)
@@ -58,22 +99,22 @@ export default defineEventHandler(async (event) => {
         where: {
           modelId: input.id,
           modelType: 'USER',
-          type: 'VERIFY',
-        },
+          type: 'VERIFY'
+        }
       })
     }
     const user = await prisma.user.update({
       where: {
-        id: input.id,
+        id: input.id
       },
       data,
       include: {
         userRoles: {
           include: {
-            role: true,
-          },
-        },
-      },
+            role: true
+          }
+        }
+      }
     })
 
     const config = useRuntimeConfig(event)
@@ -90,12 +131,12 @@ export default defineEventHandler(async (event) => {
         loginUrl,
         loginPassword: input.password || undefined,
         resetLink,
-        verifyLink,
+        verifyLink
       })
       await queueEmail({
         to: user.email,
         subject: 'Welcome to Maxwell CRM',
-        html,
+        html
       })
     }
 
@@ -104,12 +145,12 @@ export default defineEventHandler(async (event) => {
         name: user.name,
         loginEmail: user.email,
         loginPassword: input.password,
-        loginUrl,
+        loginUrl
       })
       await queueEmail({
         to: user.email,
         subject: 'Your password has been updated',
-        html,
+        html
       })
     }
 
@@ -128,17 +169,17 @@ export default defineEventHandler(async (event) => {
       password,
       userRoles: {
         createMany: {
-          data: (input.roleIds || []).map((roleId) => ({ roleId })),
-        },
-      },
+          data: (input.roleIds || []).map(roleId => ({ roleId }))
+        }
+      }
     },
     include: {
       userRoles: {
         include: {
-          role: true,
-        },
-      },
-    },
+          role: true
+        }
+      }
+    }
   })
 
   const config = useRuntimeConfig(event)
@@ -151,12 +192,12 @@ export default defineEventHandler(async (event) => {
     loginUrl,
     loginPassword: input.password || undefined,
     resetLink,
-    verifyLink,
+    verifyLink
   })
   await queueEmail({
     to: user.email,
     subject: 'Welcome to Maxwell CRM',
-    html,
+    html
   })
 
   return user

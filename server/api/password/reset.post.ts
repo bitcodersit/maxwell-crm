@@ -1,12 +1,14 @@
+import { CUSTOMER_ROLE_NAME } from '~~/server/utils/customerRole'
+
 const zResetPassword = z
   .object({
     token: z.string().min(1),
     password: z.string().min(8),
-    passwordConfirmation: z.string().min(8),
+    passwordConfirmation: z.string().min(8)
   })
-  .refine((data) => data.password === data.passwordConfirmation, {
+  .refine(data => data.password === data.passwordConfirmation, {
     path: ['passwordConfirmation'],
-    message: 'Passwords do not match',
+    message: 'Passwords do not match'
   })
 
 export default defineEventHandler(async (event) => {
@@ -19,18 +21,18 @@ export default defineEventHandler(async (event) => {
       modelType: 'USER',
       type: 'RESET',
       usedAt: null,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
     },
     select: {
       id: true,
-      modelId: true,
-    },
+      modelId: true
+    }
   })
 
   if (!resetToken) {
     throw createError({
       statusCode: 400,
-      message: 'Invalid or expired reset link',
+      message: 'Invalid or expired reset link'
     })
   }
 
@@ -38,15 +40,22 @@ export default defineEventHandler(async (event) => {
     where: {
       id: resetToken.modelId,
       deletedAt: null,
+      userRoles: {
+        none: {
+          role: {
+            name: CUSTOMER_ROLE_NAME
+          }
+        }
+      }
     },
     select: {
-      id: true,
-    },
+      id: true
+    }
   })
   if (!user) {
     throw createError({
       statusCode: 400,
-      message: 'Invalid or expired reset link',
+      message: 'Invalid or expired reset link'
     })
   }
 
@@ -54,14 +63,14 @@ export default defineEventHandler(async (event) => {
     prisma.user.update({
       where: { id: user.id },
       data: {
-        password: await hashPassword(input.password),
-      },
+        password: await hashPassword(input.password)
+      }
     }),
     prisma.token.update({
       where: { id: resetToken.id },
       data: {
-        usedAt: new Date(),
-      },
+        usedAt: new Date()
+      }
     }),
     prisma.token.deleteMany({
       where: {
@@ -69,13 +78,13 @@ export default defineEventHandler(async (event) => {
         modelType: 'USER',
         type: 'RESET',
         id: {
-          not: resetToken.id,
-        },
-      },
-    }),
+          not: resetToken.id
+        }
+      }
+    })
   ])
 
   return {
-    message: 'Password reset successful. You can now sign in.',
+    message: 'Password reset successful. You can now sign in.'
   }
 })

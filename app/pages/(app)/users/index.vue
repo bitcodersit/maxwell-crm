@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type {
-  TColumn,
-  TFilter,
-  TField,
-  TGetActions,
   TBaseCrudModal,
+  TColumn,
+  TField,
+  TFilter,
+  TGetActions
 } from '@/components/base/BaseCrud.vue'
 
 const toastP = usePromiseToast()
@@ -21,23 +21,23 @@ const fields: TField[] = [
   {
     name: 'name',
     type: 'input',
-    label: 'Name',
+    label: 'Name'
   },
   {
     name: 'email',
     type: 'input',
     label: 'Email',
     props: {
-      type: 'email',
-    },
+      type: 'email'
+    }
   },
   {
     name: 'password',
     type: 'input',
     label: 'Password',
     props: {
-      type: 'password',
-    },
+      type: 'password'
+    }
   },
   {
     name: 'roleIds',
@@ -47,22 +47,23 @@ const fields: TField[] = [
       api: '/api/roles',
       query: {
         options: true,
-      },
-    },
-  },
+        excludeCustomer: true
+      }
+    }
+  }
 ]
 
 const columns = computed<TColumn<TUser>[]>(() => [
   {
     id: 'select',
-    size: 48,
+    size: 48
   },
   {
     accessorKey: 'id',
     header: 'ID',
     pinned: 'left',
     sortBy: 'id',
-    size: 48,
+    size: 48
   },
   {
     accessorKey: 'name',
@@ -75,12 +76,12 @@ const columns = computed<TColumn<TUser>[]>(() => [
           src: getAttachment(row.original.avatarId),
           alt: row.original.name,
           ui: {
-            fallback: 'text-xs',
-          },
+            fallback: 'text-xs'
+          }
         }),
-        h('div', {}, row.original.name),
+        h('div', {}, row.original.name)
       ])
-    },
+    }
   },
   {
     accessorKey: 'email',
@@ -89,7 +90,7 @@ const columns = computed<TColumn<TUser>[]>(() => [
     display: {
       type: 'text',
       class: 'min-w-48',
-      length: 36,
+      length: 36
     },
     cell({ row }) {
       const verified = !!row.original.emailVerifiedAt
@@ -105,12 +106,12 @@ const columns = computed<TColumn<TUser>[]>(() => [
             default: () =>
               h(UIcon, {
                 name: verified ? 'i-lucide-circle-check' : 'i-lucide-circle-alert',
-                class: verified ? 'text-success size-4' : 'text-warning size-4',
-              }),
+                class: verified ? 'text-success size-4' : 'text-warning size-4'
+              })
           }
-        ),
+        )
       ])
-    },
+    }
   },
   {
     accessorKey: 'roles',
@@ -118,41 +119,41 @@ const columns = computed<TColumn<TUser>[]>(() => [
     display: {
       type: 'array',
       slice: 3,
-      class: 'flex flex-wrap -ml-1 -mt-1',
+      class: 'flex flex-wrap -ml-1 -mt-1'
     },
     cell({ row, ...ctx }) {
       if (!row.original.userRoles?.length) return '—'
       return row.original.userRoles
-        .map((ur) => ur.role?.name as string)
+        .map(ur => ur.role?.name as string)
         .filter(Boolean)
         .map((label) => {
-          const modal = (ctx as any).modal
+          const modal = Boolean((ctx as { modal?: boolean }).modal)
           return h(UBadge, {
             label,
             size: modal ? 'lg' : 'md',
             class: modal ? 'ml-1 mt-1' : 'mr-1',
             color: ColorsMap[label] || 'neutral',
-            variant: 'subtle',
+            variant: 'subtle'
           })
         })
-    },
+    }
   },
   {
     accessorKey: 'createdAt',
     header: 'Created',
     sortBy: 'createdAt',
-    cell: ({ row }) => $dfc(row.original.createdAt),
+    cell: ({ row }) => $dfc(row.original.createdAt)
   },
   {
     accessorKey: 'updatedAt',
     header: 'Updated',
     sortBy: 'updatedAt',
-    cell: ({ row }) => $dfc(row.original.updatedAt),
+    cell: ({ row }) => $dfc(row.original.updatedAt)
   },
   {
     id: 'action',
-    pinned: 'right',
-  },
+    pinned: 'right'
+  }
 ])
 
 const filters: TFilter[] = [
@@ -161,8 +162,8 @@ const filters: TFilter[] = [
     type: 'input',
     props: {
       label: 'ID',
-      placeholder: 'eg 1 or 1,2,3 or 1-10',
-    },
+      placeholder: 'eg 1 or 1,2,3 or 1-10'
+    }
   },
   {
     name: 'name',
@@ -170,8 +171,8 @@ const filters: TFilter[] = [
     props: {
       label: 'Name',
       placeholder: 'Search by name',
-      modeable: true,
-    },
+      modeable: true
+    }
   },
   {
     name: 'email',
@@ -179,8 +180,8 @@ const filters: TFilter[] = [
     props: {
       label: 'Email',
       placeholder: 'Search by email',
-      modeable: true,
-    },
+      modeable: true
+    }
   },
   {
     name: 'roleIds',
@@ -190,30 +191,31 @@ const filters: TFilter[] = [
       api: '/api/roles',
       query: {
         options: true,
-      },
-    },
+        excludeCustomer: true
+      }
+    }
   },
   {
     name: 'createdAt',
     type: 'date',
     props: {
-      label: 'Created',
-    },
+      label: 'Created'
+    }
   },
   {
     name: 'updatedAt',
     type: 'date',
     props: {
-      label: 'Updated',
-    },
-  },
+      label: 'Updated'
+    }
+  }
 ]
 
 const modal: TBaseCrudModal = {
   form: ({ mode }) => ({
     title: mode === 'create' ? 'Add New User' : 'Update User',
-    description: mode === 'create' ? 'Create a user account' : 'Update user details',
-  }),
+    description: mode === 'create' ? 'Create a user account' : 'Update user details'
+  })
 }
 
 const getActions: TGetActions<TUser> = (item, v) => [
@@ -225,17 +227,17 @@ const getActions: TGetActions<TUser> = (item, v) => [
         crudRef.value?.onView(item, {
           modal: {
             ui: {
-              content: 'max-w-2xl',
-            },
-          },
+              content: 'max-w-2xl'
+            }
+          }
         })
-      },
+      }
     },
     {
       ...actions.update,
       onSelect() {
         crudRef.value?.onUpdate(item)
-      },
+      }
     },
     {
       label: 'Send verify email',
@@ -248,38 +250,38 @@ const getActions: TGetActions<TUser> = (item, v) => [
         toastP(
           (toast) => {
             return $fetch(`/api/users/${item.id}/verify-email`, {
-              method: 'POST',
+              method: 'POST'
             })
               .then(toast.onSuccess)
               .catch(toast.onError)
           },
           {
             title: 'Sending verification email...',
-            description: `Sending to ${item.email}`,
+            description: `Sending to ${item.email}`
           },
-          (res) => ({
+          res => ({
             title: 'Verification email sent',
-            description: res?.message || 'Verification email sent successfully',
+            description: res?.message || 'Verification email sent successfully'
           }),
           (err) => {
             const { message } = parseError(err)
             return {
               title: 'Failed to send email',
-              description: message,
+              description: message
             }
           }
         )
-      },
-    },
-  ].filter((action: any) => !action.hidden),
+      }
+    }
+  ].filter(action => !action.hidden),
   [
     {
       ...actions.delete,
       onSelect() {
         crudRef.value?.onDelete(item)
-      },
-    },
-  ],
+      }
+    }
+  ]
 ]
 
 const getFormState = (v?: TUser) => ({
@@ -287,15 +289,18 @@ const getFormState = (v?: TUser) => ({
   name: v?.name ?? '',
   email: v?.email ?? '',
   password: '',
-  roleIds: v?.userRoles?.map((ur) => ur.role).filter(Boolean) ?? [],
+  roleIds: v?.userRoles?.map(ur => ur.role).filter(Boolean) ?? []
 })
 
-const getPostBody = (v: Record<string, any>) => {
+const getPostBody = (v: Record<string, unknown>) => {
+  const roleIds = Array.isArray(v.roleIds)
+    ? v.roleIds.map(role => (role as { id?: number })?.id).filter(id => typeof id === 'number')
+    : []
   const body: Record<string, unknown> = {
     id: v.id,
     name: v.name,
     email: v.email,
-    roleIds: (v.roleIds ?? []).map((r: any) => r.id),
+    roleIds
   }
   const pwd = typeof v.password === 'string' ? v.password.trim() : ''
   if (pwd) body.password = pwd

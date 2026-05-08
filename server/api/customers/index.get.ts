@@ -1,8 +1,9 @@
+/* eslint-disable sort-imports */
 import type { H3Event } from 'h3'
 import type { Prisma } from '~~/prisma/client/client'
 import { CUSTOMER_ROLE_NAME } from '~~/server/utils/customerRole'
 
-export const getUsers = async (event: H3Event, query = getQuery(event)) => {
+export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['read-any-users'])) {
     return {
@@ -16,7 +17,7 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
   const where = getWhere<Prisma.UserWhereInput>(query, {
     deletedAt: null,
     userRoles: {
-      none: {
+      some: {
         role: {
           name: CUSTOMER_ROLE_NAME
         }
@@ -26,6 +27,7 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
     .id('id')
     .text('name')
     .text('email')
+    .text('phone')
     .date('createdAt')
     .date('updatedAt')
     .text('q', text => ({
@@ -39,31 +41,13 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
           email: {
             contains: text
           }
-        }
-      ]
-    }))
-    .id('roleIds', roleId => ({
-      userRoles: {
-        some: {
-          roleId
-        }
-      }
-    }))
-    .true('creatorOfTeam', () => ({
-      teams: {
-        some: {
-          deletedAt: null
-        }
-      }
-    }))
-    .true('memberOfTeam', () => ({
-      teamMembers: {
-        some: {
-          team: {
-            deletedAt: null
+        },
+        {
+          phone: {
+            contains: text
           }
         }
-      }
+      ]
     }))
     .id('idsNotIn', (ids) => {
       if ('in' in ids) {
@@ -80,19 +64,21 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
   const selectInclude: {
     select?: Prisma.UserSelect
   } = isTrue(query.options)
-      ? {
-        select: {
-          id: true,
-          name: true,
-          avatarId: true
-        }
-      }
-      : {
+    ? {
         select: {
           id: true,
           name: true,
           email: true,
-          emailVerifiedAt: true,
+          phone: true,
+          avatarId: true
+        }
+      }
+    : {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
           avatarId: true,
           createdAt: true,
           updatedAt: true,
@@ -110,7 +96,7 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
         }
       }
 
-  const [total, users] = await prisma.$transaction([
+  const [total, customers] = await prisma.$transaction([
     prisma.user.count({ where }),
     prisma.user.findMany({
       skip,
@@ -122,12 +108,12 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
   ])
 
   return {
-    data: paginate(users, total)
+    data: paginate(customers, total)
   }
 }
 
 export default defineEventHandler(async (event) => {
-  const { error, data } = await getUsers(event)
+  const { error, data } = await getCustomers(event)
   if (error) throw error
   return data
 })
