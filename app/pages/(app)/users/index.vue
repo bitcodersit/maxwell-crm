@@ -48,15 +48,15 @@ const fields: TField[] = [
         excludeCustomer: true
       }
     }
-  },
-  {
-    name: 'phone',
-    type: 'input',
-    label: 'Phone',
-    props: {
-      type: 'tel'
-    }
   }
+  // {
+  //   name: 'phone',
+  //   type: 'input',
+  //   label: 'Phone',
+  //   props: {
+  //     type: 'tel'
+  //   }
+  // }
 ]
 
 const columns = computed<TColumn<TUser>[]>(() => [
@@ -100,17 +100,17 @@ const columns = computed<TColumn<TUser>[]>(() => [
       ])
     }
   },
-  {
-    accessorKey: 'phone',
-    header: 'Phone',
-    sortBy: 'phone',
-    cell({ row }) {
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h('span', row.original.phone || '—'),
-        hVerified(row.original.phone, row.original.phoneVerifiedAt, 'Phone not verified')
-      ])
-    }
-  },
+  // {
+  //   accessorKey: 'phone',
+  //   header: 'Phone',
+  //   sortBy: 'phone',
+  //   cell({ row }) {
+  //     return h('div', { class: 'flex items-center gap-2' }, [
+  //       h('span', row.original.phone || '—'),
+  //       hVerified(row.original.phone, row.original.phoneVerifiedAt, 'Phone not verified')
+  //     ])
+  //   }
+  // },
   {
     accessorKey: 'roles',
     header: 'Roles',
@@ -156,6 +156,13 @@ const columns = computed<TColumn<TUser>[]>(() => [
 
 const filters: TFilter[] = [
   {
+    name: 'q',
+    type: 'inline-input',
+    props: {
+      placeholder: 'Search...'
+    }
+  },
+  {
     name: 'id',
     type: 'input',
     props: {
@@ -181,15 +188,15 @@ const filters: TFilter[] = [
       modeable: true
     }
   },
-  {
-    name: 'phone',
-    type: 'input',
-    props: {
-      label: 'Phone',
-      placeholder: 'Search by phone',
-      modeable: true
-    }
-  },
+  // {
+  //   name: 'phone',
+  //   type: 'input',
+  //   props: {
+  //     label: 'Phone',
+  //     placeholder: 'Search by phone',
+  //     modeable: true
+  //   }
+  // },
   {
     name: 'roleIds',
     type: 'checkbox-api',
@@ -296,7 +303,7 @@ const getFormState = (v?: TUser) => ({
   name: v?.name ?? '',
   email: v?.email ?? '',
   password: '',
-  phone: v?.phone ?? '',
+  // phone: v?.phone ?? '',
   roleIds: v?.userRoles?.map(ur => ur.role).filter(Boolean) ?? []
 })
 
@@ -308,7 +315,7 @@ const getPostBody = (v: Record<string, unknown>) => {
     id: v.id,
     name: v.name,
     email: v.email,
-    phone: v.phone,
+    // phone: v.phone,
     roleIds
   }
   const pwd = typeof v.password === 'string' ? v.password.trim() : ''

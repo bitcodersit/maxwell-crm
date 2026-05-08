@@ -6,21 +6,20 @@ import { CUSTOMER_ROLE_NAME, isCustomerRoleName } from '~~/server/utils/customer
 import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
 import { createResetPasswordLink } from '~~/server/utils/passwordReset'
 
-const zUser = z
-  .object({
-    id: z.number().nullish(),
-    name: zName(),
-    email: zEmail(),
-    password: zPassword().nullish(),
-    phone: zPhone({ nullish: true }),
-    roleIds: z.array(z.number()).min(1, 'At least one role is required')
-  })
-  .transform(data => {
-    return {
-      ...data,
-      phone: data.phone ? zPhoneParse(data.phone) : null
-    }
-  })
+const zUser = z.object({
+  id: z.number().nullish(),
+  name: zName(),
+  email: zEmail(),
+  password: zPassword().nullish(),
+  // phone: zPhone({ nullish: true }),
+  roleIds: z.array(z.number()).min(1, 'At least one role is required')
+})
+// .transform(data => {
+//   return {
+//     ...data,
+//     phone: data.phone ? zPhoneParse(data.phone) : null
+//   }
+// })
 
 const validateNonCustomerRoles = async (roleIds: number[]) => {
   if (!roleIds.length) return
@@ -83,7 +82,7 @@ export default defineEventHandler(async event => {
     const data: Prisma.UserUpdateInput = {
       name: input.name,
       email: input.email,
-      phone: input.phone,
+      // phone: input.phone,
       userRoles: input.roleIds
         ? {
             createMany: {
@@ -174,7 +173,7 @@ export default defineEventHandler(async event => {
     data: {
       name: input.name,
       email: input.email,
-      phone: input.phone,
+      // phone: input.phone,
       password,
       userRoles: {
         createMany: {

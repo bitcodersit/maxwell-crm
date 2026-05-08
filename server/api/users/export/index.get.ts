@@ -9,7 +9,7 @@ type TUserExportRow = {
   }[]
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['export-any-users'])) {
     throw err.denied()
@@ -35,7 +35,11 @@ export default defineEventHandler(async (event) => {
       emailVerifiedAt: true,
       createdAt: true,
       updatedAt: true,
-      roles: (v) => v.userRoles?.map((ur) => ur.role?.name).filter(Boolean).join(',') ?? '',
-    },
+      roles: v =>
+        v.userRoles
+          ?.map(ur => ur.role?.name)
+          .filter(Boolean)
+          .join(',') ?? ''
+    }
   })
 })
