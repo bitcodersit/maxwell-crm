@@ -1,36 +1,40 @@
-import { ZodError } from 'zod'
+import type { ZodError } from 'zod'
 
 export const err = {
-  unauth() {
+  unauth(message = 'Please login to access this resource') {
     return createError({
       statusCode: 401,
-      message: 'Unauthorized',
+      statusMessage: 'Unauthorized',
+      message
     })
   },
   zod(error: ZodError) {
     return createError({
       statusCode: 422,
-      data: z.treeifyError(error),
+      statusMessage: 'Unprocessable Entity',
+      data: z.treeifyError(error)
     })
   },
-  denied() {
+  denied(message = 'You are not authorized to access this resource') {
     return createError({
       statusCode: 403,
-      message: 'You are not authorized to access this resource',
+      statusMessage: 'Forbidden',
+      message
     })
   },
-  notFound() {
+  notFound(message = 'The requested resource was not found') {
     return createError({
       statusCode: 404,
-      message: 'The requested resource was not found',
+      statusMessage: 'Not Found',
+      message
     })
   },
   unprocessable(properties: Record<string, { errors: string[] }>) {
     return createError({
       statusCode: 422,
       data: {
-        properties,
-      },
+        properties
+      }
     })
-  },
+  }
 }

@@ -1,27 +1,36 @@
 {
-    "files.associations": {
-        "*.css": "tailwindcss"
-    },
-    "editor.quickSuggestions": {
-        "strings": "on"
-    },
-    "tailwindCSS.classAttributes": [
-        "class",
-        "ui"
-    ],
-    "tailwindCSS.classFunctions": [
-        "defineAppConfig"
-    ],
-    "cSpell.words": [
-        "autoincrement",
-        "cooldown",
-        "iconify",
-        "Nuxt",
-        "nuxtjs",
-        "SUPABASE",
-        "tanstack",
-        "treeify",
-        "unovis",
-        "vueuse"
-    ]
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "tailwindCSS.classAttributes": ["class", "ui"],
+  "tailwindCSS.classFunctions": ["defineAppConfig"],
+  "cSpell.words": [
+    "autoincrement",
+    "cooldown",
+    "iconify",
+    "Nuxt",
+    "nuxtjs",
+    "SUPABASE",
+    "tanstack",
+    "treeify",
+    "unovis",
+    "vueuse"
+  ]
 }

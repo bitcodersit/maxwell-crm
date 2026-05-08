@@ -3,7 +3,7 @@ const appTitle = ['Maxwell Group CRM']
 useHead({
   titleTemplate(v) {
     return [v, ...appTitle].filter(Boolean).join(' - ')
-  },
+  }
 })
 </script>
 
