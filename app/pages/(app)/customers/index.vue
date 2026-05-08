@@ -22,15 +22,15 @@ const fields: TField[] = [
     name: 'phone',
     type: 'input',
     label: 'Phone'
-  },
-  {
-    name: 'email',
-    type: 'input',
-    label: 'Email (optional)',
-    props: {
-      type: 'email'
-    }
   }
+  // {
+  //   name: 'email',
+  //   type: 'input',
+  //   label: 'Email (optional)',
+  //   props: {
+  //     type: 'email'
+  //   }
+  // }
 ]
 
 const columns = computed<TColumn<TUser>[]>(() => [
@@ -63,17 +63,17 @@ const columns = computed<TColumn<TUser>[]>(() => [
       ])
     }
   },
-  {
-    accessorKey: 'email',
-    header: 'Email',
-    sortBy: 'email',
-    cell({ row }) {
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h('span', row.original.email || '—'),
-        hVerified(row.original.email, row.original.emailVerifiedAt, 'Email not verified')
-      ])
-    }
-  },
+  // {
+  //   accessorKey: 'email',
+  //   header: 'Email',
+  //   sortBy: 'email',
+  //   cell({ row }) {
+  //     return h('div', { class: 'flex items-center gap-2' }, [
+  //       h('span', row.original.email || '—'),
+  //       hVerified(row.original.email, row.original.emailVerifiedAt, 'Email not verified')
+  //     ])
+  //   }
+  // },
   {
     accessorKey: 'phone',
     header: 'Phone',
@@ -128,15 +128,15 @@ const filters: TFilter[] = [
       modeable: true
     }
   },
-  {
-    name: 'email',
-    type: 'input',
-    props: {
-      label: 'Email',
-      placeholder: 'Search by email',
-      modeable: true
-    }
-  },
+  // {
+  //   name: 'email',
+  //   type: 'input',
+  //   props: {
+  //     label: 'Email',
+  //     placeholder: 'Search by email',
+  //     modeable: true
+  //   }
+  // },
   {
     name: 'phone',
     type: 'input',
@@ -204,14 +204,14 @@ const getActions: TGetActions<TUser> = (item, v) => [
 const getFormState = (v?: TUser) => ({
   id: v?.id,
   name: v?.name ?? '',
-  email: v?.email ?? '',
+  // email: v?.email ?? '',
   phone: v?.phone ?? ''
 })
 
 const getPostBody = (v: Record<string, unknown>) => ({
   id: v.id,
   name: v.name,
-  email: typeof v.email === 'string' && v.email.trim() ? v.email.trim() : undefined,
+  // email: typeof v.email === 'string' && v.email.trim() ? v.email.trim() : undefined,
   phone: typeof v.phone === 'string' && v.phone.trim() ? v.phone.trim() : undefined
 })
 </script>

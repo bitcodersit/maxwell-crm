@@ -4,7 +4,7 @@ const zCustomer = z
   .object({
     id: z.number().nullish(),
     name: zName(),
-    email: zEmail().nullish(),
+    // email: zEmail().nullish(),
     phone: zPhone()
   })
   .transform(data => {
@@ -49,7 +49,7 @@ export default defineEventHandler(async event => {
         },
         data: {
           name: input.name,
-          email: input.email || null,
+          // email: input.email || null,
           phone: input.phone,
           userRoles: {
             createMany: {
@@ -66,7 +66,7 @@ export default defineEventHandler(async event => {
         select: {
           id: true,
           name: true,
-          email: true,
+          // email: true,
           phone: true,
           avatarId: true,
           createdAt: true,
@@ -96,7 +96,7 @@ export default defineEventHandler(async event => {
     const customer = await prisma.user.create({
       data: {
         name: input.name,
-        email: input.email || null,
+        // email: input.email || null,
         phone: input.phone,
         userRoles: {
           create: {
@@ -107,7 +107,7 @@ export default defineEventHandler(async event => {
       select: {
         id: true,
         name: true,
-        email: true,
+        // email: true,
         phone: true,
         avatarId: true,
         createdAt: true,
@@ -135,34 +135,34 @@ export default defineEventHandler(async event => {
       }
     }
     const message = knownError?.message || ''
-    if (message.includes('users_email_key')) {
-      throw err.unprocessable({
-        email: {
-          errors: ['Email is already taken']
-        }
-      })
-    }
+    // if (message.includes('users_email_key')) {
+    //   throw err.unprocessable({
+    //     email: {
+    //       errors: ['Email is already taken']
+    //     }
+    //   })
+    // }
     if (message.includes('users_phone_key')) {
       throw err.unprocessable({
         phone: {
-          errors: ['Phone number is already used by another customer']
+          errors: ['Phone number is already taken']
         }
       })
     }
     if (message.includes('not found')) throw err.notFound()
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       const target = Array.isArray(error.meta?.target) ? error.meta?.target.join(',') : ''
-      if (target.includes('email')) {
-        throw err.unprocessable({
-          email: {
-            errors: ['Email is already taken']
-          }
-        })
-      }
+      // if (target.includes('email')) {
+      //   throw err.unprocessable({
+      //     email: {
+      //       errors: ['Email is already taken']
+      //     }
+      //   })
+      // }
       if (target.includes('phone')) {
         throw err.unprocessable({
           phone: {
-            errors: ['Phone number is already used by another customer']
+            errors: ['Phone number is already taken']
           }
         })
       }

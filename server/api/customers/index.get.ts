@@ -25,7 +25,7 @@ export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
   })
     .id('id')
     .text('name')
-    .text('email')
+    // .text('email')
     .text('phone')
     .date('createdAt')
     .date('updatedAt')
@@ -36,11 +36,11 @@ export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
             contains: text
           }
         },
-        {
-          email: {
-            contains: text
-          }
-        },
+        // {
+        //   email: {
+        //     contains: text
+        //   }
+        // },
         {
           phone: {
             contains: text
@@ -67,8 +67,8 @@ export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
         select: {
           id: true,
           name: true,
-          email: true,
-          phone: true,
+          // email: true,
+          // phone: true,
           avatarId: true
         }
       }
@@ -76,7 +76,7 @@ export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
         select: {
           id: true,
           name: true,
-          email: true,
+          // email: true,
           phone: true,
           avatarId: true,
           createdAt: true,
