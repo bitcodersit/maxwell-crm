@@ -13,6 +13,7 @@ const _useDashboard = () => {
   defineShortcuts({
     'g-h': () => router.push('/'),
     'g-i': () => router.push('/inbox'),
+    'g-t': () => router.push('/tasks'),
     'g-c': () => router.push('/customers'),
     'g-s': () => router.push('/settings'),
     'n': () => (isNotificationsOpen.value = !isNotificationsOpen.value)
@@ -51,6 +52,10 @@ const titlesMap = [
     exact: true,
     path: '/',
     title: 'Home'
+  },
+  {
+    path: '/tasks',
+    title: 'Tasks'
   },
   {
     path: '/users',

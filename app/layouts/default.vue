@@ -21,6 +21,14 @@ const links = computed(() => {
         }
       },
       {
+        label: 'Tasks',
+        icon: 'i-lucide-list-checks',
+        to: '/tasks',
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      {
         label: 'Teams',
         icon: 'i-lucide-users-round',
         to: '/teams',
