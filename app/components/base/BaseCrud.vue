@@ -467,7 +467,10 @@ const onView = (item: T, props = viewProps.value) => {
     .map(({ id, accessorKey, header, cell }: any) => {
       const td = cell
         ? typeof cell === 'function'
-          ? cell({ row: { original: item } })
+          ? cell({
+              row: { original: item },
+              modal: true
+            })
           : cell
         : (item as T)[accessorKey as keyof T]
       return {

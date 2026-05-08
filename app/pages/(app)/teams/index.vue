@@ -190,6 +190,13 @@ const columns = computed<TColumn<TTeam>[]>(() => [
 
 const filters: TFilter[] = [
   {
+    name: 'q',
+    type: 'inline-input',
+    props: {
+      placeholder: 'Search...'
+    }
+  },
+  {
     name: 'id',
     type: 'input',
     props: {
