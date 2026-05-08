@@ -11,10 +11,12 @@ model User {
     id Int @id @default(autoincrement())
 
     name            String
-    email           String    @unique
+    email           String?   @unique
+    phone           String?   @unique
     password        String?
     avatarId        Int?
     emailVerifiedAt DateTime?
+    phoneVerifiedAt DateTime?
 
     teams               Team[]
     avatar              Attachment?  @relation(fields: [avatarId], references: [id], onDelete: SetNull)
@@ -27,6 +29,7 @@ model User {
     deletedAt DateTime?
 
     @@index([email])
+    @@index([phone])
     @@map("users")
 }
 

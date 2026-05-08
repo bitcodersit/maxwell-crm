@@ -9,8 +9,11 @@ import type {
 import { TeamMemberRole } from '~~/prisma/client/enums'
 
 const crudRef = useTemplateRef('crudRef')
-const UAvatar = resolveComponent('UAvatar')
+
+const UIcon = resolveComponent('UIcon')
 const UBadge = resolveComponent('UBadge')
+const UAvatar = resolveComponent('UAvatar')
+
 const { getAttachment } = useGetAttachment()
 const userFilterLabelProps = {
   getLabel(v: { name?: string; avatarId?: number }) {
@@ -30,24 +33,39 @@ const fields: TField[] = [
     name: 'name',
     type: 'input',
     label: 'Name',
+    props: {
+      placeholder: 'Enter name...',
+    },
   },
   {
     name: 'description',
     type: 'textarea',
     label: 'Description',
+    props: {
+      placeholder: 'Enter description...',
+    },
   },
   {
     name: 'members',
     type: 'team-members',
     label: 'Members',
     props: {
+      placeholder: 'Search users...',
       fields: [
         {
           name: 'role',
-          items: [
-            { label: 'Leader', value: TeamMemberRole.LEADER },
-            { label: 'Member', value: TeamMemberRole.MEMBER },
-          ],
+          type: 'select',
+          props: {
+            class: 'w-24',
+            variant: 'soft',
+            highlight: false,
+            trailingIcon: false,
+            placeholder: 'Select role...',
+            items: [
+              { label: 'Leader', value: TeamMemberRole.LEADER },
+              { label: 'Member', value: TeamMemberRole.MEMBER },
+            ],
+          },
         },
       ],
     },
@@ -121,7 +139,13 @@ const columns = computed<TColumn<TTeam>[]>(() => [
                   alt: member.name,
                   class: 'bg-primary/20',
                 }),
-                h('span', `${member.name} (${member.role[0]})`),
+                h('span', member.name),
+                member.role === TeamMemberRole.LEADER
+                  ? h(UIcon, {
+                      name: 'i-lucide-star',
+                      class: 'text-warning',
+                    })
+                  : null,
               ])
           )
         })
@@ -289,7 +313,7 @@ const getFormState = (v?: TTeam) => ({
   description: v?.description ?? '',
   members:
     v?.members?.map((m) => ({
-      userId: m.userId,
+      userId: m.userId || m.user?.id,
       role: m.role,
       user: m.user
         ? {
@@ -306,7 +330,7 @@ const getPostBody = (v: Record<string, any>) => ({
   name: v.name,
   description: v.description,
   members: (v.members || []).map((m: any) => ({
-    userId: m.userId,
+    userId: m.userId || v.user?.id,
     role: m.role,
   })),
 })
@@ -317,6 +341,7 @@ const getPostBody = (v: Record<string, any>) => ({
     ref="crudRef"
     get-url="/api/teams"
     post-url="/api/teams"
+    export-url="/api/teams/export"
     delete-url="/api/teams/{id}"
     :fields="fields"
     :columns="columns"

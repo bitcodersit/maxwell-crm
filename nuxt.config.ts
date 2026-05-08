@@ -2,52 +2,57 @@
 import vue from '@vitejs/plugin-vue'
 
 export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
-  runtimeConfig: {
-    storageUrl: '', // NUXT_STORAGE_URL
-    emailCronSecret: '', // NUXT_EMAIL_CRON_SECRET
-    public: {
-      siteUrl: '', // NUXT_PUBLIC_SITE_URL
-    },
-  },
-  devServer: {
-    port: 5173,
-  },
-  css: ['~/assets/css/main.css'],
-  modules: ['@nuxt/eslint', '@nuxt/ui', '@vueuse/nuxt', 'nuxt-auth-utils', '@nuxt/image', 'nuxt-cron'],
-  image: {
-    format: ['webp'],
+  modules: [
+    '@nuxt/eslint',
+    '@nuxt/ui',
+    '@vueuse/nuxt',
+    'nuxt-auth-utils',
+    '@nuxt/image',
+    'nuxt-cron'
+  ],
+  devtools: {
+    enabled: true
   },
   app: {
     head: {
       link: [
         { rel: 'icon', type: 'image/png', href: '/favicon.png' },
-        { rel: 'icon', type: 'image/png', href: '/favicon-192.png', sizes: '192x192' },
-      ],
-    },
+        {
+          rel: 'icon',
+          type: 'image/png',
+          href: '/favicon-192.png',
+          sizes: '192x192'
+        }
+      ]
+    }
   },
-  devtools: {
-    enabled: true,
-  },
+  css: ['~/assets/css/main.css'],
   colorMode: {
-    storage: 'cookie',
+    storage: 'cookie'
+  },
+  runtimeConfig: {
+    storageUrl: '', // NUXT_STORAGE_URL
+    emailCronSecret: '', // NUXT_EMAIL_CRON_SECRET
+    public: {
+      siteUrl: '' // NUXT_PUBLIC_SITE_URL
+    }
   },
   routeRules: {
     '/api/**': {
-      cors: true,
-    },
+      cors: true
+    }
   },
+  devServer: {
+    port: 5173
+  },
+  compatibilityDate: '2025-07-15',
   nitro: {
     rollupConfig: {
-      plugins: [vue()],
+      plugins: [vue()]
     },
     experimental: {
-      openAPI: true,
-    },
-  },
-  cron: {
-    runOnInit: true,
-    jobsDir: 'cron',
+      openAPI: true
+    }
   },
   vite: {
     optimizeDeps: {
@@ -56,16 +61,24 @@ export default defineNuxtConfig({
         '@vue/devtools-kit',
         'date-fns',
         '@internationalized/date',
-        '@unovis/vue',
-      ],
-    },
+        '@unovis/vue'
+      ]
+    }
+  },
+  cron: {
+    runOnInit: true,
+    jobsDir: 'cron'
   },
   eslint: {
     config: {
+      standalone: true,
       stylistic: {
         commaDangle: 'never',
-        braceStyle: '1tbs',
-      },
-    },
+        braceStyle: '1tbs'
+      }
+    }
   },
+  image: {
+    format: ['webp']
+  }
 })

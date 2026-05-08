@@ -1,5 +1,5 @@
-import { LazyBaseConfirm } from '#components'
 import type { TConfirmProps } from '~/components/base/BaseConfirm.vue'
+import { LazyBaseConfirm } from '#components'
 
 export const useConfirm = () => {
   const overlay = useOverlay()
@@ -9,6 +9,6 @@ export const useConfirm = () => {
     return instance.result
   }
   return {
-    confirm,
+    confirm
   }
 }

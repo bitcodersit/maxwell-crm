@@ -4,26 +4,22 @@ type TItem = Record<string, any>
 </script>
 
 <script setup lang="ts" generic="Value extends TValue = TValue, Item extends TItem = TItem">
-import type { DropdownMenuItem } from '@nuxt/ui'
+import type { TBaseOrderByItem } from '@/components/base/BaseOrderByDropdown.vue'
 
-export type TCheckboxFilterApiProps<Value extends TValue = TValue, Item extends TItem = TItem> = {
+export type TFilterCheckboxProps<Value extends TValue = TValue, Item extends TItem = TItem> = {
   api: string
   label?: string
   query?: Record<string, any>
   valueKey?: string
   modelValue?: Value[]
   labelClass?: string
-  orderByItems?: { label: string; value: string }[]
+  orderByItems?: TBaseOrderByItem[]
   getLabel?: (item: Item) => string | VNode
 }
 
-const props = withDefaults(defineProps<TCheckboxFilterApiProps<Value, Item>>(), {
+const props = withDefaults(defineProps<TFilterCheckboxProps<Value, Item>>(), {
   valueKey: 'id',
   getLabel: (item: Item) => item.name,
-  orderByItems: () => [
-    { label: 'Id', value: 'id' },
-    { label: 'Name', value: 'name' },
-  ],
 })
 
 const emit = defineEmits<{
@@ -74,27 +70,6 @@ const onClear = () => {
 watch(modelValue, (v) => {
   if (v == state.value) return
   state.value = v
-})
-
-// Order by
-const mOrderByItems = computed(() => {
-  return orderByItems.value.reduce<DropdownMenuItem[]>((acc, item) => {
-    return [
-      ...acc,
-      {
-        label: item.label + ' (asc)',
-        onSelect() {
-          orderBy.value = { [item.value]: 'asc' }
-        },
-      },
-      {
-        label: item.label + ' (desc)',
-        onSelect() {
-          orderBy.value = { [item.value]: 'desc' }
-        },
-      },
-    ]
-  }, [])
 })
 </script>
 
@@ -160,20 +135,7 @@ const mOrderByItems = computed(() => {
           </span>
         </div>
         <div>
-          <UDropdownMenu :items="mOrderByItems">
-            <span role="button" class="underline text-xs cursor-pointer text-primary">
-              <template v-if="Object.keys(orderBy).length">
-                {{
-                  Object.entries(orderBy)
-                    .reduce<string[]>((acc, [key, value]) => {
-                      return [...acc, `${key.charAt(0).toUpperCase() + key.slice(1)} (${value})`]
-                    }, [])
-                    .join(', ')
-                }}
-              </template>
-              <template v-else> Sort by </template>
-            </span>
-          </UDropdownMenu>
+          <BaseOrderByDropdown v-model="orderBy" :items="orderByItems" />
         </div>
       </div>
       <div v-if="status !== 'pending' && !data.data.length" class="text-muted py-1 text-sm mt-1">

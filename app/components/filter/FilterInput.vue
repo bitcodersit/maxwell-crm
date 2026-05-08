@@ -1,53 +1,51 @@
-<script setup lang="ts">
-export type TInputFilterProps = {
+<script lang="ts">
+export type TFilterInputProps = {
   mode?: string
   label?: string
   modeable?: boolean
   modelValue?: string
   placeholder?: string
 }
+</script>
 
-const props = defineProps<TInputFilterProps>()
+<script setup lang="ts">
+const props = defineProps<TFilterInputProps>()
 
-const emit = defineEmits<{
-  (e: 'update:mode', mode?: string): void
-  (e: 'update:modelValue', value?: string): void
-}>()
-
-const { mode: modelMode, modelValue, modeable } = toRefs(props)
+const mModelValue = defineModel<string>({ default: '' })
+const mMode = defineModel<string | undefined>('mode', { default: 'contains' })
 
 const open = ref(false)
 
-const value = ref(modelValue.value)
-const mode = ref(modelMode.value ?? 'contains')
+const innerMode = ref(mMode.value)
+const innerModelValue = ref(mModelValue.value)
 
 const onClear = () => {
-  value.value = ''
-  emit('update:modelValue', undefined)
-  if (modeable.value) {
-    emit('update:mode', undefined)
+  innerModelValue.value = ''
+  mModelValue.value = ''
+  if (props.modeable) {
+    mMode.value = undefined
   }
   open.value = false
 }
 
 const onApply = () => {
-  const v = value.value?.trim()
+  const v = innerModelValue.value?.trim()
   if (!v) return
-  emit('update:modelValue', v)
-  if (modeable.value) {
-    emit('update:mode', mode.value)
+  mModelValue.value = v
+  if (props.modeable) {
+    mMode.value = innerMode.value
   }
   open.value = false
 }
 
-watch(modelValue, (v) => {
-  if (v === value.value) return
-  value.value = v
+watch(mModelValue, v => {
+  if (v === innerModelValue.value) return
+  innerModelValue.value = v
 })
 
-watch(modelMode, (v) => {
-  if (v === mode.value) return
-  mode.value = v ?? 'contains'
+watch(mMode, v => {
+  if (!v || v === innerMode.value) return
+  innerMode.value = v
 })
 </script>
 
@@ -71,7 +69,10 @@ watch(modelMode, (v) => {
         <template v-if="modelValue"> | </template>
         <template v-if="modelValue && modeable"> {{ mode }} |</template>
         {{ modelValue }}
-        <template v-if="modelValue" #trailing>
+        <template
+          v-if="modelValue"
+          #trailing
+        >
           <UButton
             icon="i-lucide-x"
             size="xs"
@@ -86,14 +87,19 @@ watch(modelMode, (v) => {
     <template #content>
       <URadioGroup
         v-if="modeable"
-        v-model="mode"
+        v-model="innerMode"
         orientation="horizontal"
         :items="[
           { label: 'Contains', value: 'contains' },
-          { label: 'Exact', value: 'exact' },
+          { label: 'Exact', value: 'exact' }
         ]"
       />
-      <UInput v-model="value" :autofocus="true" :placeholder="placeholder" @keyup.enter="onApply" />
+      <UInput
+        v-model="innerModelValue"
+        :autofocus="true"
+        :placeholder="placeholder"
+        @keyup.enter="onApply"
+      />
       <div class="flex items-center gap-2 justify-end">
         <UButton
           v-if="modelValue"
@@ -110,7 +116,7 @@ watch(modelMode, (v) => {
           color="primary"
           variant="solid"
           size="sm"
-          :disabled="!value?.trim()"
+          :disabled="!innerModelValue?.trim()"
           @click="onApply"
         >
           Apply

@@ -1,3 +1,5 @@
+import { CUSTOMER_ROLE_NAME } from '~~/server/utils/customerRole'
+
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['delete-any-users'])) {
@@ -14,6 +16,13 @@ export default defineEventHandler(async (event) => {
       where: {
         id: {
           in: ids,
+        },
+        userRoles: {
+          none: {
+            role: {
+              name: CUSTOMER_ROLE_NAME,
+            },
+          },
         },
       },
       data: {

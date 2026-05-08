@@ -4,12 +4,12 @@ import type { CalendarProps } from '@nuxt/ui'
 type TValue = CalendarProps['modelValue']
 type TMode = 'single' | 'range' | 'multiple'
 
-export type TDateFilterProps = CalendarProps & {
+export type TFilterDateProps = CalendarProps & {
   mode?: TMode
   label?: string
 }
 
-const props = withDefaults(defineProps<TDateFilterProps>(), {
+const props = withDefaults(defineProps<TFilterDateProps>(), {
   mode: 'single',
 })
 

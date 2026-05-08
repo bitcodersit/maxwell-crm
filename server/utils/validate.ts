@@ -1,6 +1,6 @@
-import { ZodObject } from 'zod'
+import type { ZodType } from 'zod'
 
-export const validate = async <T extends ZodObject>(body: any, schema: T) => {
+export const validate = async <T extends ZodType>(body: Record<string, unknown>, schema: T) => {
   const result = schema.safeParse(body)
   if (!result.success) {
     throw err.zod(result.error)

@@ -15,7 +15,7 @@ const _useDashboard = () => {
     'g-i': () => router.push('/inbox'),
     'g-c': () => router.push('/customers'),
     'g-s': () => router.push('/settings'),
-    n: () => (isNotificationsOpen.value = !isNotificationsOpen.value),
+    'n': () => (isNotificationsOpen.value = !isNotificationsOpen.value)
   })
 
   watch(
@@ -32,7 +32,7 @@ const _useDashboard = () => {
       links.value = linksItem?.links ?? []
     },
     {
-      immediate: true,
+      immediate: true
     }
   )
 
@@ -40,7 +40,7 @@ const _useDashboard = () => {
     title,
     links,
     isSearchOpen,
-    isNotificationsOpen,
+    isNotificationsOpen
   }
 }
 
@@ -50,33 +50,37 @@ const titlesMap = [
   {
     exact: true,
     path: '/',
-    title: 'Home',
+    title: 'Home'
   },
   {
     path: '/users',
-    title: 'Users',
+    title: 'Users'
   },
   {
     path: '/teams',
-    title: 'Teams',
+    title: 'Teams'
   },
   {
     path: '/roles',
-    title: 'Roles',
+    title: 'Roles'
   },
   {
     path: '/permissions',
-    title: 'Permissions',
+    title: 'Permissions'
+  },
+  {
+    path: '/customers',
+    title: 'Customers'
   },
   {
     exact: true,
     path: '/settings',
-    title: 'Settings',
+    title: 'Settings'
   },
   {
     path: '/settings/security',
-    title: 'Security Settings',
-  },
+    title: 'Security Settings'
+  }
 ]
 
 const linksMap = [
@@ -88,15 +92,15 @@ const linksMap = [
           label: 'General',
           icon: 'i-lucide-user',
           to: '/settings',
-          exact: true,
+          exact: true
         },
 
         {
           label: 'Security',
           icon: 'i-lucide-shield',
-          to: '/settings/security',
-        },
-      ],
-    ],
-  },
+          to: '/settings/security'
+        }
+      ]
+    ]
+  }
 ]

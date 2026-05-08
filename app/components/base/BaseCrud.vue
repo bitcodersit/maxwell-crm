@@ -1,4 +1,22 @@
-<script context="module" lang="ts">
+<script lang="ts">
+/* eslint-disable no-unused-vars */
+import type { TFilterCheckboxProps } from '@/components/filter/FilterCheckbox.vue'
+import type { TFilterDateProps } from '@/components/filter/FilterDate.vue'
+import type { TFilterInputProps } from '@/components/filter/FilterInput.vue'
+import type { TFormAutocompleteProps } from '@/components/form/FormAutocomplete.vue'
+import type { TFormUsersPivotProps } from '@/components/form/FormUsersPivot.vue'
+import type {
+  TableData,
+  InputProps,
+  SelectProps,
+  TextareaProps,
+  TableColumn,
+  FormSubmitEvent,
+  DropdownMenuItem,
+  ModalProps
+} from '@nuxt/ui'
+import { isVNode } from 'vue'
+
 type TTextDisplay = {
   type: 'text'
   class: string
@@ -20,26 +38,6 @@ type TInfoPopup = {
 type TDisplay = TTextDisplay | TArrayDisplay
 type TFormMode = 'create' | 'update'
 type TFormState = Record<string, any>
-//
-</script>
-
-<script setup lang="ts" generic="T extends Record<string, any>">
-import type {
-  TableData,
-  InputProps,
-  SelectProps,
-  TextareaProps,
-  TableColumn,
-  FormSubmitEvent,
-  DropdownMenuItem,
-  ModalProps,
-} from '@nuxt/ui'
-import type { TDateFilterProps } from './BaseDateFilter.vue'
-import type { TInputFilterProps } from './BaseInputFilter.vue'
-import type { TBaseAutocompleteProps } from './BaseAutocomplete.vue'
-import type { TBaseMembersFieldProps } from './BaseMembersField.vue'
-import type { TCheckboxFilterApiProps } from './BaseCheckboxFilterApi.vue'
-import { isVNode } from 'vue'
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
@@ -48,32 +46,35 @@ export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
 }
 
 export type TFilter = { name: string } & (
-  | { type: 'date'; props?: TDateFilterProps }
-  | { type: 'input'; props?: TInputFilterProps }
+  | { type: 'date'; props?: TFilterDateProps }
+  | { type: 'input'; props?: TFilterInputProps }
+  | { type: 'inline-input'; props?: InputProps }
   | { type: 'select'; props?: SelectProps }
-  | { type: 'checkbox-api'; props: TCheckboxFilterApiProps }
+  | { type: 'checkbox-api'; props: TFilterCheckboxProps }
 )
 
 export type TField = { name: string; label: string; col?: string } & (
   | { type: 'input'; props?: InputProps }
   | { type: 'textarea'; props?: TextareaProps }
-  | { type: 'autocomplete'; props: TBaseAutocompleteProps }
-  | { type: 'team-members'; props?: TBaseMembersFieldProps }
+  | { type: 'autocomplete'; props: TFormAutocompleteProps }
+  | { type: 'team-members'; props?: TFormUsersPivotProps }
 )
 
 export type TBaseCrudModal = {
   form?: (v: { mode: TFormMode }) => ModalProps
 }
 
-export type TQuery = {
+type TQuery = {
   page: number
   perPage: number
-  orderBy: Record<string, 'asc' | 'desc'>
+  orderBy: Record<string, 'asc' | 'desc' | undefined>
   [key: string]: any
 }
 
 export type TGetActions<T> = (item: T, options?: { view?: boolean }) => DropdownMenuItem[][]
+</script>
 
+<script setup lang="ts" generic="T extends Record<string, any>">
 const props = withDefaults(
   defineProps<{
     getUrl: string
@@ -82,7 +83,7 @@ const props = withDefaults(
     filters?: TFilter[]
     columns?: TColumn<T>[]
     postUrl?: string
-    formItem?: Record<string, any>
+    formItem?: Record<string, unknown>
     exportUrl?: string
     formClass?: string
     staleTime?: number
@@ -105,8 +106,8 @@ const props = withDefaults(
     perPageOptions: () => [5, 10, 20, 30, 40, 50, 100],
     formItem: () => ({
       size: 'xl',
-      class: 'w-full',
-    }),
+      class: 'w-full'
+    })
   }
 )
 
@@ -119,7 +120,7 @@ const {
   staleTime,
   dateFields,
   getPostBody,
-  getFormState,
+  getFormState
 } = toRefs(props)
 
 const def = toPaginated<T>()
@@ -128,24 +129,25 @@ const table = useTemplateRef('table')
 const initialQuery = {
   page: def.page,
   perPage: def.perPage,
-  orderBy: {},
+  orderBy: {}
 }
 
-const getPersisted = <T>(
+const getPersisted = <T,>(
   key: string,
   parser: (v: TMaybe<string>, parse: (value: string, initial?: T) => T) => T
 ) => {
-  const parse = <T>(value: string, initial?: T) => {
+  const parse = <T,>(value: string, initial?: T) => {
     try {
       const parsed = JSON.parse(value)
       return {
         ...parsed,
         ...calendarFormatDates(parsed, dateFields.value, {
-          returnType: 'dateValue',
-        }),
+          returnType: 'dateValue'
+        })
       }
-    } catch {}
-    return { ...initial }
+    } catch {
+      return { ...initial }
+    }
   }
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem(`${getUrl.value}:${key}`)
@@ -161,7 +163,7 @@ const query = ref(
 )
 
 const selected = ref(
-  getPersisted<Record<string, boolean>>('selected', (v) => {
+  getPersisted<Record<string, boolean>>('selected', v => {
     return v ? JSON.parse(v) : {}
   })
 )
@@ -172,7 +174,7 @@ const key = computed(() => `${getUrl.value}:${refreshKey.value}:${JSON.stringify
 
 const fetchQuery = computed(() => {
   return calendarFormatDates(query.value, dateFields.value, {
-    formatStr: 'yyyy-MM-dd',
+    formatStr: 'yyyy-MM-dd'
   })
 })
 
@@ -190,9 +192,9 @@ const { data, status } = useFetch<TPaginated<T>>(getUrl, {
   transform(data) {
     return {
       ...data,
-      fetchedAt: Date.now(),
+      fetchedAt: Date.now()
     }
-  },
+  }
 })
 
 const UButton = resolveComponent('UButton')
@@ -203,8 +205,8 @@ const getInfoPopup = (options: TInfoPopup) => {
     UPopover,
     {
       ui: {
-        content: ['p-3 max-w-md w-full max-h-[50vh] overflow-y-auto', options.class],
-      },
+        content: ['p-3 max-w-md w-full max-h-[50vh] overflow-y-auto', options.class]
+      }
     },
     {
       content: options.content,
@@ -214,9 +216,9 @@ const getInfoPopup = (options: TInfoPopup) => {
           class: 'px-0',
           color: 'primary',
           variant: 'link',
-          label: options.label,
-        }),
-      ],
+          label: options.label
+        })
+      ]
     }
   )
 }
@@ -226,9 +228,11 @@ const mColumns = computed<TableColumn<T>[]>(() => {
     return {
       ...item,
       cell: display
-        ? (ctx) => {
-            const getValue = (v?: any) => {
-              return typeof cell === 'function' ? cell({ ...ctx, ...v }) : cell
+        ? ctx => {
+            const getValue = (v?: unknown) => {
+              return typeof cell === 'function'
+                ? cell({ ...ctx, ...(v as Record<string, unknown>) })
+                : cell
             }
             if (display.type === 'text') {
               const text = getValue()
@@ -239,9 +243,9 @@ const mColumns = computed<TableColumn<T>[]>(() => {
                   ? getInfoPopup({
                       class: display.class,
                       label: 'more',
-                      content: () => text,
+                      content: () => text
                     })
-                  : null,
+                  : null
               ])
             }
             if (display.type === 'array') {
@@ -255,9 +259,9 @@ const mColumns = computed<TableColumn<T>[]>(() => {
                   ? getInfoPopup({
                       class: display.class,
                       label: `+${hidden} more`,
-                      content: () => getValue({ modal: true }),
+                      content: () => getValue({ modal: true })
                     })
-                  : null,
+                  : null
               ])
             }
           }
@@ -282,7 +286,7 @@ const mColumns = computed<TableColumn<T>[]>(() => {
               : 'i-lucide-arrow-up-down',
             class: '-mx-2.5',
             ui: {
-              leadingIcon: 'size-4',
+              leadingIcon: 'size-4'
             },
             onClick() {
               if (!v) {
@@ -290,13 +294,13 @@ const mColumns = computed<TableColumn<T>[]>(() => {
               } else if (v === 'asc') {
                 query.value.orderBy[sortBy] = 'desc'
               } else {
-                delete query.value.orderBy[sortBy]
+                query.value.orderBy[sortBy] = undefined
               }
-            },
+            }
           })
         }
         return header
-      },
+      }
     } as TableColumn<T>
   })
 })
@@ -304,20 +308,20 @@ const mColumns = computed<TableColumn<T>[]>(() => {
 const initialKeys = Object.keys(initialQuery)
 const isClearable = computed(() => {
   return Object.keys(query.value)
-    .filter((k) => !initialKeys.includes(k))
-    .some((k) => !!query.value[k])
+    .filter(k => !initialKeys.includes(k))
+    .some(k => !!query.value[k])
 })
 
 const onClearFilters = () => {
   query.value = {
-    ...initialQuery,
+    ...initialQuery
   }
 }
 
 const onClearOrderBy = () => {
   query.value = {
     ...query.value,
-    orderBy: {},
+    orderBy: {}
   }
 }
 
@@ -346,14 +350,14 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
   isSubmitting.value = true
   $fetch(postUrl.value, {
     method: 'POST',
-    body: getPostBody.value(event.data),
+    body: getPostBody.value(event.data)
   })
-    .then((item) => {
+    .then(item => {
       toast.add({
         color: 'success',
         title: 'Success',
         description:
-          formMode.value === 'create' ? 'Item added successfully' : 'Item updated successfully',
+          formMode.value === 'create' ? 'Item added successfully' : 'Item updated successfully'
       })
       formOpen.value = false
       selected.value = {}
@@ -362,7 +366,7 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
         onView(item as T)
       }
     })
-    .catch((e) => {
+    .catch(e => {
       const { message, errors } = parseError(e)
       if (errors?.length) formRef.value?.setErrors(errors)
       else formRef.value?.setErrors([{ name: 'name', message }])
@@ -380,7 +384,7 @@ const onDelete = async (item: T | T[]) => {
       ? deleteUrl.value(item)
       : deleteUrl.value.replace(
           '{id}',
-          Array.isArray(item) ? item.map((x) => x.id).join(',') : item.id
+          Array.isArray(item) ? item.map(x => x.id).join(',') : item.id
         )
   if (await confirm('Are you sure you want to delete this item?')) {
     isSubmitting.value = true
@@ -389,17 +393,17 @@ const onDelete = async (item: T | T[]) => {
         toast.add({
           color: 'success',
           title: 'Success! 🎉',
-          description: 'Item deleted successfully',
+          description: 'Item deleted successfully'
         })
         refreshKey.value++
         viewModal.value = false
       })
-      .catch((e) => {
+      .catch(e => {
         const { message } = parseError(e)
         toast.add({
           color: 'error',
           title: 'Error! 😭',
-          description: message,
+          description: message
         })
       })
       .finally(() => {
@@ -414,7 +418,7 @@ const getSelectedRows = () => {
 }
 
 const getSelectedRowItems = () => {
-  return getSelectedRows().map((row) => row.original)
+  return getSelectedRows().map(row => row.original)
 }
 
 const onDeleteSelected = () => {
@@ -429,12 +433,12 @@ const onGotoFirstPage = () => {
 
 watch(
   query,
-  (v) => {
+  v => {
     localStorage.setItem(
       `${getUrl.value}:query`,
       JSON.stringify(
         calendarFormatDates(v, dateFields.value, {
-          returnType: 'storage',
+          returnType: 'storage'
         })
       )
     )
@@ -442,12 +446,12 @@ watch(
   { deep: true }
 )
 
-watch(selected, (v) => {
+watch(selected, v => {
   localStorage.setItem(`${getUrl.value}:selected`, JSON.stringify(v))
 })
 
 type TViewOptions = {
-  modal?: ModalProps
+  modal?: Omit<ModalProps, 'portal'>
 }
 
 const viewItem = ref<T>()
@@ -459,17 +463,17 @@ const onView = (item: T, props = viewProps.value) => {
   viewItem.value = item
   viewProps.value = props || {}
   viewItems.value = columns.value
-    .filter((v) => !(v.id && ['select'].includes(v.id)))
+    .filter(v => !(v.id && ['select'].includes(v.id)))
     .map(({ id, accessorKey, header, cell }: any) => {
       const td = cell
         ? typeof cell === 'function'
           ? cell({ row: { original: item } })
           : cell
-        : item[accessorKey as keyof T]
+        : (item as T)[accessorKey as keyof T]
       return {
         id: id || accessorKey,
         tr: id === 'action' ? header || 'Actions' : header,
-        td: Array.isArray(td) ? h('div', {}, td) : td,
+        td: Array.isArray(td) ? h('div', {}, td) : td
       }
     })
   viewModal.value = true
@@ -479,40 +483,35 @@ defineExpose({
   onView,
   onUpdate,
   onDelete,
-  onDeleteSelected,
+  onDeleteSelected
 })
 
 // Export
 const exportOpen = ref(false)
 const exportState = ref({
   format: 'excel',
-  selection: 'all',
+  selection: 'all'
 })
 
 const { exporting, execute: onExport } = useExport()
+
 const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>) => {
   if (!exportUrl.value) return console.error('Export URL is not set')
   if (
     exportState.value.selection === 'selected' &&
     !table.value?.tableApi?.getFilteredSelectedRowModel().rows.length
-  ) {
-    toast.add({
-      color: 'error',
-      title: 'Error! 😭',
-      description: 'No selected rows',
-    })
+  )
     return
-  }
   await onExport(exportUrl.value, {
     ...fetchQuery.value,
     ...exportState.value,
     ...(exportState.value.selection === 'selected'
       ? {
           id: getSelectedRowItems()
-            .map((item: any) => item.id)
-            .join(','),
+            .map((item: unknown) => (item as T).id)
+            .join(',')
         }
-      : {}),
+      : {})
   })
   exportOpen.value = false
 }
@@ -523,22 +522,31 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
   <ClientOnly>
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <div class="flex items-center gap-2 flex-wrap">
-        <template v-for="row in filters" :key="row.name">
-          <BaseInputFilter
-            v-if="row.type === 'input'"
+        <template
+          v-for="row in filters"
+          :key="row.name"
+        >
+          <FilterInputInline
+            v-if="row.type === 'inline-input'"
+            v-bind="row.props"
+            v-model="query[row.name]"
+            @update:model-value="onGotoFirstPage"
+          />
+          <FilterInput
+            v-else-if="row.type === 'input'"
             v-bind="row.props"
             v-model="query[row.name]"
             v-model:mode="query[row.name + 'Mode']"
             @update:model-value="onGotoFirstPage"
           />
-          <BaseDateFilter
+          <FilterDate
             v-else-if="row.type === 'date'"
             v-bind="row.props"
             v-model="query[row.name]"
             v-model:mode="query[row.name + 'Mode']"
             @update:model-value="onGotoFirstPage"
           />
-          <BaseCheckboxFilterApi
+          <FilterCheckbox
             v-else-if="row.type === 'checkbox-api'"
             v-bind="row.props"
             v-model="query[row.name]"
@@ -612,7 +620,12 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
           :content="{ align: 'end', side: 'bottom' }"
         >
           <UTooltip text="Export">
-            <UButton icon="i-lucide-download" color="primary" variant="solid" label="Export" />
+            <UButton
+              icon="i-lucide-download"
+              color="primary"
+              variant="solid"
+              label="Export"
+            />
           </UTooltip>
           <template #content>
             <UForm
@@ -629,16 +642,16 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                   :items="[
                     {
                       label: 'All',
-                      value: 'all',
+                      value: 'all'
                     },
                     {
                       label: 'Selected',
-                      value: 'selected',
+                      value: 'selected'
                     },
                     {
                       label: 'Current Page',
-                      value: 'current-page',
-                    },
+                      value: 'current-page'
+                    }
                   ]"
                 />
               </UFormField>
@@ -649,12 +662,20 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                   orientation="horizontal"
                   :items="[
                     { label: 'Excel', value: 'excel' },
-                    { label: 'CSV', value: 'csv' },
+                    { label: 'CSV', value: 'csv' }
                   ]"
                 />
               </UFormField>
               <div class="flex justify-end">
-                <UButton type="submit" icon="i-lucide-download" :loading="exporting">
+                <UButton
+                  type="submit"
+                  icon="i-lucide-download"
+                  :loading="exporting"
+                  :disabled="
+                    exportState.selection === 'selected' &&
+                    !table?.tableApi?.getFilteredSelectedRowModel().rows.length
+                  "
+                >
                   Export
                 </UButton>
               </div>
@@ -662,7 +683,12 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
           </template>
         </UPopover>
         <UTooltip text="Add new item">
-          <UButton icon="i-lucide-plus" color="primary" variant="solid" @click="onAddNew">
+          <UButton
+            icon="i-lucide-plus"
+            color="primary"
+            variant="solid"
+            @click="onAddNew"
+          >
             Add New
           </UButton>
         </UTooltip>
@@ -682,7 +708,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
         tbody: '[&>tr]:last:[&>td]:border-b-0',
         th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
         td: 'border-b border-default',
-        separator: 'h-0',
+        separator: 'h-0'
       }"
     >
       <template #select-header="{ column, table }">
@@ -692,7 +718,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
               table.getIsSomePageRowsSelected() ? 'indeterminate' : table.getIsAllPageRowsSelected()
             "
             aria-label="Select all"
-            @update:model-value="(v) => table.toggleAllPageRowsSelected(!!v)"
+            @update:model-value="v => table.toggleAllPageRowsSelected(!!v)"
           />
         </div>
         {{ !column.getIsPinned() ? column.pin('left') : '' }}
@@ -701,7 +727,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
         <UCheckbox
           :model-value="row.getIsSelected()"
           aria-label="Select row"
-          @update:model-value="(v) => row.toggleSelected(!!v)"
+          @update:model-value="v => row.toggleSelected(!!v)"
         />
       </template>
       <template #action-cell="{ row }">
@@ -723,7 +749,10 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
         {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
         {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} row(s) selected.
       </div>
-      <div v-else class="text-sm text-muted">
+      <div
+        v-else
+        class="text-sm text-muted"
+      >
         Showing {{ query.perPage }} of {{ data.total }} row(s) total
       </div>
 
@@ -743,11 +772,18 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
         />
       </div>
     </div>
-    <UModal v-model:open="viewModal" title="View Details" v-bind="viewProps.modal">
+    <UModal
+      v-model:open="viewModal"
+      title="View Details"
+      v-bind="viewProps.modal"
+    >
       <template #body>
         <table class="w-full border-collapse text-sm text-left">
           <tbody>
-            <tr v-for="item in viewItems" :key="item.id">
+            <tr
+              v-for="item in viewItems"
+              :key="item.id"
+            >
               <th class="border border-default px-4 py-2">{{ item.tr }}</th>
               <td class="border border-default px-4 py-2">
                 <div
@@ -756,13 +792,17 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                 >
                   <UButton
                     v-for="action in getActions(viewItem, { view: true }).flat()"
+                    :key="action.label"
                     size="sm"
                     variant="subtle"
                     v-bind="action"
                     @click="action.onSelect"
                   />
                 </div>
-                <component v-else-if="isVNode(item.td)" :is="item.td" />
+                <component
+                  :is="item.td"
+                  v-else-if="isVNode(item.td)"
+                />
                 <template v-else>{{ item.td }}</template>
               </td>
             </tr>
@@ -770,10 +810,20 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
         </table>
       </template>
     </UModal>
-    <UModal v-model:open="formOpen" v-bind="modal?.form?.({ mode: formMode })">
+    <UModal
+      v-model:open="formOpen"
+      v-bind="modal?.form?.({ mode: formMode })"
+    >
       <template #body>
-        <UForm ref="formRef" :state="formState" @submit="onSubmit">
-          <div :class="formClass" class="grid grid-cols-1 gap-4">
+        <UForm
+          ref="formRef"
+          :state="formState"
+          @submit="onSubmit"
+        >
+          <div
+            :class="formClass"
+            class="grid grid-cols-1 gap-4"
+          >
             <UFormField
               v-for="row in fields"
               :key="row.name"
@@ -791,12 +841,12 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                 v-model="formState[row.name]"
                 v-bind="{ ...formItem, ...row.props }"
               />
-              <BaseAutocomplete
+              <FormAutocomplete
                 v-else-if="row.type === 'autocomplete'"
                 v-model="formState[row.name]"
                 v-bind="{ ...formItem, ...row.props }"
               />
-              <BaseMembersField
+              <FormUsersPivot
                 v-else-if="row.type === 'team-members'"
                 v-model="formState[row.name]"
                 v-bind="{ ...formItem, ...row.props }"
@@ -813,7 +863,13 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             >
               Cancel
             </UButton>
-            <UButton type="submit" :loading="isSubmitting" icon="i-lucide-send"> Submit </UButton>
+            <UButton
+              type="submit"
+              :loading="isSubmitting"
+              icon="i-lucide-send"
+            >
+              Submit
+            </UButton>
           </div>
         </UForm>
       </template>

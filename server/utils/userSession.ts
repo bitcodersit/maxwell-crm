@@ -5,10 +5,11 @@ export function userToSession(user: TUser) {
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
     avatarId: user.avatarId,
-    roles: (user.userRoles?.map((ur) => ur.role?.name).filter(Boolean) ?? []) as string[],
+    roles: (user.userRoles?.map(ur => ur.role?.name).filter(Boolean) ?? []) as string[],
     permissions: (user.userRoles?.flatMap(
-      (ur) => ur.role?.rolePermissions?.map((rp) => rp.permission?.name).filter(Boolean) ?? []
-    ) ?? []) as string[],
+      ur => ur.role?.rolePermissions?.map(rp => rp.permission?.name).filter(Boolean) ?? []
+    ) ?? []) as string[]
   }
 }

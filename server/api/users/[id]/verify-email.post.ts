@@ -1,6 +1,8 @@
-import VerifyEmail from '@/components/emails/VerifyEmail.vue'
+/* eslint-disable sort-imports */
+import EmailVerifyEmail from '@/components/emails/EmailVerifyEmail.vue'
 import { render } from '@vue-email/render'
 import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
+import { isCustomerRoleName } from '~~/server/utils/customerRole'
 
 export default defineEventHandler(async (event) => {
   const { user: sessionUser } = await requireUserSession(event)
@@ -14,28 +16,43 @@ export default defineEventHandler(async (event) => {
   const target = await prisma.user.findFirst({
     where: {
       id,
-      deletedAt: null,
+      deletedAt: null
     },
     select: {
       id: true,
       name: true,
       email: true,
       emailVerifiedAt: true,
-    },
+      userRoles: {
+        select: {
+          role: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
+    }
   })
 
   if (!target) throw err.notFound()
   if (target.emailVerifiedAt) {
     throw createError({
       statusCode: 400,
-      message: 'Email is already verified',
+      message: 'Email is already verified'
+    })
+  }
+  if (target.userRoles.some(ur => isCustomerRoleName(ur.role?.name))) {
+    throw createError({
+      statusCode: 400,
+      message: 'Customer login is not enabled yet'
     })
   }
 
   const verifyLink = await createVerifyEmailLink(event, target.id)
-  const html = await render(VerifyEmail, {
+  const html = await render(EmailVerifyEmail, {
     verifyLink,
-    name: target.name,
+    name: target.name
   })
 
   await queueEmail({
@@ -44,11 +61,11 @@ export default defineEventHandler(async (event) => {
     html,
     action: {
       type: 'user-still-unverified',
-      userId: target.id,
-    },
+      userId: target.id
+    }
   })
 
   return {
-    message: 'Verification email sent successfully',
+    message: 'Verification email sent successfully'
   }
 })

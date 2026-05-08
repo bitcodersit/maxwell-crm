@@ -1,14 +1,16 @@
+import { isCustomerRoleName } from '~~/server/utils/customerRole'
+
 const zLogin = z.object({
-  email: z.email(),
-  password: z.string().min(8),
+  email: zEmail(),
+  password: zPassword()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
   if (session.user) {
     throw createError({
       statusCode: 400,
-      message: 'Already logged in, please logout first',
+      message: 'Already logged in, please logout first'
     })
   }
 
@@ -17,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const user = await prisma.user.findUnique({
     where: {
-      email: input.email,
+      email: input.email
     },
     include: {
       avatar: true,
@@ -27,31 +29,36 @@ export default defineEventHandler(async (event) => {
             include: {
               rolePermissions: {
                 include: {
-                  permission: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+                  permission: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   })
 
   if (!user)
     throw err.unprocessable({
       email: {
-        errors: ['Invalid email or password'],
-      },
+        errors: ['Invalid email or password']
+      }
     })
 
   if (user.deletedAt)
     throw createError({
-      message: 'Account deleted, please contact support',
+      message: 'Account deleted, please contact support'
     })
+
+  const isCustomer = user.userRoles.some(ur => isCustomerRoleName(ur.role?.name))
+  if (isCustomer) {
+    throw err.unauth('Customer portal is not available yet')
+  }
 
   if (!user.password) {
     throw createError({
-      message: 'Account not created with password, please contact support',
+      message: 'Account not created with password, please contact support'
     })
   }
 
@@ -59,7 +66,7 @@ export default defineEventHandler(async (event) => {
   if (!verified) throw err.unauth()
 
   await replaceUserSession(event, {
-    user: userToSession(user),
+    user: userToSession(user)
   })
 
   return getUserSession(event)

@@ -22,6 +22,9 @@ defineProps<{
             <Section className="h-36 rounded-lg border border-[#d1d5db] bg-[#e5e7eb] mb-6" />
             <Text className="text-[24px] leading-8 font-semibold text-[#111827] m-0">{{ title }}</Text>
             <Text className="text-[15px] leading-6 text-[#4b5563] mt-3 mb-0">{{ description }}</Text>
+            <Section className="mt-5">
+              <slot />
+            </Section>
             <Section v-if="actionLabel && actionLink" className="mt-6 mb-2">
               <Link
                 :href="actionLink"
@@ -29,9 +32,6 @@ defineProps<{
               >
                 {{ actionLabel }}
               </Link>
-            </Section>
-            <Section className="mt-5">
-              <slot />
             </Section>
             <Text className="text-[12px] leading-5 text-[#6b7280] mt-6 mb-0">
               {{ footer || 'Maxwell CRM' }}

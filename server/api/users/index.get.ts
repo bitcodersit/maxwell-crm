@@ -1,66 +1,76 @@
 import type { H3Event } from 'h3'
-import { Prisma } from '~~/prisma/client/client'
+import type { Prisma } from '~~/prisma/client/client'
+import { CUSTOMER_ROLE_NAME } from '~~/server/utils/customerRole'
 
 export const getUsers = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
   if (!can(user, ['read-any-users'])) {
     return {
-      error: err.denied(),
+      error: err.denied()
     }
   }
 
   const { take, skip, paginate } = getPagination(query)
   const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
 
-  const where = getWhere<Prisma.UserWhereInput>(query, { deletedAt: null })
+  const where = getWhere<Prisma.UserWhereInput>(query, {
+    deletedAt: null,
+    userRoles: {
+      none: {
+        role: {
+          name: CUSTOMER_ROLE_NAME
+        }
+      }
+    }
+  })
     .id('id')
     .text('name')
     .text('email')
     .date('createdAt')
     .date('updatedAt')
-    .text('q', (text) => ({
+    .text('q', text => ({
       OR: [
         {
           name: {
-            contains: text,
-          },
+            contains: text
+          }
         },
         {
           email: {
-            contains: text,
-          },
-        },
-      ],
+            contains: text
+          }
+        }
+      ]
     }))
-    .id('roleIds', (roleId) => ({
+    .id('roleIds', roleId => ({
       userRoles: {
         some: {
-          roleId,
-        },
-      },
+          roleId
+        }
+      }
     }))
     .true('creatorOfTeam', () => ({
       teams: {
         some: {
-          deletedAt: null,
-        },
-      },
+          deletedAt: null
+        }
+      }
     }))
     .true('memberOfTeam', () => ({
       teamMembers: {
         some: {
           team: {
-            deletedAt: null,
-          },
-        },
-      },
+            deletedAt: null
+          }
+        }
+      }
     }))
-    .id('idsNotIn', (ids) => {
+    .id('idsNotIn', ids => {
       if ('in' in ids) {
         return {
           id: {
-            notIn: ids.in,
-          },
+            notIn: ids.in
+          }
         }
       }
       return {}
@@ -74,8 +84,8 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
         select: {
           id: true,
           name: true,
-          avatarId: true,
-        },
+          avatarId: true
+        }
       }
     : {
         select: {
@@ -83,6 +93,8 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
           name: true,
           email: true,
           emailVerifiedAt: true,
+          // phone: true,
+          // phoneVerifiedAt: true,
           avatarId: true,
           createdAt: true,
           updatedAt: true,
@@ -92,12 +104,12 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
               role: {
                 select: {
                   id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
+                  name: true
+                }
+              }
+            }
+          }
+        }
       }
 
   const [total, users] = await prisma.$transaction([
@@ -107,16 +119,16 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
       take,
       where,
       orderBy,
-      ...selectInclude,
-    }),
+      ...selectInclude
+    })
   ])
 
   return {
-    data: paginate(users, total),
+    data: paginate(users, total)
   }
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { error, data } = await getUsers(event)
   if (error) throw error
   return data
