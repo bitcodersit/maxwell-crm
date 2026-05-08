@@ -10,6 +10,7 @@ import type {
 const crudRef = useTemplateRef('crudRef')
 const UAvatar = resolveComponent('UAvatar')
 
+const { hCopy } = useHCopy()
 const { getAttachment } = useGetAttachment()
 
 const fields: TField[] = [
@@ -81,7 +82,8 @@ const columns = computed<TColumn<TUser>[]>(() => [
     cell({ row }) {
       return h('div', { class: 'flex items-center gap-2' }, [
         h('span', row.original.phone || '—'),
-        hVerified(row.original.phone, row.original.phoneVerifiedAt, 'Phone not verified')
+        hVerified(row.original.phone, row.original.phoneVerifiedAt, 'Phone not verified'),
+        hCopy(row.original.phone)
       ])
     }
   },

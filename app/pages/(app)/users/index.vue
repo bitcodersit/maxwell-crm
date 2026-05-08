@@ -12,6 +12,7 @@ const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
 const UAvatar = resolveComponent('UAvatar')
 
+const { hCopy } = useHCopy()
 const { confirm } = useConfirm()
 const { getAttachment } = useGetAttachment()
 
@@ -96,7 +97,8 @@ const columns = computed<TColumn<TUser>[]>(() => [
     cell({ row }) {
       return h('div', { class: 'flex items-center gap-2' }, [
         h('span', row.original.email || '—'),
-        hVerified(row.original.email, row.original.emailVerifiedAt, 'Email not verified')
+        hVerified(row.original.email, row.original.emailVerifiedAt, 'Email not verified'),
+        hCopy(row.original.email)
       ])
     }
   },
