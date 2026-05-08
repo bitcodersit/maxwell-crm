@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto'
 import type { H3Event } from 'h3'
+import { randomUUID } from 'node:crypto'
 
 export const RESET_TOKEN_TTL_SECONDS = 5 * 60
 
@@ -12,8 +12,8 @@ export const createResetPasswordLink = async (event: H3Event, userId: number) =>
       where: {
         modelId: userId,
         modelType: 'USER',
-        type: 'RESET',
-      },
+        type: 'RESET'
+      }
     }),
     prisma.token.create({
       data: {
@@ -21,9 +21,9 @@ export const createResetPasswordLink = async (event: H3Event, userId: number) =>
         modelType: 'USER',
         type: 'RESET',
         token,
-        expiresAt,
-      },
-    }),
+        expiresAt
+      }
+    })
   ])
 
   const config = useRuntimeConfig(event)
