@@ -15,11 +15,14 @@ model User {
     phone           String?   @unique
     password        String?
     avatarId        Int?
+    creatorId       Int?
     emailVerifiedAt DateTime?
     phoneVerifiedAt DateTime?
 
     teams               Team[]
     avatar              Attachment?  @relation(fields: [avatarId], references: [id], onDelete: SetNull)
+    creator             User?        @relation("UserCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+    users               User[]       @relation("UserCreator")
     userRoles           UserRole[]
     teamMembers         TeamMember[]
     teamMembersAssigned TeamMember[] @relation("TeamMemberAssigner")
@@ -29,7 +32,7 @@ model User {
     deletedAt DateTime?
 
     @@index([email])
-    @@index([phone])
+    @@index([creatorId])
     @@map("users")
 }
 

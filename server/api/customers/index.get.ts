@@ -76,6 +76,12 @@ export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
         select: {
           id: true,
           name: true,
+          creator: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           // email: true,
           phone: true,
           avatarId: true,

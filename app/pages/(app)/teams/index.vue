@@ -4,7 +4,7 @@ import type {
   TFilter,
   TColumn,
   TGetActions,
-  TBaseCrudModal,
+  TBaseCrudModal
 } from '@/components/base/BaseCrud.vue'
 import { TeamMemberRole } from '~~/prisma/client/enums'
 
@@ -21,11 +21,11 @@ const userFilterLabelProps = {
       h(UAvatar, {
         size: '2xs',
         src: getAttachment(v?.avatarId),
-        alt: v?.name,
+        alt: v?.name
       }),
-      h('span', v?.name || '—'),
+      h('span', v?.name || '—')
     ])
-  },
+  }
 }
 
 const fields: TField[] = [
@@ -34,16 +34,16 @@ const fields: TField[] = [
     type: 'input',
     label: 'Name',
     props: {
-      placeholder: 'Enter name...',
-    },
+      placeholder: 'Enter name...'
+    }
   },
   {
     name: 'description',
     type: 'textarea',
     label: 'Description',
     props: {
-      placeholder: 'Enter description...',
-    },
+      placeholder: 'Enter description...'
+    }
   },
   {
     name: 'members',
@@ -63,26 +63,26 @@ const fields: TField[] = [
             placeholder: 'Select role...',
             items: [
               { label: 'Leader', value: TeamMemberRole.LEADER },
-              { label: 'Member', value: TeamMemberRole.MEMBER },
-            ],
-          },
-        },
-      ],
-    },
-  },
+              { label: 'Member', value: TeamMemberRole.MEMBER }
+            ]
+          }
+        }
+      ]
+    }
+  }
 ]
 
 const columns = computed<TColumn<TTeam>[]>(() => [
   {
     id: 'select',
-    size: 48,
+    size: 48
   },
   {
     accessorKey: 'id',
     header: 'ID',
     pinned: 'left',
     sortBy: 'id',
-    size: 48,
+    size: 48
   },
   {
     accessorKey: 'name',
@@ -94,11 +94,11 @@ const columns = computed<TColumn<TTeam>[]>(() => [
           size: 'sm',
           alt: row.original.name,
           ui: {
-            fallback: 'text-xs',
-          },
+            fallback: 'text-xs'
+          }
         }),
-        h('div', row.original.name),
-      ]),
+        h('div', row.original.name)
+      ])
   },
   {
     accessorKey: 'members',
@@ -106,19 +106,19 @@ const columns = computed<TColumn<TTeam>[]>(() => [
     display: {
       type: 'array',
       slice: 3,
-      class: 'flex flex-wrap -ml-1 -mt-1',
+      class: 'flex flex-wrap -ml-1 -mt-1'
     },
     cell({ row, ...ctx }) {
       if (!row.original.members?.length) return '—'
       return row.original.members
-        .map((member) => ({
+        .map(member => ({
           id: member.user?.id,
           name: member.user?.name,
           avatarId: member.user?.avatarId,
-          role: member.role,
+          role: member.role
         }))
-        .filter((member) => member.name)
-        .map((member) => {
+        .filter(member => member.name)
+        .map(member => {
           const modal = (ctx as any).modal
           return h(
             UBadge,
@@ -128,8 +128,8 @@ const columns = computed<TColumn<TTeam>[]>(() => [
               color: 'neutral',
               variant: 'subtle',
               ui: {
-                base: 'rounded-full',
-              },
+                base: 'rounded-full'
+              }
             },
             () =>
               h('div', { class: 'flex items-center gap-1' }, [
@@ -137,19 +137,19 @@ const columns = computed<TColumn<TTeam>[]>(() => [
                   size: '2xs',
                   src: getAttachment(member.avatarId),
                   alt: member.name,
-                  class: 'bg-primary/20',
+                  class: 'bg-primary/20'
                 }),
                 h('span', member.name),
                 member.role === TeamMemberRole.LEADER
                   ? h(UIcon, {
                       name: 'i-lucide-star',
-                      class: 'text-warning',
+                      class: 'text-warning'
                     })
-                  : null,
+                  : null
               ])
           )
         })
-    },
+    }
   },
   {
     accessorKey: 'description',
@@ -158,45 +158,34 @@ const columns = computed<TColumn<TTeam>[]>(() => [
     display: {
       type: 'text',
       class: 'w-64',
-      length: 40,
+      length: 40
     },
     cell({ row }) {
       return row.original.description || '—'
-    },
+    }
   },
   {
     accessorKey: 'creator',
     header: 'Creator',
     sortBy: 'creatorId',
-    cell: ({ row }) => {
-      const creator = row.original.creator
-      if (!creator) return '—'
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(UAvatar, {
-          size: 'sm',
-          src: getAttachment(creator.avatarId),
-          alt: creator.name,
-        }),
-        h('div', creator.name),
-      ])
-    },
+    cell: ({ row }) => row.original.creator?.name || '—'
   },
   {
     accessorKey: 'createdAt',
     header: 'Created',
     sortBy: 'createdAt',
-    cell: ({ row }) => $dfc(row.original.createdAt),
+    cell: ({ row }) => $dfc(row.original.createdAt)
   },
   {
     accessorKey: 'updatedAt',
     header: 'Updated',
     sortBy: 'updatedAt',
-    cell: ({ row }) => $dfc(row.original.updatedAt),
+    cell: ({ row }) => $dfc(row.original.updatedAt)
   },
   {
     id: 'action',
-    pinned: 'right',
-  },
+    pinned: 'right'
+  }
 ])
 
 const filters: TFilter[] = [
@@ -205,8 +194,8 @@ const filters: TFilter[] = [
     type: 'input',
     props: {
       label: 'ID',
-      placeholder: 'eg 1 or 1,2,3 or 1-10',
-    },
+      placeholder: 'eg 1 or 1,2,3 or 1-10'
+    }
   },
   {
     name: 'name',
@@ -214,8 +203,8 @@ const filters: TFilter[] = [
     props: {
       label: 'Name',
       placeholder: 'Search by team name',
-      modeable: true,
-    },
+      modeable: true
+    }
   },
   {
     name: 'description',
@@ -223,8 +212,8 @@ const filters: TFilter[] = [
     props: {
       label: 'Description',
       placeholder: 'Search by description',
-      modeable: true,
-    },
+      modeable: true
+    }
   },
   {
     name: 'memberUserIds',
@@ -234,10 +223,10 @@ const filters: TFilter[] = [
       api: '/api/users',
       query: {
         options: true,
-        memberOfTeam: true,
+        memberOfTeam: true
       },
-      ...userFilterLabelProps,
-    },
+      ...userFilterLabelProps
+    }
   },
   {
     name: 'creatorId',
@@ -247,32 +236,32 @@ const filters: TFilter[] = [
       api: '/api/users',
       query: {
         options: true,
-        creatorOfTeam: true,
+        creatorOfTeam: true
       },
-      ...userFilterLabelProps,
-    },
+      ...userFilterLabelProps
+    }
   },
   {
     name: 'createdAt',
     type: 'date',
     props: {
-      label: 'Created',
-    },
+      label: 'Created'
+    }
   },
   {
     name: 'updatedAt',
     type: 'date',
     props: {
-      label: 'Updated',
-    },
-  },
+      label: 'Updated'
+    }
+  }
 ]
 
 const modal: TBaseCrudModal = {
   form: ({ mode }) => ({
     title: mode === 'create' ? 'Add New Team' : 'Update Team',
-    description: mode === 'create' ? 'Add a new team to the system' : 'Update the team',
-  }),
+    description: mode === 'create' ? 'Add a new team to the system' : 'Update the team'
+  })
 }
 
 const getActions: TGetActions<TTeam> = (item, v) => [
@@ -284,27 +273,27 @@ const getActions: TGetActions<TTeam> = (item, v) => [
         crudRef.value?.onView(item, {
           modal: {
             ui: {
-              content: 'max-w-2xl',
-            },
-          },
+              content: 'max-w-2xl'
+            }
+          }
         })
-      },
+      }
     },
     {
       ...actions.update,
       onSelect() {
         crudRef.value?.onUpdate(item)
-      },
-    },
+      }
+    }
   ].filter((action: any) => !action.hidden),
   [
     {
       ...actions.delete,
       onSelect() {
         crudRef.value?.onDelete(item)
-      },
-    },
-  ],
+      }
+    }
+  ]
 ]
 
 const getFormState = (v?: TTeam) => ({
@@ -312,17 +301,17 @@ const getFormState = (v?: TTeam) => ({
   name: v?.name ?? '',
   description: v?.description ?? '',
   members:
-    v?.members?.map((m) => ({
+    v?.members?.map(m => ({
       userId: m.userId || m.user?.id,
       role: m.role,
       user: m.user
         ? {
             id: m.user.id,
             name: m.user.name,
-            avatarId: m.user.avatarId,
+            avatarId: m.user.avatarId
           }
-        : undefined,
-    })) ?? [],
+        : undefined
+    })) ?? []
 })
 
 const getPostBody = (v: Record<string, any>) => ({
@@ -331,8 +320,8 @@ const getPostBody = (v: Record<string, any>) => ({
   description: v.description,
   members: (v.members || []).map((m: any) => ({
     userId: m.userId || v.user?.id,
-    role: m.role,
-  })),
+    role: m.role
+  }))
 })
 </script>
 

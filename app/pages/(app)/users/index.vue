@@ -139,6 +139,11 @@ const columns = computed<TColumn<TUser>[]>(() => [
     }
   },
   {
+    accessorKey: 'creator',
+    header: 'Creator',
+    cell: ({ row }) => row.original.creator?.name || '—'
+  },
+  {
     accessorKey: 'createdAt',
     header: 'Created',
     sortBy: 'createdAt',

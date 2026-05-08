@@ -66,6 +66,12 @@ export default defineEventHandler(async event => {
         select: {
           id: true,
           name: true,
+          creator: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           // email: true,
           phone: true,
           avatarId: true,
@@ -96,6 +102,7 @@ export default defineEventHandler(async event => {
     const customer = await prisma.user.create({
       data: {
         name: input.name,
+        creatorId: sessionUser.id,
         // email: input.email || null,
         phone: input.phone,
         userRoles: {
@@ -107,6 +114,12 @@ export default defineEventHandler(async event => {
       select: {
         id: true,
         name: true,
+        creator: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         // email: true,
         phone: true,
         avatarId: true,

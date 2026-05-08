@@ -92,6 +92,12 @@ export const getUsers = async (event: H3Event, query = getQuery(event)) => {
           id: true,
           name: true,
           email: true,
+          creator: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           emailVerifiedAt: true,
           // phone: true,
           // phoneVerifiedAt: true,
