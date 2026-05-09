@@ -1,6 +1,6 @@
 import type { UserSession } from '#auth-utils'
 
-type TModule = 'users' | 'roles' | 'permissions' | 'teams' | 'attachments'
+type TModule = 'users' | 'roles' | 'permissions' | 'teams' | 'attachments' | 'tasks'
 type TOperation = 'create' | 'read' | 'update' | 'delete' | 'export'
 type TSubject = 'any' | 'own'
 
@@ -13,5 +13,5 @@ export const can = (
 ) => {
   if (!user) return false
   if (!Array.isArray(permissions)) permissions = [permissions]
-  return permissions[method]((permission) => user.permissions.includes(permission))
+  return permissions[method](permission => user.permissions.includes(permission))
 }

@@ -1,66 +1,232 @@
 <script setup lang="ts">
+import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
+
+type TTaskItem = {
+  id: number
+  name: string
+  status: TaskItemStatus
+  completedBy?: {
+    id: number
+    name: string
+  } | null
+}
+
+type TTask = {
+  id: number
+  name: string
+  description?: string | null
+  status: TaskStatus
+  priority: TaskPriority
+  dueAt?: string | null
+  creator?: {
+    id: number
+    name: string
+  } | null
+  reviewer?: {
+    id: number
+    name: string
+  } | null
+  users: Array<{
+    id: number
+    userId: number
+    user: {
+      id: number
+      name: string
+    }
+  }>
+  teams: Array<{
+    id: number
+    teamId: number
+    team: {
+      id: number
+      name: string
+    }
+  }>
+  items: TTaskItem[]
+  attachables: Array<{
+    id: number
+    attachmentId: number
+    attachment: {
+      id: number
+      name?: string | null
+      mime?: string | null
+      size?: number | null
+      createdAt: string
+    }
+  }>
+}
+
 const route = useRoute()
 const router = useRouter()
-
-const { tasks, statusMeta, priorityMeta } = useTasksDemo()
+const toast = useToast()
+const { getAttachment } = useGetAttachment()
 
 const taskId = computed(() => Number(route.params.id))
-const task = computed(() => tasks.value.find(item => item.id === taskId.value))
-
-const status = ref<'in-progress' | 'review' | 'delayed' | 'completed'>('in-progress')
 const checklistDraft = ref('')
+const addingUser = ref<any[]>([])
+const addingTeam = ref<any[]>([])
+const status = ref<TaskStatus>(TaskStatus.TODO)
+
+const statusItems = [
+  { label: 'To Do', value: TaskStatus.TODO },
+  { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
+  { label: 'In Review', value: TaskStatus.IN_REVIEW },
+  { label: 'Completed', value: TaskStatus.COMPLETED },
+  { label: 'Cancelled', value: TaskStatus.CANCELLED }
+]
+
+const priorityMeta: Record<TaskPriority, { label: string; color: string }> = {
+  [TaskPriority.URGENT]: { label: 'Urgent', color: 'error' },
+  [TaskPriority.HIGH]: { label: 'High', color: 'warning' },
+  [TaskPriority.MEDIUM]: { label: 'Medium', color: 'neutral' },
+  [TaskPriority.LOW]: { label: 'Low', color: 'success' }
+}
+
+const statusMeta: Record<TaskStatus, { label: string; color: string }> = {
+  [TaskStatus.TODO]: { label: 'To Do', color: 'neutral' },
+  [TaskStatus.IN_PROGRESS]: { label: 'In Progress', color: 'primary' },
+  [TaskStatus.IN_REVIEW]: { label: 'In Review', color: 'warning' },
+  [TaskStatus.COMPLETED]: { label: 'Completed', color: 'success' },
+  [TaskStatus.CANCELLED]: { label: 'Cancelled', color: 'error' }
+}
+
+const {
+  data: task,
+  status: loadingStatus,
+  refresh
+} = useFetch<TTask>(() => `/api/tasks/${taskId.value}`, {
+  server: false,
+  watch: [taskId]
+})
 
 watch(
   task,
   value => {
-    if (value) {
-      status.value = value.status
-    }
+    if (value) status.value = value.status
   },
   { immediate: true }
 )
 
 const completion = computed(() => {
-  const list = task.value?.checklist || []
-  const done = list.filter(item => item.done).length
+  const list = task.value?.items || []
+  const done = list.filter(item => item.status === TaskItemStatus.COMPLETED).length
   const total = list.length
   const percent = total ? Math.round((done / total) * 100) : 0
-  return {
-    done,
-    total,
-    percent
-  }
+  return { done, total, percent }
 })
 
-const onUpdateStatus = () => {
-  if (!task.value) return
-  task.value.status = status.value
+const patchTask = async (body: Record<string, any>) => {
+  await $fetch(`/api/tasks/${taskId.value}`, {
+    method: 'PATCH',
+    body
+  })
+  await refresh()
 }
 
-const onToggleMilestone = (id: string) => {
+const onUpdateStatus = async () => {
   if (!task.value) return
-  task.value.checklist = task.value.checklist.map(item =>
-    item.id === id ? { ...item, done: !item.done } : item
-  )
+  await patchTask({ status: status.value })
 }
 
-const onAddChecklist = () => {
+const onToggleMilestone = async (item: TTaskItem) => {
+  await patchTask({
+    updateItems: [
+      {
+        id: item.id,
+        completed: item.status !== TaskItemStatus.COMPLETED
+      }
+    ]
+  })
+}
+
+const onDeleteMilestone = async (itemId: number) => {
+  await patchTask({
+    deleteItemIds: [itemId]
+  })
+}
+
+const onAddChecklist = async () => {
   if (!task.value || !checklistDraft.value.trim()) return
-  task.value.checklist = [
-    ...task.value.checklist,
-    {
-      id: `milestone-${task.value.id}-${Date.now()}`,
-      text: checklistDraft.value.trim(),
-      done: false
-    }
-  ]
+  await patchTask({
+    addItems: [{ name: checklistDraft.value.trim() }]
+  })
   checklistDraft.value = ''
+}
+
+const onAssignUser = async () => {
+  const selectedId = addingUser.value?.[0]?.id
+  if (!selectedId || !task.value) return
+  const current = task.value.users.map(row => row.userId)
+  await patchTask({
+    userIds: Array.from(new Set([...current, selectedId]))
+  })
+  addingUser.value = []
+}
+
+const onRemoveUser = async (userId: number) => {
+  if (!task.value) return
+  await patchTask({
+    userIds: task.value.users.map(row => row.userId).filter(id => id !== userId)
+  })
+}
+
+const onAssignTeam = async () => {
+  const selectedId = addingTeam.value?.[0]?.id
+  if (!selectedId || !task.value) return
+  const current = task.value.teams.map(row => row.teamId)
+  await patchTask({
+    teamIds: Array.from(new Set([...current, selectedId]))
+  })
+  addingTeam.value = []
+}
+
+const onRemoveTeam = async (teamId: number) => {
+  if (!task.value) return
+  await patchTask({
+    teamIds: task.value.teams.map(row => row.teamId).filter(id => id !== teamId)
+  })
+}
+
+const onUploadAttachment = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const form = new FormData()
+  form.append('file', file)
+  try {
+    const attachment = await $fetch<{ id: number }>('/api/attachments', {
+      method: 'POST',
+      body: form
+    })
+    await patchTask({
+      addAttachmentIds: [attachment.id]
+    })
+    toast.add({
+      color: 'success',
+      title: 'Attachment uploaded'
+    })
+  } catch (e) {
+    const { message } = parseError(e)
+    toast.add({
+      color: 'error',
+      title: 'Upload failed',
+      description: message
+    })
+  } finally {
+    input.value = ''
+  }
+}
+
+const onRemoveAttachment = async (attachmentId: number) => {
+  await patchTask({
+    removeAttachmentIds: [attachmentId]
+  })
 }
 </script>
 
 <template>
   <div
-    v-if="task"
+    v-if="task && loadingStatus !== 'pending'"
     class="space-y-4"
   >
     <div class="flex items-center justify-between">
@@ -76,7 +242,7 @@ const onAddChecklist = () => {
         color="neutral"
         variant="soft"
       >
-        {{ task.ref }}
+        #TASK-{{ task.id }}
       </UBadge>
     </div>
 
@@ -86,10 +252,10 @@ const onAddChecklist = () => {
           <div class="space-y-3">
             <div class="flex flex-wrap items-center gap-2">
               <UBadge
-                color="neutral"
+                :color="statusMeta[task.status].color"
                 variant="subtle"
               >
-                {{ task.category }}
+                {{ statusMeta[task.status].label }}
               </UBadge>
               <UBadge
                 :color="priorityMeta[task.priority].color"
@@ -98,80 +264,64 @@ const onAddChecklist = () => {
                 {{ priorityMeta[task.priority].label }} Priority
               </UBadge>
             </div>
-            <h1 class="text-2xl font-semibold">{{ task.title }}</h1>
+            <h1 class="text-2xl font-semibold">{{ task.name }}</h1>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
               <span class="inline-flex items-center gap-1">
                 <UIcon name="i-lucide-calendar" />
-                Due {{ task.dueDate }}
-              </span>
-              <span class="inline-flex items-center gap-1">
-                <UIcon name="i-lucide-users" />
-                Team: {{ task.team }}
+                Due {{ task.dueAt ? $dfc(task.dueAt) : '—' }}
               </span>
               <span class="inline-flex items-center gap-1">
                 <UIcon name="i-lucide-workflow" />
-                Pipeline: {{ task.pipeline }}
+                ID {{ task.id }}
               </span>
             </div>
           </div>
         </UCard>
 
         <UCard>
-          <template #header>
-            <h2 class="text-lg font-semibold">Full Description</h2>
-          </template>
-          <div class="space-y-4 text-sm leading-6 text-toned">
-            <p
-              v-for="(paragraph, index) in task.description.split('\n\n')"
-              :key="index"
-            >
-              {{ paragraph }}
-            </p>
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div class="rounded-md border border-default p-3">
-                <div class="text-xs uppercase text-muted">Data Points</div>
-                <div class="mt-1 font-medium">Review 14,000+ interactions</div>
-              </div>
-              <div class="rounded-md border border-default p-3">
-                <div class="text-xs uppercase text-muted">Key Goal</div>
-                <div class="mt-1 font-medium">Reduce churn by 12.5%</div>
-              </div>
-            </div>
+          <div
+            v-if="task.description"
+            class="space-y-4 text-sm leading-6 text-toned mb-6"
+          >
+            <p>{{ task.description || 'No description' }}</p>
           </div>
-        </UCard>
-
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between gap-2">
-              <h2 class="text-lg font-semibold">Interactive Checklist</h2>
-              <span class="text-sm font-medium">{{ completion.percent }}% Complete</span>
-            </div>
-          </template>
 
           <div class="space-y-3">
             <UProgress :model-value="completion.percent" />
 
             <div class="space-y-2">
               <div
-                v-for="milestone in task.checklist"
+                v-for="milestone in task.items"
                 :key="milestone.id"
                 class="flex items-start gap-2 rounded-md border border-default p-3"
               >
                 <UCheckbox
-                  :model-value="milestone.done"
-                  @update:model-value="onToggleMilestone(milestone.id)"
+                  :model-value="milestone.status === TaskItemStatus.COMPLETED"
+                  @update:model-value="onToggleMilestone(milestone)"
                 />
                 <div class="min-w-0">
                   <p
                     class="font-medium"
-                    :class="milestone.done ? 'line-through text-muted' : ''"
+                    :class="
+                      milestone.status === TaskItemStatus.COMPLETED ? 'line-through text-muted' : ''
+                    "
                   >
-                    {{ milestone.text }}
+                    {{ milestone.name }}
                   </p>
                   <p class="text-xs text-muted">
-                    {{ milestone.doneBy ? `Completed by ${milestone.doneBy}` : 'Pending peer review' }}
+                    {{
+                      milestone.completedBy?.name
+                        ? `Completed by ${milestone.completedBy.name}`
+                        : 'Pending peer review'
+                    }}
                   </p>
                 </div>
+                <UButton
+                  icon="i-lucide-trash"
+                  color="error"
+                  variant="ghost"
+                  @click="onDeleteMilestone(milestone.id)"
+                />
               </div>
             </div>
 
@@ -201,12 +351,8 @@ const onAddChecklist = () => {
           <div class="space-y-3">
             <USelect
               v-model="status"
-              :items="[
-                { label: 'In Progress', value: 'in-progress' },
-                { label: 'Review', value: 'review' },
-                { label: 'Delayed', value: 'delayed' },
-                { label: 'Completed', value: 'completed' }
-              ]"
+              :items="[...statusItems]"
+              value-key="value"
             />
             <UButton
               block
@@ -229,15 +375,66 @@ const onAddChecklist = () => {
             <h3 class="text-sm font-semibold uppercase text-muted">Ownership</h3>
           </template>
           <div class="space-y-2 text-sm">
-            <p><span class="text-muted">Owner:</span> {{ task.assignee }}</p>
-            <p><span class="text-muted">Reviewer:</span> Unassigned</p>
-            <UButton
-              size="sm"
-              variant="subtle"
-              color="neutral"
-            >
-              Assign Reviewer
-            </UButton>
+            <p><span class="text-muted">Creator:</span> {{ task.creator?.name || '—' }}</p>
+            <p><span class="text-muted">Reviewer:</span> {{ task.reviewer?.name || '—' }}</p>
+            <div class="space-y-2">
+              <div
+                v-for="assigned in task.users"
+                :key="assigned.id"
+                class="flex items-center justify-between rounded-md border border-default p-2"
+              >
+                <span>{{ assigned.user.name }}</span>
+                <UButton
+                  icon="i-lucide-x"
+                  color="error"
+                  variant="ghost"
+                  @click="onRemoveUser(assigned.userId)"
+                />
+              </div>
+              <div class="flex items-center gap-2">
+                <FormAutocomplete
+                  v-model="addingUser"
+                  api="/api/users"
+                  :query="{ options: true }"
+                  placeholder="Assign user"
+                  class="flex-1"
+                />
+                <UButton
+                  icon="i-lucide-plus"
+                  variant="subtle"
+                  @click="onAssignUser"
+                />
+              </div>
+            </div>
+            <div class="space-y-2 pt-2">
+              <div
+                v-for="assigned in task.teams"
+                :key="assigned.id"
+                class="flex items-center justify-between rounded-md border border-default p-2"
+              >
+                <span>{{ assigned.team.name }}</span>
+                <UButton
+                  icon="i-lucide-x"
+                  color="error"
+                  variant="ghost"
+                  @click="onRemoveTeam(assigned.teamId)"
+                />
+              </div>
+              <div class="flex items-center gap-2">
+                <FormAutocomplete
+                  v-model="addingTeam"
+                  api="/api/teams"
+                  :query="{ options: true }"
+                  placeholder="Assign team"
+                  class="flex-1"
+                />
+                <UButton
+                  icon="i-lucide-plus"
+                  variant="subtle"
+                  @click="onAssignTeam"
+                />
+              </div>
+            </div>
           </div>
         </UCard>
 
@@ -246,19 +443,33 @@ const onAddChecklist = () => {
             <h3 class="text-sm font-semibold uppercase text-muted">Resources</h3>
           </template>
           <div class="space-y-2">
-            <template v-if="task.resources.length">
+            <template v-if="task.attachables.length">
               <div
-                v-for="resource in task.resources"
+                v-for="resource in task.attachables"
                 :key="resource.id"
                 class="flex items-center justify-between rounded-md border border-default p-2"
               >
                 <div class="flex items-center gap-2">
-                  <UIcon :name="resource.icon" />
+                  <UIcon name="i-lucide-paperclip" />
                   <div>
-                    <p class="text-sm font-medium">{{ resource.name }}</p>
-                    <p class="text-xs text-muted">{{ resource.size }}</p>
+                    <a
+                      :href="getAttachment(resource.attachment.id)"
+                      target="_blank"
+                      class="text-sm font-medium underline"
+                    >
+                      {{ resource.attachment.name || `Attachment #${resource.attachment.id}` }}
+                    </a>
+                    <p class="text-xs text-muted">
+                      {{ resource.attachment.size ? `${resource.attachment.size} bytes` : '' }}
+                    </p>
                   </div>
                 </div>
+                <UButton
+                  icon="i-lucide-x"
+                  color="error"
+                  variant="ghost"
+                  @click="onRemoveAttachment(resource.attachmentId)"
+                />
               </div>
             </template>
             <template v-else>
@@ -269,13 +480,10 @@ const onAddChecklist = () => {
                 description="Upload related documents here."
               />
             </template>
-            <UButton
-              block
-              variant="subtle"
-              icon="i-lucide-upload"
-            >
-              Upload Document
-            </UButton>
+            <UInput
+              type="file"
+              @change="onUploadAttachment"
+            />
           </div>
         </UCard>
       </div>

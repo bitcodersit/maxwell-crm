@@ -88,6 +88,8 @@ const props = withDefaults(
     formClass?: string
     staleTime?: number
     dateFields?: string[]
+    gridClass?: string
+    leftClass?: string
     perPageOptions?: number[]
     deleteUrl?: string | ((item: T | T[]) => string)
     getActions?: TGetActions<T>
@@ -96,6 +98,8 @@ const props = withDefaults(
   }>(),
   {
     staleTime: 30 * 1000,
+    leftClass: 'col-span-1',
+    gridClass: 'grid grid-cols-1',
     fields: () => [],
     filters: () => [],
     columns: () => [],
@@ -361,7 +365,7 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
       })
       formOpen.value = false
       selected.value = {}
-      refreshKey.value++
+      refresh()
       if (viewModal.value && viewItem.value) {
         onView(item as T)
       }
@@ -395,7 +399,7 @@ const onDelete = async (item: T | T[]) => {
           title: 'Success! 🎉',
           description: 'Item deleted successfully'
         })
-        refreshKey.value++
+        refresh()
         viewModal.value = false
       })
       .catch(e => {
@@ -482,7 +486,12 @@ const onView = (item: T, props = viewProps.value) => {
   viewModal.value = true
 }
 
+const refresh = () => {
+  refreshKey.value++
+}
+
 defineExpose({
+  refresh,
   onView,
   onUpdate,
   onDelete,
@@ -561,7 +570,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             icon="i-lucide-refresh-cw"
             color="primary"
             variant="subtle"
-            @click="refreshKey++"
+            @click="refresh"
           />
         </UTooltip>
         <UTooltip text="Clear filters">
@@ -685,95 +694,105 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             </UForm>
           </template>
         </UPopover>
-        <UTooltip text="Add new item">
-          <UButton
-            icon="i-lucide-plus"
-            color="primary"
-            variant="solid"
-            @click="onAddNew"
-          >
-            Add New
-          </UButton>
-        </UTooltip>
+        <slot name="actions">
+          <UTooltip text="Add new item">
+            <UButton
+              icon="i-lucide-plus"
+              color="primary"
+              variant="solid"
+              @click="onAddNew"
+            >
+              Add New
+            </UButton>
+          </UTooltip>
+        </slot>
       </div>
     </div>
-    <UTable
-      ref="table"
-      v-model:row-selection="selected"
-      class="flex-1"
-      :sticky="true"
-      :data="data.data"
-      :columns="mColumns"
-      :loading="status === 'pending'"
-      :ui="{
-        base: 'table-fixed border-separate border-spacing-0',
-        thead: '[&>tr]:after:content-none',
-        tbody: '[&>tr]:last:[&>td]:border-b-0',
-        th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-        td: 'border-b border-default',
-        separator: 'h-0'
-      }"
-    >
-      <template #select-header="{ column, table }">
-        <div class="pr-4">
-          <UCheckbox
-            :model-value="
-              table.getIsSomePageRowsSelected() ? 'indeterminate' : table.getIsAllPageRowsSelected()
-            "
-            aria-label="Select all"
-            @update:model-value="v => table.toggleAllPageRowsSelected(!!v)"
-          />
-        </div>
-        {{ !column.getIsPinned() ? column.pin('left') : '' }}
-      </template>
-      <template #select-cell="{ row }">
-        <UCheckbox
-          :model-value="row.getIsSelected()"
-          aria-label="Select row"
-          @update:model-value="v => row.toggleSelected(!!v)"
-        />
-      </template>
-      <template #action-cell="{ row }">
-        <UDropdownMenu :items="getActions(row.original)">
-          <UButton
-            icon="i-lucide-ellipsis-vertical"
-            color="neutral"
-            variant="ghost"
-            aria-label="Actions"
-          />
-        </UDropdownMenu>
-      </template>
-    </UTable>
-    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
-      <div
-        v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
-        class="text-sm text-muted"
-      >
-        {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
-        {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} row(s) selected.
-      </div>
-      <div
-        v-else
-        class="text-sm text-muted"
-      >
-        Showing {{ query.perPage }} of {{ data.total }} row(s) total
-      </div>
+    <slot name="top" />
+    <div :class="gridClass">
+      <div :class="leftClass">
+        <UTable
+          ref="table"
+          v-model:row-selection="selected"
+          class="flex-1"
+          :sticky="true"
+          :data="data.data"
+          :columns="mColumns"
+          :loading="status === 'pending'"
+          :ui="{
+            base: 'table-fixed border-separate border-spacing-0',
+            thead: '[&>tr]:after:content-none',
+            tbody: '[&>tr]:last:[&>td]:border-b-0',
+            th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
+            td: 'border-b border-default',
+            separator: 'h-0'
+          }"
+        >
+          <template #select-header="{ column, table }">
+            <div class="pr-4">
+              <UCheckbox
+                :model-value="
+                  table.getIsSomePageRowsSelected()
+                    ? 'indeterminate'
+                    : table.getIsAllPageRowsSelected()
+                "
+                aria-label="Select all"
+                @update:model-value="v => table.toggleAllPageRowsSelected(!!v)"
+              />
+            </div>
+            {{ !column.getIsPinned() ? column.pin('left') : '' }}
+          </template>
+          <template #select-cell="{ row }">
+            <UCheckbox
+              :model-value="row.getIsSelected()"
+              aria-label="Select row"
+              @update:model-value="v => row.toggleSelected(!!v)"
+            />
+          </template>
+          <template #action-cell="{ row }">
+            <UDropdownMenu :items="getActions(row.original)">
+              <UButton
+                icon="i-lucide-ellipsis-vertical"
+                color="neutral"
+                variant="ghost"
+                aria-label="Actions"
+              />
+            </UDropdownMenu>
+          </template>
+        </UTable>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
+          <div
+            v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
+            class="text-sm text-muted"
+          >
+            {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
+            {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} row(s) selected.
+          </div>
+          <div
+            v-else
+            class="text-sm text-muted"
+          >
+            Showing {{ query.perPage }} of {{ data.total }} row(s) total
+          </div>
 
-      <div class="flex items-center gap-3">
-        <UTooltip text="Change items per page">
-          <USelect
-            v-model="query.perPage"
-            :items="perPageOptions"
-            class="min-w-20"
-            @change="onGotoFirstPage"
-          />
-        </UTooltip>
-        <UPagination
-          v-model:page="query.page"
-          :items-per-page="query.perPage"
-          :total="data.total"
-        />
+          <div class="flex items-center gap-3">
+            <UTooltip text="Change items per page">
+              <USelect
+                v-model="query.perPage"
+                :items="perPageOptions"
+                class="min-w-20"
+                @change="onGotoFirstPage"
+              />
+            </UTooltip>
+            <UPagination
+              v-model:page="query.page"
+              :items-per-page="query.perPage"
+              :total="data.total"
+            />
+          </div>
+        </div>
       </div>
+      <slot name="right" />
     </div>
     <UModal
       v-model:open="viewModal"

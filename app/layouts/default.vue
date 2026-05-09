@@ -73,15 +73,15 @@ const links = computed(() => {
           open.value = false
         }
       },
-      // {
-      //   label: 'Inbox',
-      //   icon: 'i-lucide-inbox',
-      //   to: '/inbox',
-      //   badge: '4',
-      //   onSelect: () => {
-      //     open.value = false
-      //   },
-      // },
+      {
+        label: 'Inbox',
+        icon: 'i-lucide-inbox',
+        to: '/inbox',
+        badge: '4',
+        onSelect: () => {
+          open.value = false
+        }
+      },
       {
         label: 'Settings',
         to: '/settings',
