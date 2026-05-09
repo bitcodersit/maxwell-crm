@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import type { TTaskItemRow } from '~/components/task/TaskItems.vue'
+import type { Mail } from '~/types'
 import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
 type TTaskItem = {
   id: number
   name: string
   status: TaskItemStatus
+  sortOrder?: number
   completedBy?: {
     id: number
     name: string
@@ -62,7 +65,7 @@ const toast = useToast()
 const { getAttachment } = useGetAttachment()
 
 const taskId = computed(() => Number(route.params.id))
-const checklistDraft = ref('')
+const checklistRows = ref<TTaskItemRow[]>([])
 const addingUser = ref<any[]>([])
 const addingTeam = ref<any[]>([])
 const status = ref<TaskStatus>(TaskStatus.TODO)
@@ -75,14 +78,16 @@ const statusItems = [
   { label: 'Cancelled', value: TaskStatus.CANCELLED }
 ]
 
-const priorityMeta: Record<TaskPriority, { label: string; color: string }> = {
+type TBadgeColor = 'error' | 'warning' | 'neutral' | 'success' | 'primary' | 'info' | 'secondary'
+
+const priorityMeta: Record<TaskPriority, { label: string; color: TBadgeColor }> = {
   [TaskPriority.URGENT]: { label: 'Urgent', color: 'error' },
   [TaskPriority.HIGH]: { label: 'High', color: 'warning' },
   [TaskPriority.MEDIUM]: { label: 'Medium', color: 'neutral' },
   [TaskPriority.LOW]: { label: 'Low', color: 'success' }
 }
 
-const statusMeta: Record<TaskStatus, { label: string; color: string }> = {
+const statusMeta: Record<TaskStatus, { label: string; color: TBadgeColor }> = {
   [TaskStatus.TODO]: { label: 'To Do', color: 'neutral' },
   [TaskStatus.IN_PROGRESS]: { label: 'In Progress', color: 'primary' },
   [TaskStatus.IN_REVIEW]: { label: 'In Review', color: 'warning' },
@@ -90,22 +95,126 @@ const statusMeta: Record<TaskStatus, { label: string; color: string }> = {
   [TaskStatus.CANCELLED]: { label: 'Cancelled', color: 'error' }
 }
 
-const {
-  data: task,
-  status: loadingStatus,
-  refresh
-} = useFetch<TTask>(() => `/api/tasks/${taskId.value}`, {
-  server: false,
+const { data: task, status: loadingStatus } = useFetch<TTask>(() => `/api/tasks/${taskId.value}`, {
   watch: [taskId]
 })
+
+const { data: inboxData, refresh: refreshInbox } = useFetch<{ data: TTask[] }>('/api/tasks', {
+  query: {
+    page: 1,
+    perPage: 200
+  }
+})
+
+const inboxTasks = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return (inboxData.value?.data || [])
+    .filter(row => row.id !== taskId.value)
+    .filter(row => row.status !== TaskStatus.COMPLETED && row.status !== TaskStatus.CANCELLED)
+    .filter(row => {
+      if (!row.dueAt) return false
+      const due = new Date(row.dueAt)
+      due.setHours(0, 0, 0, 0)
+      return due >= today
+    })
+    .sort((a, b) => {
+      const ad = a.dueAt ? new Date(a.dueAt).getTime() : Number.MAX_SAFE_INTEGER
+      const bd = b.dueAt ? new Date(b.dueAt).getTime() : Number.MAX_SAFE_INTEGER
+      return ad - bd
+    })
+})
+
+const inboxMails = computed<Mail[]>(() =>
+  inboxTasks.value.map(item => ({
+    id: item.id,
+    unread: item.status === TaskStatus.TODO,
+    from: {
+      id: item.creator?.id || item.id,
+      name: item.creator?.name || 'Task',
+      email: '',
+      status: 'subscribed',
+      location: ''
+    },
+    subject: item.name,
+    body: `Due ${item.dueAt ? $dfc(item.dueAt) : 'No due date'}`,
+    date: item.dueAt || new Date().toISOString()
+  }))
+)
+
+const selectedInboxMail = ref<Mail | null>(null)
+
+watch(
+  () => selectedInboxMail.value?.id,
+  async id => {
+    if (!id || id === taskId.value) return
+    await navigateTo(`/tasks/${id}`)
+  }
+)
+
+const dueDate = ref<any>()
+const descriptionDraft = ref('')
 
 watch(
   task,
   value => {
-    if (value) status.value = value.status
+    if (value) {
+      status.value = value.status
+      dueDate.value = value.dueAt
+        ? calendarFormatDate(value.dueAt.toString().slice(0, 10), { returnType: 'dateValue' })
+        : undefined
+      descriptionDraft.value = value.description ?? ''
+    }
   },
   { immediate: true }
 )
+
+watch(
+  () => task.value,
+  t => {
+    if (!t) {
+      checklistRows.value = []
+      return
+    }
+    checklistRows.value = t.items.map(i => ({
+      id: i.id,
+      text: i.name,
+      done: i.status === TaskItemStatus.COMPLETED
+    }))
+  },
+  { immediate: true }
+)
+
+const itemMeta = (row: TTaskItemRow) => {
+  const it = task.value?.items.find(i => i.id === row.id)
+  if (!it) return undefined
+  return it.completedBy?.name
+    ? `Completed by ${it.completedBy.name}`
+    : 'Pending peer review'
+}
+
+const onDescriptionBlur = () => {
+  if (!task.value) return
+  const nextTrimmed = descriptionDraft.value.trim()
+  const serverTrimmed = (task.value.description ?? '').trim()
+  if (nextTrimmed === serverTrimmed) return
+  const payload = nextTrimmed === '' ? null : nextTrimmed
+  patchTask({ description: payload }, t => {
+    t.description = payload
+  })
+}
+
+const onUpdateDueDate = (next?: any) => {
+  if (!task.value) return
+  const dueAt = next ? calendarFormatDate(next, { returnType: 'storage' }) : null
+  const current = task.value.dueAt ? task.value.dueAt.toString().slice(0, 10) : null
+  if ((dueAt || null) === current) return
+  dueDate.value = next
+  patchTask({ dueAt }, t => {
+    t.dueAt = dueAt ? `${dueAt}T12:00:00.000Z` : null
+  })
+}
 
 const completion = computed(() => {
   const list = task.value?.items || []
@@ -115,75 +224,191 @@ const completion = computed(() => {
   return { done, total, percent }
 })
 
-const patchTask = async (body: Record<string, any>) => {
-  await $fetch(`/api/tasks/${taskId.value}`, {
+const cloneTask = (t: TTask): TTask => JSON.parse(JSON.stringify(t)) as TTask
+
+/** Reconcile task with server without toggling useFetch pending (avoids full-page spinner). */
+const reconcileTaskFromServer = async () => {
+  const next = await $fetch<TTask>(`/api/tasks/${taskId.value}`)
+  task.value = next
+}
+
+/** Applies optimistic UI update, then PATCH in background; silent GET reconciles with server. */
+const patchTask = (body: Record<string, any>, optimistic?: (draft: TTask) => void) => {
+  if (!task.value) return
+  const backup = cloneTask(task.value)
+  try {
+    optimistic?.(task.value)
+  } catch {
+    return
+  }
+
+  void $fetch(`/api/tasks/${taskId.value}`, {
     method: 'PATCH',
     body
   })
-  await refresh()
+    .then(async () => {
+      await reconcileTaskFromServer()
+      await refreshInbox()
+    })
+    .catch(e => {
+      task.value = backup
+      const { message } = parseError(e)
+      toast.add({
+        color: 'error',
+        title: 'Update failed',
+        description: message
+      })
+      void reconcileTaskFromServer().catch(() => {})
+    })
 }
 
-const onUpdateStatus = async () => {
+const onStatusChange = (next: TaskStatus) => {
+  if (!task.value || next === task.value.status) return
+  patchTask({ status: next }, t => {
+    t.status = next
+  })
+}
+
+const onDetailToggle = ({ row, done }: { row: TTaskItemRow; done: boolean }) => {
+  if (!task.value || row.id <= 0) return
+  patchTask(
+    {
+      updateItems: [{ id: row.id, completed: done }]
+    },
+    t => {
+      const r = t.items.find(i => i.id === row.id)
+      if (!r) return
+      r.status = done ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
+      r.completedBy = done ? (r.completedBy ?? { id: 0, name: '…' }) : null
+      const todos = t.items
+        .filter(i => i.status === TaskItemStatus.TODO)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      const completed = t.items
+        .filter(i => i.status === TaskItemStatus.COMPLETED)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      t.items = [...todos, ...completed]
+    }
+  )
+}
+
+const onDetailReorder = ({ rows }: { rows: TTaskItemRow[] }) => {
   if (!task.value) return
-  await patchTask({ status: status.value })
+  const todos = rows.filter(r => !r.done)
+  const done = rows.filter(r => r.done)
+  const updates = [
+    ...todos.map((r, i) => ({ id: r.id, sortOrder: i })),
+    ...done.map((r, i) => ({ id: r.id, sortOrder: i }))
+  ].filter(u => u.id > 0)
+  if (!updates.length) return
+  patchTask({ updateItems: updates }, t => {
+    const byId = new Map(t.items.map(i => [i.id, i]))
+    t.items = [...todos, ...done]
+      .map(r => byId.get(r.id))
+      .filter(Boolean) as TTaskItem[]
+  })
 }
 
-const onToggleMilestone = async (item: TTaskItem) => {
-  await patchTask({
-    updateItems: [
-      {
-        id: item.id,
-        completed: item.status !== TaskItemStatus.COMPLETED
+const onDetailCommit = ({ row, text }: { row: TTaskItemRow; text: string }) => {
+  if (!task.value) return
+  const trimmed = text.trim()
+  if (row.id < 0) {
+    if (!trimmed) return
+    patchTask({ addItems: [{ name: trimmed, checked: row.done }] }, t => {
+      const item: TTaskItem = {
+        id: row.id,
+        name: trimmed,
+        sortOrder: row.done ? undefined : 0,
+        status: row.done ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO,
+        completedBy: row.done ? { id: 0, name: '…' } : null
       }
-    ]
+      const todos = t.items.filter(i => i.status === TaskItemStatus.TODO)
+      const completed = t.items.filter(i => i.status === TaskItemStatus.COMPLETED)
+      if (item.status === TaskItemStatus.TODO) {
+        t.items = [item, ...todos, ...completed]
+      } else {
+        t.items = [...todos, ...completed, item]
+      }
+    })
+    return
+  }
+  patchTask({ updateItems: [{ id: row.id, name: trimmed || 'Untitled' }] }, t => {
+    const r = t.items.find(i => i.id === row.id)
+    if (r) r.name = trimmed || 'Untitled'
   })
 }
 
-const onDeleteMilestone = async (itemId: number) => {
-  await patchTask({
-    deleteItemIds: [itemId]
+const onDetailRemove = ({ row }: { row: TTaskItemRow }) => {
+  if (!task.value || row.id <= 0) return
+  patchTask({ deleteItemIds: [row.id] }, t => {
+    t.items = t.items.filter(i => i.id !== row.id)
   })
 }
 
-const onAddChecklist = async () => {
-  if (!task.value || !checklistDraft.value.trim()) return
-  await patchTask({
-    addItems: [{ name: checklistDraft.value.trim() }]
-  })
-  checklistDraft.value = ''
+const onDetailAddRow = () => {
+  checklistRows.value.unshift({ id: -Date.now(), text: '', done: false })
 }
 
-const onAssignUser = async () => {
-  const selectedId = addingUser.value?.[0]?.id
+const onAssignUser = () => {
+  const selected = addingUser.value?.[0]
+  const selectedId = selected?.id
   if (!selectedId || !task.value) return
   const current = task.value.users.map(row => row.userId)
-  await patchTask({
-    userIds: Array.from(new Set([...current, selectedId]))
-  })
   addingUser.value = []
+  patchTask(
+    {
+      userIds: Array.from(new Set([...current, selectedId]))
+    },
+    t => {
+      if (t.users.some(u => u.userId === selectedId)) return
+      t.users.push({
+        id: -selectedId,
+        userId: selectedId,
+        user: {
+          id: selectedId,
+          name: selected.name ?? 'User'
+        }
+      })
+    }
+  )
 }
 
-const onRemoveUser = async (userId: number) => {
+const onRemoveUser = (userId: number) => {
   if (!task.value) return
-  await patchTask({
-    userIds: task.value.users.map(row => row.userId).filter(id => id !== userId)
+  const nextIds = task.value.users.map(row => row.userId).filter(id => id !== userId)
+  patchTask({ userIds: nextIds }, t => {
+    t.users = t.users.filter(u => u.userId !== userId)
   })
 }
 
-const onAssignTeam = async () => {
-  const selectedId = addingTeam.value?.[0]?.id
+const onAssignTeam = () => {
+  const selected = addingTeam.value?.[0]
+  const selectedId = selected?.id
   if (!selectedId || !task.value) return
   const current = task.value.teams.map(row => row.teamId)
-  await patchTask({
-    teamIds: Array.from(new Set([...current, selectedId]))
-  })
   addingTeam.value = []
+  patchTask(
+    {
+      teamIds: Array.from(new Set([...current, selectedId]))
+    },
+    t => {
+      if (t.teams.some(x => x.teamId === selectedId)) return
+      t.teams.push({
+        id: -selectedId,
+        teamId: selectedId,
+        team: {
+          id: selectedId,
+          name: selected.name ?? 'Team'
+        }
+      })
+    }
+  )
 }
 
-const onRemoveTeam = async (teamId: number) => {
+const onRemoveTeam = (teamId: number) => {
   if (!task.value) return
-  await patchTask({
-    teamIds: task.value.teams.map(row => row.teamId).filter(id => id !== teamId)
+  const nextIds = task.value.teams.map(row => row.teamId).filter(id => id !== teamId)
+  patchTask({ teamIds: nextIds }, t => {
+    t.teams = t.teams.filter(x => x.teamId !== teamId)
   })
 }
 
@@ -194,12 +419,27 @@ const onUploadAttachment = async (event: Event) => {
   const form = new FormData()
   form.append('file', file)
   try {
-    const attachment = await $fetch<{ id: number }>('/api/attachments', {
+    const attachment = await $fetch<{
+      id: number
+      name?: string | null
+      mime?: string | null
+      size?: number | null
+    }>('/api/attachments', {
       method: 'POST',
       body: form
     })
-    await patchTask({
-      addAttachmentIds: [attachment.id]
+    patchTask({ addAttachmentIds: [attachment.id] }, t => {
+      t.attachables.push({
+        id: -attachment.id,
+        attachmentId: attachment.id,
+        attachment: {
+          id: attachment.id,
+          name: attachment.name ?? file.name,
+          mime: attachment.mime ?? null,
+          size: attachment.size ?? null,
+          createdAt: new Date().toISOString()
+        }
+      })
     })
     toast.add({
       color: 'success',
@@ -217,18 +457,15 @@ const onUploadAttachment = async (event: Event) => {
   }
 }
 
-const onRemoveAttachment = async (attachmentId: number) => {
-  await patchTask({
-    removeAttachmentIds: [attachmentId]
+const onRemoveAttachment = (attachmentId: number) => {
+  patchTask({ removeAttachmentIds: [attachmentId] }, t => {
+    t.attachables = t.attachables.filter(a => a.attachmentId !== attachmentId)
   })
 }
 </script>
 
 <template>
-  <div
-    v-if="task && loadingStatus !== 'pending'"
-    class="space-y-4"
-  >
+  <div class="space-y-4">
     <div class="flex items-center justify-between">
       <UButton
         icon="i-lucide-arrow-left"
@@ -242,272 +479,268 @@ const onRemoveAttachment = async (attachmentId: number) => {
         color="neutral"
         variant="soft"
       >
-        #TASK-{{ task.id }}
+        #TASK-{{ task?.id || taskId }}
       </UBadge>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-[2fr_1fr]">
-      <div class="space-y-4">
-        <UCard>
-          <div class="space-y-3">
-            <div class="flex flex-wrap items-center gap-2">
+    <div class="grid gap-4 lg:grid-cols-[280px_2fr_1fr]">
+      <UCard :ui="{ body: 'sm:p-0 p-0' }">
+        <InboxList
+          v-if="inboxMails.length"
+          v-model="selectedInboxMail"
+          :mails="inboxMails"
+        />
+        <UAlert
+          v-else
+          color="neutral"
+          variant="subtle"
+          title="No upcoming pending tasks"
+          description="You are all caught up."
+        />
+      </UCard>
+
+      <div
+        v-if="loadingStatus === 'pending'"
+        class="lg:col-span-2 flex items-center justify-center min-h-64"
+      >
+        <UIcon
+          name="i-lucide-loader-circle"
+          class="size-8 animate-spin text-primary"
+        />
+      </div>
+
+      <template v-else-if="task">
+        <div class="space-y-4">
+          <UCard>
+            <div class="space-y-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <UBadge
+                  :color="statusMeta[task.status].color"
+                  variant="subtle"
+                >
+                  {{ statusMeta[task.status].label }}
+                </UBadge>
+                <UBadge
+                  :color="priorityMeta[task.priority].color"
+                  variant="soft"
+                >
+                  {{ priorityMeta[task.priority].label }} Priority
+                </UBadge>
+              </div>
+              <h1 class="text-2xl font-semibold">{{ task.name }}</h1>
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+                <FormDate
+                  v-model="dueDate"
+                  :show-mode="false"
+                  @update:model-value="onUpdateDueDate"
+                >
+                  <template #trigger>
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1 rounded px-1 py-0.5 transition hover:bg-elevated"
+                    >
+                      <UIcon name="i-lucide-calendar" />
+                      Due {{ task.dueAt ? $dfc(task.dueAt) : '—' }}
+                    </button>
+                  </template>
+                </FormDate>
+                <span class="inline-flex items-center gap-1">
+                  <UIcon name="i-lucide-workflow" />
+                  ID {{ task.id }}
+                </span>
+              </div>
+            </div>
+          </UCard>
+
+          <div @focusout="onDescriptionBlur">
+            <FormEditor
+              v-model="descriptionDraft"
+              content-type="markdown"
+              placeholder="Add short task details..."
+              min-height-class="min-h-32"
+              border-class="border-default"
+            />
+          </div>
+
+          <UCard>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-semibold uppercase text-muted">Checklist</span>
+                <UButton
+                  size="xs"
+                  variant="ghost"
+                  icon="i-lucide-plus"
+                  @click="onDetailAddRow"
+                >
+                  Add Item
+                </UButton>
+              </div>
+              <UProgress :model-value="completion.percent" />
+
+              <TaskItems
+                v-model="checklistRows"
+                variant="detail"
+                :meta-text="itemMeta"
+                @toggle="onDetailToggle"
+                @reorder="onDetailReorder"
+                @commit-text="onDetailCommit"
+                @remove="onDetailRemove"
+              />
+            </div>
+          </UCard>
+        </div>
+
+        <div class="space-y-4">
+          <UCard>
+            <template #header>
+              <h3 class="text-sm font-semibold uppercase text-muted">Task Status</h3>
+            </template>
+            <div class="space-y-3">
+              <USelect
+                v-model="status"
+                :items="[...statusItems]"
+                value-key="value"
+                @update:model-value="onStatusChange"
+              />
               <UBadge
                 :color="statusMeta[task.status].color"
-                variant="subtle"
+                variant="soft"
               >
                 {{ statusMeta[task.status].label }}
               </UBadge>
-              <UBadge
-                :color="priorityMeta[task.priority].color"
-                variant="soft"
-              >
-                {{ priorityMeta[task.priority].label }} Priority
-              </UBadge>
             </div>
-            <h1 class="text-2xl font-semibold">{{ task.name }}</h1>
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
-              <span class="inline-flex items-center gap-1">
-                <UIcon name="i-lucide-calendar" />
-                Due {{ task.dueAt ? $dfc(task.dueAt) : '—' }}
-              </span>
-              <span class="inline-flex items-center gap-1">
-                <UIcon name="i-lucide-workflow" />
-                ID {{ task.id }}
-              </span>
-            </div>
-          </div>
-        </UCard>
+          </UCard>
 
-        <UCard>
-          <div
-            v-if="task.description"
-            class="space-y-4 text-sm leading-6 text-toned mb-6"
-          >
-            <p>{{ task.description || 'No description' }}</p>
-          </div>
-
-          <div class="space-y-3">
-            <UProgress :model-value="completion.percent" />
-
-            <div class="space-y-2">
-              <div
-                v-for="milestone in task.items"
-                :key="milestone.id"
-                class="flex items-start gap-2 rounded-md border border-default p-3"
-              >
-                <UCheckbox
-                  :model-value="milestone.status === TaskItemStatus.COMPLETED"
-                  @update:model-value="onToggleMilestone(milestone)"
-                />
-                <div class="min-w-0">
-                  <p
-                    class="font-medium"
-                    :class="
-                      milestone.status === TaskItemStatus.COMPLETED ? 'line-through text-muted' : ''
-                    "
-                  >
-                    {{ milestone.name }}
-                  </p>
-                  <p class="text-xs text-muted">
-                    {{
-                      milestone.completedBy?.name
-                        ? `Completed by ${milestone.completedBy.name}`
-                        : 'Pending peer review'
-                    }}
-                  </p>
+          <UCard>
+            <template #header>
+              <h3 class="text-sm font-semibold uppercase text-muted">Ownership</h3>
+            </template>
+            <div class="space-y-2 text-sm">
+              <p><span class="text-muted">Creator:</span> {{ task.creator?.name || '—' }}</p>
+              <p><span class="text-muted">Reviewer:</span> {{ task.reviewer?.name || '—' }}</p>
+              <div class="space-y-2">
+                <div
+                  v-for="assigned in task.users"
+                  :key="assigned.id"
+                  class="flex items-center justify-between rounded-md border border-default p-2"
+                >
+                  <span>{{ assigned.user.name }}</span>
+                  <UButton
+                    icon="i-lucide-x"
+                    color="error"
+                    variant="ghost"
+                    @click="onRemoveUser(assigned.userId)"
+                  />
                 </div>
-                <UButton
-                  icon="i-lucide-trash"
-                  color="error"
-                  variant="ghost"
-                  @click="onDeleteMilestone(milestone.id)"
-                />
-              </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <UInput
-                v-model="checklistDraft"
-                placeholder="Add checklist item"
-                class="flex-1"
-              />
-              <UButton
-                icon="i-lucide-plus"
-                variant="subtle"
-                @click="onAddChecklist"
-              >
-                Add
-              </UButton>
-            </div>
-          </div>
-        </UCard>
-      </div>
-
-      <div class="space-y-4">
-        <UCard>
-          <template #header>
-            <h3 class="text-sm font-semibold uppercase text-muted">Task Status</h3>
-          </template>
-          <div class="space-y-3">
-            <USelect
-              v-model="status"
-              :items="[...statusItems]"
-              value-key="value"
-            />
-            <UButton
-              block
-              icon="i-lucide-save"
-              @click="onUpdateStatus"
-            >
-              Update Status
-            </UButton>
-            <UBadge
-              :color="statusMeta[task.status].color"
-              variant="soft"
-            >
-              {{ statusMeta[task.status].label }}
-            </UBadge>
-          </div>
-        </UCard>
-
-        <UCard>
-          <template #header>
-            <h3 class="text-sm font-semibold uppercase text-muted">Ownership</h3>
-          </template>
-          <div class="space-y-2 text-sm">
-            <p><span class="text-muted">Creator:</span> {{ task.creator?.name || '—' }}</p>
-            <p><span class="text-muted">Reviewer:</span> {{ task.reviewer?.name || '—' }}</p>
-            <div class="space-y-2">
-              <div
-                v-for="assigned in task.users"
-                :key="assigned.id"
-                class="flex items-center justify-between rounded-md border border-default p-2"
-              >
-                <span>{{ assigned.user.name }}</span>
-                <UButton
-                  icon="i-lucide-x"
-                  color="error"
-                  variant="ghost"
-                  @click="onRemoveUser(assigned.userId)"
-                />
-              </div>
-              <div class="flex items-center gap-2">
-                <FormAutocomplete
-                  v-model="addingUser"
-                  api="/api/users"
-                  :query="{ options: true }"
-                  placeholder="Assign user"
-                  class="flex-1"
-                />
-                <UButton
-                  icon="i-lucide-plus"
-                  variant="subtle"
-                  @click="onAssignUser"
-                />
-              </div>
-            </div>
-            <div class="space-y-2 pt-2">
-              <div
-                v-for="assigned in task.teams"
-                :key="assigned.id"
-                class="flex items-center justify-between rounded-md border border-default p-2"
-              >
-                <span>{{ assigned.team.name }}</span>
-                <UButton
-                  icon="i-lucide-x"
-                  color="error"
-                  variant="ghost"
-                  @click="onRemoveTeam(assigned.teamId)"
-                />
-              </div>
-              <div class="flex items-center gap-2">
-                <FormAutocomplete
-                  v-model="addingTeam"
-                  api="/api/teams"
-                  :query="{ options: true }"
-                  placeholder="Assign team"
-                  class="flex-1"
-                />
-                <UButton
-                  icon="i-lucide-plus"
-                  variant="subtle"
-                  @click="onAssignTeam"
-                />
-              </div>
-            </div>
-          </div>
-        </UCard>
-
-        <UCard>
-          <template #header>
-            <h3 class="text-sm font-semibold uppercase text-muted">Resources</h3>
-          </template>
-          <div class="space-y-2">
-            <template v-if="task.attachables.length">
-              <div
-                v-for="resource in task.attachables"
-                :key="resource.id"
-                class="flex items-center justify-between rounded-md border border-default p-2"
-              >
                 <div class="flex items-center gap-2">
-                  <UIcon name="i-lucide-paperclip" />
-                  <div>
-                    <a
-                      :href="getAttachment(resource.attachment.id)"
-                      target="_blank"
-                      class="text-sm font-medium underline"
-                    >
-                      {{ resource.attachment.name || `Attachment #${resource.attachment.id}` }}
-                    </a>
-                    <p class="text-xs text-muted">
-                      {{ resource.attachment.size ? `${resource.attachment.size} bytes` : '' }}
-                    </p>
-                  </div>
+                  <FormAutocomplete
+                    v-model="addingUser"
+                    api="/api/users"
+                    :query="{ options: true }"
+                    placeholder="Assign user"
+                    class="flex-1"
+                  />
+                  <UButton
+                    icon="i-lucide-plus"
+                    variant="subtle"
+                    @click="onAssignUser"
+                  />
                 </div>
-                <UButton
-                  icon="i-lucide-x"
-                  color="error"
-                  variant="ghost"
-                  @click="onRemoveAttachment(resource.attachmentId)"
-                />
               </div>
+              <div class="space-y-2 pt-2">
+                <div
+                  v-for="assigned in task.teams"
+                  :key="assigned.id"
+                  class="flex items-center justify-between rounded-md border border-default p-2"
+                >
+                  <span>{{ assigned.team.name }}</span>
+                  <UButton
+                    icon="i-lucide-x"
+                    color="error"
+                    variant="ghost"
+                    @click="onRemoveTeam(assigned.teamId)"
+                  />
+                </div>
+                <div class="flex items-center gap-2">
+                  <FormAutocomplete
+                    v-model="addingTeam"
+                    api="/api/teams"
+                    :query="{ options: true }"
+                    placeholder="Assign team"
+                    class="flex-1"
+                  />
+                  <UButton
+                    icon="i-lucide-plus"
+                    variant="subtle"
+                    @click="onAssignTeam"
+                  />
+                </div>
+              </div>
+            </div>
+          </UCard>
+
+          <UCard>
+            <template #header>
+              <h3 class="text-sm font-semibold uppercase text-muted">Resources</h3>
             </template>
-            <template v-else>
-              <UAlert
-                color="neutral"
-                variant="subtle"
-                title="No files yet"
-                description="Upload related documents here."
+            <div class="space-y-2">
+              <template v-if="task.attachables.length">
+                <div
+                  v-for="resource in task.attachables"
+                  :key="resource.id"
+                  class="flex items-center justify-between rounded-md border border-default p-2"
+                >
+                  <div class="flex items-center gap-2">
+                    <UIcon name="i-lucide-paperclip" />
+                    <div>
+                      <a
+                        :href="getAttachment(resource.attachment.id)"
+                        target="_blank"
+                        class="text-sm font-medium underline"
+                      >
+                        {{ resource.attachment.name || `Attachment #${resource.attachment.id}` }}
+                      </a>
+                      <p class="text-xs text-muted">
+                        {{ resource.attachment.size ? `${resource.attachment.size} bytes` : '' }}
+                      </p>
+                    </div>
+                  </div>
+                  <UButton
+                    icon="i-lucide-x"
+                    color="error"
+                    variant="ghost"
+                    @click="onRemoveAttachment(resource.attachmentId)"
+                  />
+                </div>
+              </template>
+              <template v-else>
+                <UAlert
+                  color="neutral"
+                  variant="subtle"
+                  title="No files yet"
+                  description="Upload related documents here."
+                />
+              </template>
+              <UInput
+                type="file"
+                @change="onUploadAttachment"
               />
-            </template>
-            <UInput
-              type="file"
-              @change="onUploadAttachment"
-            />
-          </div>
-        </UCard>
-      </div>
+            </div>
+          </UCard>
+        </div>
+      </template>
+
+      <UCard
+        v-else
+        class="lg:col-span-2"
+      >
+        <UAlert
+          color="warning"
+          variant="subtle"
+          title="Task not found"
+          description="This task does not exist in the current dataset."
+        />
+      </UCard>
     </div>
   </div>
-
-  <UCard
-    v-else
-    class="max-w-xl"
-  >
-    <UAlert
-      color="warning"
-      variant="subtle"
-      title="Task not found"
-      description="This task does not exist in the current dummy dataset."
-    />
-    <template #footer>
-      <UButton
-        icon="i-lucide-arrow-left"
-        variant="subtle"
-        @click="router.push('/tasks')"
-      >
-        Back to tasks
-      </UButton>
-    </template>
-  </UCard>
 </template>

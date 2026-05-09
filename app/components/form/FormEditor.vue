@@ -6,11 +6,13 @@ const props = withDefaults(
     placeholder?: string
     contentType?: EditorContentType
     minHeightClass?: string
+    borderClass?: string
   }>(),
   {
     placeholder: 'Start writing...',
     contentType: 'markdown',
-    minHeightClass: 'min-h-32'
+    minHeightClass: 'min-h-32',
+    borderClass: 'border-accented'
   }
 )
 
@@ -75,14 +77,17 @@ const toolbarItems = [
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-lg border border-accented bg-default/20">
+  <div
+    class="overflow-hidden rounded-lg border bg-default/20"
+    :class="[borderClass, minHeightClass]"
+  >
     <UEditor
       v-slot="{ editor }"
       v-model="model"
-      :content-type="props.contentType"
-      :placeholder="props.placeholder"
+      :content-type="contentType"
+      :placeholder="placeholder"
       :ui="{
-        base: ['px-3 py-2 text-sm', props.minHeightClass],
+        base: ['px-3 py-2 text-sm', minHeightClass],
         content: '[&>div]:px-3 [&>div]:py-2'
       }"
       class="w-full"
@@ -90,7 +95,8 @@ const toolbarItems = [
       <UEditorToolbar
         :editor="editor"
         :items="toolbarItems"
-        class="border-b border-accented p-2"
+        class="border-b p-2"
+        :class="borderClass"
       />
     </UEditor>
   </div>

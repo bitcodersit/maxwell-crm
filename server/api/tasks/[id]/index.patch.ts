@@ -49,9 +49,7 @@ const taskInclude = {
     where: {
       deletedAt: null
     },
-    orderBy: {
-      sortOrder: 'asc' as const
-    },
+    orderBy: [{ status: 'asc' as const }, { sortOrder: 'asc' as const }],
     select: {
       id: true,
       name: true,
@@ -114,7 +112,8 @@ const zTaskPatch = z.object({
         name: z.string().min(1).optional(),
         status: z.nativeEnum(TaskItemStatus).optional(),
         checked: z.boolean().optional(),
-        completed: z.boolean().optional()
+        completed: z.boolean().optional(),
+        sortOrder: z.number().int().optional()
       })
     )
     .optional(),
@@ -296,52 +295,149 @@ export default defineEventHandler(async event => {
     }
 
     if (input.addItems?.length) {
-      const maxSort = await tx.taskItem.aggregate({
+      const todoNewCount = input.addItems.filter(item => {
+        const st =
+          item.checked || item.completed ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
+        return st === TaskItemStatus.TODO
+      }).length
+
+      if (todoNewCount > 0) {
+        await tx.taskItem.updateMany({
+          where: {
+            taskId,
+            deletedAt: null,
+            status: TaskItemStatus.TODO
+          },
+          data: {
+            sortOrder: {
+              increment: todoNewCount
+            }
+          }
+        })
+      }
+
+      const maxCompletedAgg = await tx.taskItem.aggregate({
         where: {
           taskId,
-          deletedAt: null
+          deletedAt: null,
+          status: TaskItemStatus.COMPLETED
         },
         _max: {
           sortOrder: true
         }
       })
-      let sortOrder = maxSort._max.sortOrder || 0
-      await tx.taskItem.createMany({
-        data: input.addItems.map(item => {
-          sortOrder += 1
-          const status =
-            item.checked || item.completed ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
-          return {
-            taskId,
-            name: item.name,
-            sortOrder,
-            status,
-            completedAt: status === TaskItemStatus.COMPLETED ? now : null,
-            completedById: status === TaskItemStatus.COMPLETED ? user.id : null
-          }
+      let nextCompletedSort = (maxCompletedAgg._max.sortOrder ?? -1) + 1
+      let nextTodoSort = 0
+
+      const rowsToCreate: Array<{
+        taskId: number
+        name: string
+        sortOrder: number
+        status: TaskItemStatus
+        completedAt: Date | null
+        completedById: number | null
+      }> = []
+      for (const raw of input.addItems) {
+        const status =
+          raw.checked || raw.completed ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
+        const sortOrder =
+          status === TaskItemStatus.TODO ? nextTodoSort++ : nextCompletedSort++
+        rowsToCreate.push({
+          taskId,
+          name: raw.name,
+          sortOrder,
+          status,
+          completedAt: status === TaskItemStatus.COMPLETED ? now : null,
+          completedById: status === TaskItemStatus.COMPLETED ? user.id : null
         })
+      }
+
+      await tx.taskItem.createMany({
+        data: rowsToCreate
       })
     }
 
     if (input.updateItems?.length) {
       for (const item of input.updateItems) {
-        const status = getItemStatus(item)
+        const existing = await tx.taskItem.findFirst({
+          where: {
+            id: item.id,
+            taskId,
+            deletedAt: null
+          },
+          select: {
+            id: true,
+            status: true,
+            sortOrder: true
+          }
+        })
+        if (!existing) continue
+
+        const parsedStatus = getItemStatus(item)
+        const nextStatus =
+          typeof parsedStatus !== 'undefined' ? parsedStatus : existing.status
+        const statusTransition =
+          typeof parsedStatus !== 'undefined' && parsedStatus !== existing.status
+
+        const patch: Prisma.TaskItemUncheckedUpdateManyInput = {}
+
+        if (typeof item.name !== 'undefined') patch.name = item.name
+
+        if (statusTransition) {
+          patch.status = nextStatus
+          patch.completedAt = nextStatus === TaskItemStatus.COMPLETED ? now : null
+          patch.completedById = nextStatus === TaskItemStatus.COMPLETED ? user.id : null
+
+          if (
+            nextStatus === TaskItemStatus.COMPLETED &&
+            existing.status === TaskItemStatus.TODO
+          ) {
+            const maxCompletedSort = await tx.taskItem.aggregate({
+              where: {
+                taskId,
+                deletedAt: null,
+                status: TaskItemStatus.COMPLETED,
+                id: {
+                  not: item.id
+                }
+              },
+              _max: {
+                sortOrder: true
+              }
+            })
+            patch.sortOrder = (maxCompletedSort._max.sortOrder ?? -1) + 1
+          } else if (
+            nextStatus === TaskItemStatus.TODO &&
+            existing.status === TaskItemStatus.COMPLETED
+          ) {
+            await tx.taskItem.updateMany({
+              where: {
+                taskId,
+                deletedAt: null,
+                status: TaskItemStatus.TODO,
+                id: {
+                  not: item.id
+                }
+              },
+              data: {
+                sortOrder: {
+                  increment: 1
+                }
+              }
+            })
+            patch.sortOrder = 0
+          }
+        } else if (typeof item.sortOrder !== 'undefined') {
+          patch.sortOrder = item.sortOrder
+        }
+
         await tx.taskItem.updateMany({
           where: {
             id: item.id,
             taskId,
             deletedAt: null
           },
-          data: {
-            ...(typeof item.name !== 'undefined' ? { name: item.name } : {}),
-            ...(typeof status !== 'undefined'
-              ? {
-                  status,
-                  completedAt: status === TaskItemStatus.COMPLETED ? now : null,
-                  completedById: status === TaskItemStatus.COMPLETED ? user.id : null
-                }
-              : {})
-          }
+          data: patch
         })
       }
     }

@@ -60,9 +60,7 @@ const taskInclude = {
     where: {
       deletedAt: null
     },
-    orderBy: {
-      sortOrder: 'asc' as const
-    },
+    orderBy: [{ status: 'asc' as const }, { sortOrder: 'asc' as const }],
     select: {
       id: true,
       name: true,

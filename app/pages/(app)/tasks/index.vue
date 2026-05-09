@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TColumn, TFilter, TGetActions } from '@/components/base/BaseCrud.vue'
-import { TaskPriority, TaskStatus } from '~~/prisma/client/enums'
+import type { TTaskItemRow } from '~/components/task/TaskItems.vue'
+import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
 type TTask = {
   id: number
@@ -19,12 +20,11 @@ type TTask = {
   } | null
   createdAt: string | Date
   updatedAt: string | Date
-}
-
-type TCreateMilestone = {
-  id: string
-  text: string
-  done: boolean
+  items?: Array<{
+    id: number
+    name: string
+    status: TaskItemStatus
+  }>
 }
 
 type TTaskFormState = {
@@ -35,13 +35,12 @@ type TTaskFormState = {
   priority: TaskPriority
   reviewers: Array<{ id: number; name: string }>
   dueAt: string
-  milestones: TCreateMilestone[]
+  items: TTaskItemRow[]
 }
 
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
 const toast = useToast()
-let milestoneSeed = 0
 
 const statusItems = [
   { label: 'To Do', value: TaskStatus.TODO },
@@ -332,15 +331,93 @@ const formState = reactive<TTaskFormState>({
   priority: TaskPriority.MEDIUM,
   reviewers: [],
   dueAt: '',
-  milestones: []
+  items: []
 })
 const isSubmitting = ref(false)
 
-const createMilestone = (text = '', done = false): TCreateMilestone => ({
-  id: `milestone-${Date.now()}-${milestoneSeed++}`,
+const createMilestone = (text = '', done = false): TTaskItemRow => ({
+  id: Date.now() + Math.floor(Math.random() * 1000),
   text,
   done
 })
+
+const rowsFromApi = (
+  items: Array<{ id: number; name: string; status: TaskItemStatus }>
+): TTaskItemRow[] =>
+  items.map(i => ({
+    id: i.id,
+    text: i.name,
+    done: i.status === TaskItemStatus.COMPLETED
+  }))
+
+const refreshModalTaskItems = async () => {
+  if (!formState.id) return
+  try {
+    const t = await $fetch<{
+      items: Array<{ id: number; name: string; status: TaskItemStatus }>
+    }>(`/api/tasks/${formState.id}`)
+    formState.items = t.items?.length ? rowsFromApi(t.items) : [createMilestone('')]
+  } catch {
+    /* ignore */
+  }
+}
+
+const patchEditModalItems = (body: Record<string, unknown>) => {
+  if (formMode.value !== 'update' || !formState.id) return
+
+  void $fetch(`/api/tasks/${formState.id}`, {
+    method: 'PATCH',
+    body
+  })
+    .then(() => refreshModalTaskItems())
+    .catch(e => {
+      const { message } = parseError(e)
+      toast.add({
+        color: 'error',
+        title: 'Checklist update failed',
+        description: message
+      })
+      void refreshModalTaskItems()
+    })
+}
+
+const onModalItemsToggle = ({ row, done }: { row: TTaskItemRow; done: boolean }) => {
+  if (row.id <= 0) return
+  patchEditModalItems({
+    updateItems: [{ id: row.id, completed: done }]
+  })
+}
+
+const onModalItemsReorder = ({ rows }: { rows: TTaskItemRow[] }) => {
+  const todos = rows.filter(r => !r.done)
+  const done = rows.filter(r => r.done)
+  const updates = [
+    ...todos.map((r, i) => ({ id: r.id, sortOrder: i })),
+    ...done.map((r, i) => ({ id: r.id, sortOrder: i }))
+  ].filter(u => u.id > 0)
+  if (!updates.length) return
+  patchEditModalItems({ updateItems: updates })
+}
+
+const onModalItemsCommit = ({ row, text }: { row: TTaskItemRow; text: string }) => {
+  const trimmed = text.trim()
+  if (row.id < 0) {
+    if (!trimmed || formMode.value !== 'update' || !formState.id) return
+    patchEditModalItems({
+      addItems: [{ name: trimmed, checked: row.done }]
+    })
+    return
+  }
+  if (formMode.value !== 'update' || !formState.id) return
+  patchEditModalItems({
+    updateItems: [{ id: row.id, name: trimmed || 'Untitled' }]
+  })
+}
+
+const onModalItemsRemove = ({ row }: { row: TTaskItemRow }) => {
+  if (row.id <= 0) return
+  patchEditModalItems({ deleteItemIds: [row.id] })
+}
 
 const resetForm = () => {
   formState.id = undefined
@@ -350,10 +427,7 @@ const resetForm = () => {
   formState.priority = TaskPriority.MEDIUM
   formState.reviewers = []
   formState.dueAt = ''
-  formState.milestones = [
-    createMilestone('Initial client outreach and qualification'),
-    createMilestone('')
-  ]
+  formState.items = [createMilestone('')]
 }
 
 const openCreate = () => {
@@ -371,36 +445,13 @@ const openUpdate = (task: TTask) => {
   formState.priority = task.priority
   formState.reviewers = task.reviewer ? [task.reviewer] : []
   formState.dueAt = task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 10) : ''
-  formState.milestones = [
-    createMilestone('Initial client outreach and qualification'),
-    createMilestone('')
-  ]
+  formState.items =
+    task.items?.length ? rowsFromApi(task.items) : [createMilestone('')]
   formOpen.value = true
 }
 
-const onRemoveMilestone = (index: number) => {
-  if (formState.milestones.length <= 1) {
-    formState.milestones[0] = createMilestone('')
-    return
-  }
-  formState.milestones.splice(index, 1)
-}
-
 const onAddMilestone = () => {
-  formState.milestones.unshift(createMilestone(''))
-}
-
-const onToggleMilestone = (index: number, value: boolean | 'indeterminate') => {
-  const checked = value === true
-  const milestone = formState.milestones[index]
-  if (!milestone) return
-
-  milestone.done = checked
-  if (!checked) return
-
-  const [moved] = formState.milestones.splice(index, 1)
-  if (!moved) return
-  formState.milestones.push(moved)
+  formState.items.unshift(createMilestone(''))
 }
 
 const onSubmitTask = async () => {
@@ -423,10 +474,10 @@ const onSubmitTask = async () => {
         body: {
           name: title,
           description,
-          items: formState.milestones
-            .map(milestone => ({
-              name: milestone.text.trim(),
-              checked: milestone.done
+          items: formState.items
+            .map(v => ({
+              name: v.text.trim(),
+              checked: v.done
             }))
             .filter(item => item.name)
         }
@@ -654,8 +705,8 @@ const getActions: TGetActions<TTask> = (item, v) => [
               {{ formMode === 'create' ? 'New Task Initiation' : 'Update Task Directive' }}
             </h4>
             <p class="mt-2 text-sm text-muted">
-              Complete the configuration for this CRM directive. Ensure milestones are clearly
-              defined for the assigned team.
+              Complete the configuration for this CRM directive. Ensure items are clearly defined
+              for the assigned team.
             </p>
           </div>
           <div class="space-y-4 text-sm">
@@ -728,45 +779,15 @@ const getActions: TGetActions<TTask> = (item, v) => [
                 </UButton>
               </div>
             </template>
-            <div class="space-y-2">
-              <div
-                v-for="(milestone, index) in formState.milestones"
-                :key="milestone.id"
-                class="flex items-center gap-2"
-              >
-                <UButton
-                  size="sm"
-                  icon="i-lucide-grip-vertical"
-                  color="neutral"
-                  variant="ghost"
-                  :ui="{ leadingIcon: 'text-muted/50' }"
-                  class="milestone-handle cursor-grab active:cursor-grabbing flex-none"
-                />
-                <div
-                  class="group flex items-center gap-2 rounded-lg border border-default bg-elevated/50 px-3 py-2 flex-1"
-                >
-                  <UCheckbox
-                    :model-value="milestone.done"
-                    @update:model-value="onToggleMilestone(index, $event)"
-                  />
-                  <UInput
-                    v-model="milestone.text"
-                    placeholder="Add next requirement..."
-                    class="flex-1"
-                    variant="none"
-                    :ui="{ base: 'px-0' }"
-                  />
-                  <UButton
-                    v-if="formState.milestones.length"
-                    color="neutral"
-                    variant="ghost"
-                    icon="i-lucide-x"
-                    class="opacity-0 transition-opacity group-hover:opacity-100"
-                    @click="onRemoveMilestone(index)"
-                  />
-                </div>
-              </div>
-            </div>
+            <TaskItems
+              v-model="formState.items"
+              variant="form"
+              keep-at-least-one-row
+              @toggle="onModalItemsToggle"
+              @reorder="onModalItemsReorder"
+              @commit-text="onModalItemsCommit"
+              @remove="onModalItemsRemove"
+            />
           </UFormField>
           <div class="flex w-full justify-end gap-2">
             <UButton
