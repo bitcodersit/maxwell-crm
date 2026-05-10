@@ -18,51 +18,6 @@ type TTaskItem = {
   } | null
 }
 
-type TTask = {
-  id: number
-  name: string
-  description?: string | null
-  status: TaskStatus
-  priority: TaskPriority
-  dueAt?: string | null
-  creator?: {
-    id: number
-    name: string
-  } | null
-  reviewer?: {
-    id: number
-    name: string
-  } | null
-  users: Array<{
-    id: number
-    userId: number
-    user: {
-      id: number
-      name: string
-    }
-  }>
-  teams: Array<{
-    id: number
-    teamId: number
-    team: {
-      id: number
-      name: string
-    }
-  }>
-  items: TTaskItem[]
-  attachables: Array<{
-    id: number
-    attachmentId: number
-    attachment: {
-      id: number
-      name?: string | null
-      mime?: string | null
-      size?: number | null
-      createdAt: string
-    }
-  }>
-}
-
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
@@ -97,24 +52,6 @@ const priorityItems: DropdownMenuItem[] = Object.values(TaskPriority).map(priori
   }
 }))
 
-type TBadgeColor = 'error' | 'warning' | 'neutral' | 'success' | 'primary' | 'info' | 'secondary'
-
-const priorityMeta: Record<TaskPriority, { label: string; color: TBadgeColor }> = {
-  [TaskPriority.URGENT]: { label: 'Urgent', color: 'error' },
-  [TaskPriority.HIGH]: { label: 'High', color: 'warning' },
-  [TaskPriority.MEDIUM]: { label: 'Medium', color: 'neutral' },
-  [TaskPriority.LOW]: { label: 'Low', color: 'success' }
-}
-
-const statusMeta: Record<TaskStatus, { label: string; color: TBadgeColor }> = {
-  [TaskStatus.TODO]: { label: 'To Do', color: 'neutral' },
-  [TaskStatus.IN_PROGRESS]: { label: 'In Progress', color: 'primary' },
-  [TaskStatus.IN_REVIEW]: { label: 'In Review', color: 'warning' },
-  [TaskStatus.COMPLETED]: { label: 'Completed', color: 'success' },
-  [TaskStatus.CANCELLED]: { label: 'Cancelled', color: 'error' }
-}
-
-const dueDate = ref<any>()
 const descriptionDraft = ref('')
 
 watch(
@@ -122,9 +59,6 @@ watch(
   value => {
     if (value) {
       status.value = value.status
-      dueDate.value = value.dueAt
-        ? calendarFormatDate(value.dueAt.toString().slice(0, 10), { returnType: 'dateValue' })
-        : undefined
       descriptionDraft.value = value.description ?? ''
     }
   },
@@ -151,28 +85,6 @@ const itemMeta = (row: TTaskItemRow) => {
   const it = task.value?.items.find(i => i.id === row.id)
   if (!it) return undefined
   return it.completedBy?.name ? `Completed by ${it.completedBy.name}` : 'Pending peer review'
-}
-
-const onDescriptionBlur = () => {
-  if (!task.value) return
-  const nextTrimmed = descriptionDraft.value.trim()
-  const serverTrimmed = (task.value.description ?? '').trim()
-  if (nextTrimmed === serverTrimmed) return
-  const payload = nextTrimmed === '' ? null : nextTrimmed
-  patchTask({ description: payload }, t => {
-    t.description = payload
-  })
-}
-
-const onUpdateDueDate = (next?: any) => {
-  if (!task.value) return
-  const dueAt = next ? calendarFormatDate(next, { returnType: 'storage' }) : null
-  const current = task.value.dueAt ? task.value.dueAt.toString().slice(0, 10) : null
-  if ((dueAt || null) === current) return
-  dueDate.value = next
-  patchTask({ dueAt }, t => {
-    t.dueAt = dueAt ? `${dueAt}T12:00:00.000Z` : null
-  })
 }
 
 const completion = computed(() => {
@@ -418,6 +330,28 @@ const onRemoveAttachment = (attachmentId: number) => {
     t.attachables = t.attachables.filter(a => a.attachmentId !== attachmentId)
   })
 }
+
+const onChangeName = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const name = input.textContent.trim()
+  if (!name || name === task.value?.name) return
+  patchTask({ name })
+}
+
+const onChangeDescription = () => {
+  if (!task.value) return
+  const nextTrimmed = descriptionDraft.value.trim()
+  const serverTrimmed = (task.value.description ?? '').trim()
+  if (nextTrimmed === serverTrimmed) return
+  const description = nextTrimmed === '' ? null : nextTrimmed
+  patchTask({ description })
+}
+
+const onChangeDueDate = (dueAt: any = null) => {
+  if (task.value && dueAt !== task.value.dueAt?.toString().slice(0, 10)) {
+    patchTask({ dueAt: dueAt || null })
+  }
+}
 </script>
 
 <template>
@@ -435,7 +369,13 @@ const onRemoveAttachment = (attachmentId: number) => {
           class="flex-none -ml-1 p-0"
           @click="router.push('/tasks')"
         />
-        <h1 class="text-2xl font-semibold">{{ task.name }}</h1>
+        <h1
+          class="text-2xl font-semibold outline-none focus:underline"
+          :contenteditable="true"
+          @blur="onChangeName"
+        >
+          {{ task.name }}
+        </h1>
         <div class="flex flex-wrap items-center gap-2">
           <UDropdownMenu :items="statusItems">
             <UBadge
@@ -458,11 +398,11 @@ const onRemoveAttachment = (attachmentId: number) => {
             </UBadge>
           </UDropdownMenu>
           <FormDate
-            v-model="dueDate"
+            :model-value="task.dueAt"
             :mode="'single'"
             :show-mode="false"
             :min-value="todayDateValue()"
-            @update:model-value="onUpdateDueDate"
+            @update:model-value="onChangeDueDate"
           >
             <template #trigger>
               <UBadge
@@ -477,7 +417,7 @@ const onRemoveAttachment = (attachmentId: number) => {
         </div>
       </div>
 
-      <div @focusout="onDescriptionBlur">
+      <div @focusout="onChangeDescription">
         <FormEditor
           v-model="descriptionDraft"
           content-type="markdown"

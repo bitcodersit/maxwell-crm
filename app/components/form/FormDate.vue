@@ -6,7 +6,7 @@ import { format as df } from 'date-fns'
 type TValue = CalendarProps['modelValue']
 type TMode = 'single' | 'range' | 'multiple'
 type TTrigger = 'input' | 'button'
-type TModelValue = TValue | string | Date
+type TModelValue = TValue | string | Date | null
 
 export type TFormDateProps = Omit<CalendarProps, 'modelValue'> & {
   mode?: TMode
@@ -99,9 +99,7 @@ const inputTriggerProps = computed(() => {
 
 const setValue = (next?: any) => {
   value.value = next
-  const output = toOutputValue(next)
-  emit('update:modelValue', output)
-  model.value = output
+  model.value = toOutputValue(next)
 }
 
 const onClear = () => {

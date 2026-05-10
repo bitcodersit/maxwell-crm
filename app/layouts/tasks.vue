@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TaskPriority, TaskStatus } from '~~/prisma/client/enums'
+import { TaskStatus } from '~~/prisma/client/enums'
 import { format, isToday } from 'date-fns'
 
 const router = useRouter()
@@ -34,22 +34,17 @@ const { item, onRef } = useArrows(
             :ref="el => onRef(el, task)"
           >
             <div
-              class="p-4 sm:px-6 text-sm cursor-pointer border-l-2 transition-colors relative"
+              class="p-4 sm:px-6 text-sm cursor-pointer border-l-2 transition-colors relative gap-1 flex flex-col"
               :class="[
                 task.status === TaskStatus.TODO ? 'text-highlighted' : 'text-toned',
-                item && item.id === task.id
+                task.id === Number($route.params.id)
                   ? 'border-primary bg-primary/10'
                   : 'border-bg hover:border-primary hover:bg-primary/5'
               ]"
               @click="item = task"
             >
               <div class="flex gap-4 justify-between items-center">
-                <!-- <UChip
-                  
-                  class="flex-none"
-                > -->
                 <div class="truncate">{{ task.name }}</div>
-                <!-- </UChip> -->
                 <div
                   class="text-xs text-dimmed flex-none"
                   :class="[task.status === TaskStatus.TODO && 'font-semibold']"
