@@ -19,7 +19,7 @@ export type TFilterCheckboxProps<Value extends TValue = TValue, Item extends TIt
 
 const props = withDefaults(defineProps<TFilterCheckboxProps<Value, Item>>(), {
   valueKey: 'id',
-  getLabel: (item: Item) => item.name,
+  getLabel: (item: Item) => item.name
 })
 
 const emit = defineEmits<{
@@ -33,7 +33,7 @@ const defaultPerPage = query.value?.perPage ?? 10
 const perPage = ref(defaultPerPage)
 const orderBy = ref<Record<string, 'asc' | 'desc'>>({})
 
-const { data, status, execute } = useFetchApi({
+const { data, status, refetch } = useFetchApi({
   api,
   staleTime: 10 * 1000,
   immediate: false,
@@ -41,11 +41,11 @@ const { data, status, execute } = useFetchApi({
     ...query.value,
     q: searchTermD.value,
     perPage: perPage.value,
-    orderBy: orderBy.value,
+    orderBy: orderBy.value
   })),
   getDefault() {
     return toPaginated<Item>()
-  },
+  }
 })
 
 const open = ref(false)
@@ -53,7 +53,7 @@ const state = ref<any>(modelValue.value)
 
 const onOpen = () => {
   open.value = true
-  execute()
+  refetch()
 }
 
 const onApply = () => {
@@ -67,7 +67,7 @@ const onClear = () => {
   open.value = false
 }
 
-watch(modelValue, (v) => {
+watch(modelValue, v => {
   if (v == state.value) return
   state.value = v
 })
@@ -93,7 +93,10 @@ watch(modelValue, (v) => {
         <UKbd v-if="modelValue?.length">
           {{ modelValue.length }}
         </UKbd>
-        <template v-if="modelValue" #trailing>
+        <template
+          v-if="modelValue"
+          #trailing
+        >
           <UButton
             icon="i-lucide-x"
             size="xs"
@@ -114,7 +117,11 @@ watch(modelValue, (v) => {
           placeholder="Search..."
           @keyup.enter="onApply"
         />
-        <UProgress v-if="status === 'pending'" size="sm" animation="swing" />
+        <UProgress
+          v-if="status === 'pending'"
+          size="sm"
+          animation="swing"
+        />
       </div>
       <div class="flex items-center justify-between gap-2 mt-1">
         <div class="flex items-center gap-2">
@@ -135,10 +142,16 @@ watch(modelValue, (v) => {
           </span>
         </div>
         <div>
-          <BaseOrderByDropdown v-model="orderBy" :items="orderByItems" />
+          <BaseOrderByDropdown
+            v-model="orderBy"
+            :items="orderByItems"
+          />
         </div>
       </div>
-      <div v-if="status !== 'pending' && !data.data.length" class="text-muted py-1 text-sm mt-1">
+      <div
+        v-if="status !== 'pending' && !data.data.length"
+        class="text-muted py-1 text-sm mt-1"
+      >
         No results found
       </div>
       <UCheckboxGroup
@@ -149,7 +162,7 @@ watch(modelValue, (v) => {
         :value-key="valueKey"
         :ui="{
           root: 'overflow-y-auto mt-1',
-          label: labelClass,
+          label: labelClass
         }"
         @keyup.enter="onApply"
       >
@@ -184,7 +197,10 @@ watch(modelValue, (v) => {
           size="sm"
           @click="onApply"
         >
-          <template v-if="state?.length" #trailing>
+          <template
+            v-if="state?.length"
+            #trailing
+          >
             <UKbd size="sm">
               {{ state?.length }}
             </UKbd>

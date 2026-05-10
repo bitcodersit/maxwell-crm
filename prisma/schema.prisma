@@ -15,23 +15,329 @@ model User {
     phone           String?   @unique
     password        String?
     avatarId        Int?
+    creatorId       Int?
     emailVerifiedAt DateTime?
     phoneVerifiedAt DateTime?
 
+    avatar    Attachment? @relation(fields: [avatarId], references: [id], onDelete: SetNull)
+    userRoles UserRole[]
+
+    creator      User?  @relation("UserCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+    createdUsers User[] @relation("UserCreator")
+
     teams               Team[]
-    avatar              Attachment?  @relation(fields: [avatarId], references: [id], onDelete: SetNull)
-    userRoles           UserRole[]
     teamMembers         TeamMember[]
     teamMembersAssigned TeamMember[] @relation("TeamMemberAssigner")
+
+    taskUsers     TaskUser[]
+    taskItems     TaskItem[] @relation("TaskItemCompleter")
+    tasksCreated  Task[]     @relation("TaskCreator")
+    tasksReviewed Task[]     @relation("TaskReviewer")
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
     deletedAt DateTime?
 
     @@index([email])
-    @@index([phone])
+    @@index([creatorId])
     @@map("users")
 }
+
+// END USER
+// ================================================================
+// START TEAM
+
+enum TeamMemberRole {
+    LEADER
+    MEMBER
+}
+
+model Team {
+    id Int @id @default(autoincrement())
+
+    name        String  @unique
+    description String? @db.Text
+
+    avatarId  Int?
+    creatorId Int?
+
+    avatar    Attachment?  @relation(fields: [avatarId], references: [id], onDelete: SetNull)
+    creator   User?        @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+    members   TeamMember[]
+    taskTeams TaskTeam[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([name])
+    @@index([creatorId])
+    @@map("teams")
+}
+
+model TeamMember {
+    id Int @id @default(autoincrement())
+
+    teamId     Int
+    userId     Int
+    assignerId Int?
+    role       TeamMemberRole @default(MEMBER)
+
+    team     Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+    user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+    assigner User? @relation("TeamMemberAssigner", fields: [assignerId], references: [id], onDelete: SetNull)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@unique([teamId, userId])
+    @@index([teamId])
+    @@index([userId])
+    @@index([assignerId])
+    @@map("team_members")
+}
+
+// END TEAM
+// ================================================================
+// START ROLE PERMISSION
+
+model Role {
+    id Int @id @default(autoincrement())
+
+    name        String  @unique
+    description String? @db.Text
+
+    userRoles       UserRole[]
+    rolePermissions RolePermission[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([name])
+    @@map("roles")
+}
+
+model Permission {
+    id Int @id @default(autoincrement())
+
+    name        String  @unique
+    description String? @db.Text
+
+    rolePermissions RolePermission[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([name])
+    @@map("permissions")
+}
+
+model UserRole {
+    id Int @id @default(autoincrement())
+
+    userId Int
+    roleId Int
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, roleId])
+    @@index([userId])
+    @@index([roleId])
+    @@map("user_roles")
+}
+
+model RolePermission {
+    id Int @id @default(autoincrement())
+
+    roleId       Int
+    permissionId Int
+
+    role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+    permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+    @@unique([roleId, permissionId])
+    @@index([roleId])
+    @@index([permissionId])
+    @@map("role_permissions")
+}
+
+// END ROLE PERMISSION
+// ================================================================
+// START ATTACHMENT
+enum StorageProvider {
+    FILESYSTEM
+    S3
+    SUPABASE
+}
+
+model Attachment {
+    id Int @id @default(autoincrement())
+
+    provider StorageProvider @default(FILESYSTEM)
+
+    name String?
+    path String
+    type String?
+    size Int?
+    mime String?
+
+    users User[]
+    teams Team[]
+
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @default(now()) @updatedAt
+    deletedAt   DateTime?
+    attachables Attachable[]
+
+    @@index([path])
+    @@map("attachments")
+}
+
+// Morph like, as prisma doesn't support polymorphic relations natively
+// we will use this table to store the relationship between attachments and other models as needed
+model Attachable {
+    id Int @id @default(autoincrement())
+
+    attachmentId Int
+    attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+    taskId Int?
+    task   Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@unique([attachmentId, taskId])
+    @@index([taskId])
+    @@map("attachables")
+}
+
+// END ATTACHMENT
+// ================================================================
+// START TASK
+enum TaskStatus {
+    TODO
+    IN_PROGRESS
+    IN_REVIEW
+    COMPLETED
+    CANCELLED
+}
+
+enum TaskPriority {
+    URGENT
+    HIGH
+    MEDIUM
+    LOW
+}
+
+enum TaskItemStatus {
+    TODO
+    COMPLETED
+}
+
+model Task {
+    id Int @id @default(autoincrement())
+
+    name        String
+    description String? @db.Text
+
+    status   TaskStatus   @default(TODO)
+    priority TaskPriority @default(MEDIUM)
+
+    creatorId  Int?
+    reviewerId Int?
+
+    dueAt       DateTime?
+    completedAt DateTime?
+
+    creator  User? @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+    reviewer User? @relation("TaskReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+    items       TaskItem[]
+    users       TaskUser[]
+    teams       TaskTeam[]
+    attachables Attachable[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([status, priority])
+    @@index([dueAt])
+    @@index([creatorId])
+    @@index([reviewerId])
+    @@map("tasks")
+}
+
+model TaskItem {
+    id Int @id @default(autoincrement())
+
+    taskId    Int
+    name      String
+    sortOrder Int    @default(0)
+
+    status        TaskItemStatus @default(TODO)
+    completedAt   DateTime?
+    completedById Int?
+
+    task        Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+    completedBy User? @relation("TaskItemCompleter", fields: [completedById], references: [id], onDelete: SetNull)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([taskId, sortOrder])
+    @@index([taskId, status])
+    @@index([completedById])
+    @@map("task_items")
+}
+
+model TaskUser {
+    id Int @id @default(autoincrement())
+
+    taskId Int
+    userId Int
+
+    task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@unique([taskId, userId])
+    @@index([taskId])
+    @@index([userId])
+    @@map("task_users")
+}
+
+model TaskTeam {
+    id Int @id @default(autoincrement())
+
+    taskId Int
+    teamId Int
+
+    task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+    team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@unique([taskId, teamId])
+    @@index([taskId])
+    @@index([teamId])
+    @@map("task_teams")
+}
+
+// END TASK
+// ================================================================
+// START UTILITY
 
 enum TokenType {
     VERIFY
@@ -112,143 +418,5 @@ model EmailJob {
     @@map("email_jobs")
 }
 
-model Team {
-    id Int @id @default(autoincrement())
-
-    name        String  @unique
-    description String? @db.Text
-
-    avatarId  Int?
-    creatorId Int?
-
-    avatar  Attachment?  @relation(fields: [avatarId], references: [id], onDelete: SetNull)
-    creator User?        @relation(fields: [creatorId], references: [id], onDelete: SetNull)
-    members TeamMember[]
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @default(now()) @updatedAt
-    deletedAt DateTime?
-
-    @@index([name])
-    @@index([creatorId])
-    @@map("teams")
-}
-
-enum TeamMemberRole {
-    LEADER
-    MEMBER
-}
-
-model TeamMember {
-    id Int @id @default(autoincrement())
-
-    teamId     Int
-    userId     Int
-    assignerId Int?
-    role       TeamMemberRole @default(MEMBER)
-
-    team     Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-    user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-    assigner User? @relation("TeamMemberAssigner", fields: [assignerId], references: [id], onDelete: SetNull)
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @default(now()) @updatedAt
-    deletedAt DateTime?
-
-    @@unique([teamId, userId])
-    @@index([teamId])
-    @@index([userId])
-    @@index([assignerId])
-    @@map("team_members")
-}
-
-model Role {
-    id Int @id @default(autoincrement())
-
-    name        String  @unique
-    description String? @db.Text
-
-    userRoles       UserRole[]
-    rolePermissions RolePermission[]
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @default(now()) @updatedAt
-    deletedAt DateTime?
-
-    @@index([name])
-    @@map("roles")
-}
-
-model Permission {
-    id Int @id @default(autoincrement())
-
-    name        String  @unique
-    description String? @db.Text
-
-    rolePermissions RolePermission[]
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @default(now()) @updatedAt
-    deletedAt DateTime?
-
-    @@index([name])
-    @@map("permissions")
-}
-
-model UserRole {
-    id Int @id @default(autoincrement())
-
-    userId Int
-    roleId Int
-
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-    role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-    @@unique([userId, roleId])
-    @@index([userId])
-    @@index([roleId])
-    @@map("user_roles")
-}
-
-model RolePermission {
-    id Int @id @default(autoincrement())
-
-    roleId       Int
-    permissionId Int
-
-    role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-    permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-    @@unique([roleId, permissionId])
-    @@index([roleId])
-    @@index([permissionId])
-    @@map("role_permissions")
-}
-
-enum StorageProvider {
-    FILESYSTEM
-    S3
-    SUPABASE
-}
-
-model Attachment {
-    id Int @id @default(autoincrement())
-
-    provider StorageProvider @default(FILESYSTEM)
-
-    name String?
-    path String
-    type String?
-    size Int?
-    mime String?
-
-    users User[]
-    teams Team[]
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @default(now()) @updatedAt
-    deletedAt DateTime?
-
-    @@index([path])
-    @@map("attachments")
-}
+// END UTILITY
+// ================================================================

@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
+withDefaults(
+  defineProps<{
+    padding?: boolean
+    scrollable?: boolean
+  }>(),
+  {
+    padding: true,
+    scrollable: true
+  }
+)
+
 const route = useRoute()
 const toast = useToast()
 
@@ -16,6 +27,14 @@ const links = computed(() => {
         label: 'Home',
         icon: 'i-lucide-house',
         to: '/',
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      {
+        label: 'Tasks',
+        icon: 'i-lucide-list-checks',
+        to: '/tasks',
         onSelect: () => {
           open.value = false
         }
@@ -65,15 +84,15 @@ const links = computed(() => {
           open.value = false
         }
       },
-      // {
-      //   label: 'Inbox',
-      //   icon: 'i-lucide-inbox',
-      //   to: '/inbox',
-      //   badge: '4',
-      //   onSelect: () => {
-      //     open.value = false
-      //   },
-      // },
+      {
+        label: 'Inbox',
+        icon: 'i-lucide-inbox',
+        to: '/inbox',
+        badge: '4',
+        onSelect: () => {
+          open.value = false
+        }
+      },
       {
         label: 'Settings',
         to: '/settings',
@@ -222,7 +241,11 @@ useUiColors()
         <UserMenu :collapsed="collapsed" />
       </template>
     </UDashboardSidebar>
-    <UDashboardPanel>
+    <UDashboardPanel
+      :ui="{
+        body: [!padding ? 'p-0 sm:p-0' : '', !scrollable ? 'overflow-y-hidden' : '']
+      }"
+    >
       <template #header>
         <UDashboardNavbar :title="title">
           <template #leading>

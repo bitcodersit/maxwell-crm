@@ -32,7 +32,7 @@ export type TBaseSearchboxProviderProps<
 
 const props = withDefaults(defineProps<TBaseSearchboxProviderProps<Item, Value>>(), {
   getValue: (item: Item) => item.id,
-  getLabel: (item: Item) => item.name,
+  getLabel: (item: Item) => item.name
 })
 
 const { api, query, hideOnSelect, clearOnSelect } = toRefs(props)
@@ -48,7 +48,7 @@ const orderBy = ref<TBaseOrderBy>({})
 const inputRef = shallowRef<HTMLInputElement | null>(null)
 
 const { state: searchTerm, stateD: searchTermD } = useDebouncedState('', 300)
-const { data, status, execute } = useFetchApi({
+const { data, status, refetch } = useFetchApi({
   api,
   immediate: false,
   staleTime: 10 * 1000,
@@ -56,15 +56,15 @@ const { data, status, execute } = useFetchApi({
     ...query.value,
     q: searchTermD.value,
     orderBy: orderBy.value,
-    idsNotIn: model.value.map((x) => props.getValue(x)).join(','),
+    idsNotIn: model.value.map(x => props.getValue(x)).join(',')
   })),
   getDefault() {
     return toPaginated<Item>()
-  },
+  }
 })
 
 const selectableItems = computed(() => {
-  const selected = new Set(model.value.map((x) => props.getValue(x)))
+  const selected = new Set(model.value.map(x => props.getValue(x)))
   return (data.value.data || []).filter((row): row is Item => {
     if (!row) return false
     return !selected.has(props.getValue(row))
@@ -81,7 +81,7 @@ const focusInput = () => {
 
 const onSelectItem = (item?: Item) => {
   if (!item) return
-  if (model.value.some((x) => props.getValue(x) === props.getValue(item))) return
+  if (model.value.some(x => props.getValue(x) === props.getValue(item))) return
   model.value = [...model.value, item]
   if (clearOnSelect.value) searchTerm.value = ''
   if (hideOnSelect.value) {
@@ -91,7 +91,7 @@ const onSelectItem = (item?: Item) => {
     focusInput()
     dropdownOpen.value = true
     activeIndex.value = 0
-    execute()
+    refetch()
   }
 }
 
@@ -112,7 +112,7 @@ const onInput = (event: Event | string) => {
 const onFocus = () => {
   dropdownOpen.value = true
   activeIndex.value = 0
-  execute()
+  refetch()
 }
 
 const onKeydown = (e: KeyboardEvent) => {
@@ -159,7 +159,7 @@ const slotProps = computed<TBaseSearchboxProviderSlotProps>(() => ({
   onInput,
   onFocus,
   onKeydown,
-  setInputRef,
+  setInputRef
 }))
 
 onClickOutside(
@@ -170,7 +170,7 @@ onClickOutside(
   { ignore: [panelRef] }
 )
 
-watch(selectableItems, (list) => {
+watch(selectableItems, list => {
   if (!list.length) {
     activeIndex.value = 0
     return
@@ -178,7 +178,7 @@ watch(selectableItems, (list) => {
   if (activeIndex.value >= list.length) activeIndex.value = list.length - 1
 })
 
-watch(dropdownOpen, async (open) => {
+watch(dropdownOpen, async open => {
   if (!open) return
   await nextTick()
   focusInput()
@@ -186,7 +186,11 @@ watch(dropdownOpen, async (open) => {
 </script>
 
 <template>
-  <div ref="rootRef" class="relative" :class="class">
+  <div
+    ref="rootRef"
+    class="relative"
+    :class="class"
+  >
     <slot v-bind="slotProps" />
   </div>
   <UPopover
@@ -198,24 +202,51 @@ watch(dropdownOpen, async (open) => {
     :content="{ side: 'bottom', align: 'start', collisionPadding: 12 }"
     :ui="{
       content:
-        'w-(--reka-popper-anchor-width) max-h-60 overflow-visible rounded-md border border-accented bg-elevated p-1 shadow-lg z-9999',
+        'w-(--reka-popper-anchor-width) max-h-60 overflow-visible rounded-md border border-accented bg-elevated p-1 shadow-lg z-9999'
     }"
     @open-auto-focus="onOpenAutoFocus"
   >
     <template #default>
-      <span class="sr-only" aria-hidden="true" />
+      <span
+        class="sr-only"
+        aria-hidden="true"
+      />
     </template>
     <template #content>
-      <div ref="panelRef" role="listbox" class="overflow-visible">
-        <div v-if="status === 'pending'" class="absolute inset-x-0 top-0 px-1.5">
-          <UProgress size="sm" animation="swing" />
+      <div
+        ref="panelRef"
+        role="listbox"
+        class="overflow-visible"
+      >
+        <div
+          v-if="status === 'pending'"
+          class="absolute inset-x-0 top-0 px-1.5"
+        >
+          <UProgress
+            size="sm"
+            animation="swing"
+          />
         </div>
         <div class="flex justify-start px-2 py-1">
-          <BaseOrderByDropdown v-model="orderBy" :items="orderByItems" />
+          <BaseOrderByDropdown
+            v-model="orderBy"
+            :items="orderByItems"
+          />
         </div>
-        <div v-if="!selectableItems.length" class="text-muted p-3 text-sm">No matching items</div>
-        <div v-else class="max-h-48 overflow-y-auto">
-          <template v-for="(item, idx) in selectableItems" :key="getValue(item)">
+        <div
+          v-if="!selectableItems.length"
+          class="text-muted p-3 text-sm"
+        >
+          No matching items
+        </div>
+        <div
+          v-else
+          class="max-h-48 overflow-y-auto"
+        >
+          <template
+            v-for="(item, idx) in selectableItems"
+            :key="getValue(item)"
+          >
             <USeparator :ui="{ border: 'border-accented', root: 'px-2' }" />
             <UButton
               v-if="true"

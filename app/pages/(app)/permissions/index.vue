@@ -4,7 +4,7 @@ import type {
   TFilter,
   TField,
   TGetActions,
-  TBaseCrudModal,
+  TBaseCrudModal
 } from '@/components/base/BaseCrud.vue'
 
 const crudRef = useTemplateRef('crudRef')
@@ -14,7 +14,7 @@ const fields: TField[] = [
   {
     name: 'name',
     type: 'input',
-    label: 'Name',
+    label: 'Name'
   },
   {
     name: 'roles',
@@ -23,42 +23,42 @@ const fields: TField[] = [
     props: {
       api: '/api/roles',
       query: {
-        options: true,
-      },
-    },
+        options: true
+      }
+    }
   },
   {
     name: 'description',
     type: 'textarea',
-    label: 'Description',
-  },
+    label: 'Description'
+  }
 ]
 
 const columns = computed<TColumn<TPermission>[]>(() => [
   {
     id: 'select',
-    size: 48,
+    size: 48
   },
   {
     accessorKey: 'id',
     header: 'ID',
     pinned: 'left',
     sortBy: 'id',
-    size: 48,
+    size: 48
   },
   {
     accessorKey: 'name',
     header: 'Name',
     sortBy: 'name',
     cell: ({ row }) =>
-      row.original.name.split('-').map((label) => {
+      row.original.name.split('-').map(label => {
         return h(UBadge, {
           label,
           class: 'mr-1 capitalize',
           variant: 'subtle',
-          color: ColorsMap[label] || 'neutral',
+          color: ColorsMap[label] || 'neutral'
         })
-      }),
+      })
   },
   {
     accessorKey: 'roles',
@@ -66,30 +66,30 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     display: {
       type: 'array',
       slice: 3,
-      class: 'flex flex-wrap -ml-1 -mt-1',
+      class: 'flex flex-wrap -ml-1 -mt-1'
     },
     cell({ row, ...ctx }) {
       if (!row.original.rolePermissions) return '—'
       if (!row.original.rolePermissions.length) return '—'
       return row.original.rolePermissions
-        .map((rp) => rp.role?.name as string)
+        .map(rp => rp.role?.name as string)
         .filter(Boolean)
-        .map((label) => {
+        .map(label => {
           const modal = (ctx as any).modal
           return h(UBadge, {
             label,
             size: modal ? 'lg' : 'md',
             class: modal ? 'ml-1 mt-1' : 'mr-1',
             color: ColorsMap[label] || 'neutral',
-            variant: 'subtle',
+            variant: 'subtle'
           })
         })
-    },
+    }
   },
   {
     accessorKey: 'name',
     header: 'Slug',
-    sortBy: 'name',
+    sortBy: 'name'
   },
   {
     accessorKey: 'description',
@@ -98,38 +98,45 @@ const columns = computed<TColumn<TPermission>[]>(() => [
     display: {
       type: 'text',
       class: 'w-64',
-      length: 40,
+      length: 40
     },
     cell({ row }) {
       return row.original.description || '—'
-    },
+    }
   },
   {
     accessorKey: 'createdAt',
     header: 'Created',
     sortBy: 'createdAt',
-    cell: ({ row }) => $dfc(row.original.createdAt),
+    cell: ({ row }) => $dfc(row.original.createdAt)
   },
   {
     accessorKey: 'updatedAt',
     header: 'Updated',
     sortBy: 'updatedAt',
-    cell: ({ row }) => $dfc(row.original.updatedAt),
+    cell: ({ row }) => $dfc(row.original.updatedAt)
   },
   {
     id: 'action',
-    pinned: 'right',
-  },
+    pinned: 'right'
+  }
 ])
 
 const filters: TFilter[] = [
+  {
+    name: 'q',
+    type: 'inline-input',
+    props: {
+      placeholder: 'Search...'
+    }
+  },
   {
     name: 'id',
     type: 'input',
     props: {
       label: 'ID',
-      placeholder: 'eg 1 or 1,2,3 or 1-10',
-    },
+      placeholder: 'eg 1 or 1,2,3 or 1-10'
+    }
   },
   {
     name: 'name',
@@ -137,8 +144,8 @@ const filters: TFilter[] = [
     props: {
       label: 'Name',
       placeholder: 'Search by name',
-      modeable: true,
-    },
+      modeable: true
+    }
   },
   {
     name: 'description',
@@ -146,8 +153,8 @@ const filters: TFilter[] = [
     props: {
       label: 'Description',
       placeholder: 'Search by description',
-      modeable: true,
-    },
+      modeable: true
+    }
   },
   {
     name: 'roleIds',
@@ -156,31 +163,31 @@ const filters: TFilter[] = [
       label: 'Roles',
       api: '/api/roles',
       query: {
-        options: true,
-      },
-    },
+        options: true
+      }
+    }
   },
   {
     name: 'createdAt',
     type: 'date',
     props: {
-      label: 'Created',
-    },
+      label: 'Created'
+    }
   },
   {
     name: 'updatedAt',
     type: 'date',
     props: {
-      label: 'Updated',
-    },
-  },
+      label: 'Updated'
+    }
+  }
 ]
 
 const modal: TBaseCrudModal = {
   form: ({ mode }) => ({
     title: mode === 'create' ? 'Add New Permission' : 'Update Permission',
-    description: mode === 'create' ? 'Add a new permission to the system' : 'Update the permission',
-  }),
+    description: mode === 'create' ? 'Add a new permission to the system' : 'Update the permission'
+  })
 }
 
 const getActions: TGetActions<TPermission> = (item, v) => [
@@ -192,41 +199,41 @@ const getActions: TGetActions<TPermission> = (item, v) => [
         crudRef.value?.onView(item, {
           modal: {
             ui: {
-              content: 'max-w-2xl',
-            },
-          },
+              content: 'max-w-2xl'
+            }
+          }
         })
-      },
+      }
     },
     {
       ...actions.update,
       onSelect() {
         crudRef.value?.onUpdate(item)
-      },
-    },
+      }
+    }
   ].filter((v: any) => !v.hidden),
   [
     {
       ...actions.delete,
       onSelect() {
         crudRef.value?.onDelete(item)
-      },
-    },
-  ],
+      }
+    }
+  ]
 ]
 
 const getFormState = (v?: TPermission) => ({
   id: v?.id,
   name: v?.name ?? '',
   description: v?.description ?? '',
-  roles: v?.rolePermissions?.map((rp) => rp.role) ?? [],
+  roles: v?.rolePermissions?.map(rp => rp.role) ?? []
 })
 
 const getPostBody = (v: Record<string, any>) => ({
   id: v.id,
   name: v.name,
   description: v.description,
-  roleIds: v.roles.map((r: any) => r.id),
+  roleIds: v.roles.map((r: any) => r.id)
 })
 </script>
 

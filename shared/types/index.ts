@@ -5,6 +5,8 @@ export * from './RolePermission'
 export * from './Permission'
 export * from './Team'
 export * from './TeamMember'
+export * from './Attachment'
+export * from './Task'
 
 export type TMaybe<T> = T | null | undefined
 
@@ -19,5 +21,6 @@ export type TPaginated<T> = {
   previousPage: number
   hasNextPage: boolean
   hasPreviousPage: boolean
+  fetchedAt?: number
   data: T[]
 }

@@ -116,6 +116,12 @@ export default defineEventHandler(async event => {
       },
       data,
       include: {
+        creator: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         userRoles: {
           include: {
             role: true
@@ -173,6 +179,7 @@ export default defineEventHandler(async event => {
     data: {
       name: input.name,
       email: input.email,
+      creatorId: sessionUser.id,
       // phone: input.phone,
       password,
       userRoles: {
@@ -182,6 +189,12 @@ export default defineEventHandler(async event => {
       }
     },
     include: {
+      creator: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
       userRoles: {
         include: {
           role: true
