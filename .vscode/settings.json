@@ -23,9 +23,17 @@
   "editor.quickSuggestions": {
     "strings": "on"
   },
-  "tailwindCSS.classAttributes": ["class", "ui"],
-  "tailwindCSS.classFunctions": ["defineAppConfig"],
+  "tailwindCSS.classAttributes": [
+    "class",
+    "ui"
+  ],
+  "tailwindCSS.classFunctions": [
+    "defineAppConfig"
+  ],
   "cSpell.words": [
+    "arrowdown",
+    "arrowup",
+    "attachables",
     "autoincrement",
     "cooldown",
     "iconify",

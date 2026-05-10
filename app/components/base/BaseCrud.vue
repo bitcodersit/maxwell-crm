@@ -236,7 +236,9 @@ const mColumns = computed<TableColumn<T>[]>(() => {
             const getValue = (v?: unknown) => {
               return typeof cell === 'function'
                 ? cell({ ...ctx, ...(v as Record<string, unknown>) })
-                : cell
+                : !cell
+                  ? ctx.row.original[(item as any).accessorKey]
+                  : cell
             }
             if (display.type === 'text') {
               const text = getValue()

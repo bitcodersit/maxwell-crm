@@ -15,6 +15,6 @@ export const toPaginated = <T>(
     previousPage: page - 1,
     hasNextPage: page < Math.ceil(total / perPage),
     hasPreviousPage: page > 1,
-    data,
+    data
   }
 }

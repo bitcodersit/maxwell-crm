@@ -3,6 +3,10 @@ import type { TTaskItemRow } from '~/components/task/TaskItems.vue'
 import type { Mail } from '~/types'
 import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
+definePageMeta({
+  layout: 'tasks'
+})
+
 type TTaskItem = {
   id: number
   name: string
@@ -99,60 +103,6 @@ const { data: task, status: loadingStatus } = useFetch<TTask>(() => `/api/tasks/
   watch: [taskId]
 })
 
-const { data: inboxData, refresh: refreshInbox } = useFetch<{ data: TTask[] }>('/api/tasks', {
-  query: {
-    page: 1,
-    perPage: 200
-  }
-})
-
-const inboxTasks = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  return (inboxData.value?.data || [])
-    .filter(row => row.id !== taskId.value)
-    .filter(row => row.status !== TaskStatus.COMPLETED && row.status !== TaskStatus.CANCELLED)
-    .filter(row => {
-      if (!row.dueAt) return false
-      const due = new Date(row.dueAt)
-      due.setHours(0, 0, 0, 0)
-      return due >= today
-    })
-    .sort((a, b) => {
-      const ad = a.dueAt ? new Date(a.dueAt).getTime() : Number.MAX_SAFE_INTEGER
-      const bd = b.dueAt ? new Date(b.dueAt).getTime() : Number.MAX_SAFE_INTEGER
-      return ad - bd
-    })
-})
-
-const inboxMails = computed<Mail[]>(() =>
-  inboxTasks.value.map(item => ({
-    id: item.id,
-    unread: item.status === TaskStatus.TODO,
-    from: {
-      id: item.creator?.id || item.id,
-      name: item.creator?.name || 'Task',
-      email: '',
-      status: 'subscribed',
-      location: ''
-    },
-    subject: item.name,
-    body: `Due ${item.dueAt ? $dfc(item.dueAt) : 'No due date'}`,
-    date: item.dueAt || new Date().toISOString()
-  }))
-)
-
-const selectedInboxMail = ref<Mail | null>(null)
-
-watch(
-  () => selectedInboxMail.value?.id,
-  async id => {
-    if (!id || id === taskId.value) return
-    await navigateTo(`/tasks/${id}`)
-  }
-)
-
 const dueDate = ref<any>()
 const descriptionDraft = ref('')
 
@@ -189,9 +139,7 @@ watch(
 const itemMeta = (row: TTaskItemRow) => {
   const it = task.value?.items.find(i => i.id === row.id)
   if (!it) return undefined
-  return it.completedBy?.name
-    ? `Completed by ${it.completedBy.name}`
-    : 'Pending peer review'
+  return it.completedBy?.name ? `Completed by ${it.completedBy.name}` : 'Pending peer review'
 }
 
 const onDescriptionBlur = () => {
@@ -248,7 +196,6 @@ const patchTask = (body: Record<string, any>, optimistic?: (draft: TTask) => voi
   })
     .then(async () => {
       await reconcileTaskFromServer()
-      await refreshInbox()
     })
     .catch(e => {
       task.value = backup
@@ -302,9 +249,7 @@ const onDetailReorder = ({ rows }: { rows: TTaskItemRow[] }) => {
   if (!updates.length) return
   patchTask({ updateItems: updates }, t => {
     const byId = new Map(t.items.map(i => [i.id, i]))
-    t.items = [...todos, ...done]
-      .map(r => byId.get(r.id))
-      .filter(Boolean) as TTaskItem[]
+    t.items = [...todos, ...done].map(r => byId.get(r.id)).filter(Boolean) as TTaskItem[]
   })
 }
 
@@ -465,282 +410,184 @@ const onRemoveAttachment = (attachmentId: number) => {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="flex items-center justify-between">
-      <UButton
-        icon="i-lucide-arrow-left"
-        variant="ghost"
-        color="neutral"
-        @click="router.push('/tasks')"
-      >
-        Back to task list
-      </UButton>
-      <UBadge
-        color="neutral"
-        variant="soft"
-      >
-        #TASK-{{ task?.id || taskId }}
-      </UBadge>
-    </div>
-
-    <div class="grid gap-4 lg:grid-cols-[280px_2fr_1fr]">
-      <UCard :ui="{ body: 'sm:p-0 p-0' }">
-        <InboxList
-          v-if="inboxMails.length"
-          v-model="selectedInboxMail"
-          :mails="inboxMails"
-        />
-        <UAlert
-          v-else
+  <div
+    v-if="task"
+    class="flex flex-1"
+  >
+    <div class="space-y-4 flex-1 p-4">
+      <div class="space-y-3">
+        <UButton
+          icon="i-lucide-arrow-left"
+          variant="ghost"
           color="neutral"
-          variant="subtle"
-          title="No upcoming pending tasks"
-          description="You are all caught up."
-        />
-      </UCard>
+          @click="router.push('/tasks')"
+        >
+          Back to task list
+        </UButton>
+        <div class="flex flex-wrap items-center gap-2">
+          <UBadge
+            :color="statusMeta[task.status].color"
+            variant="subtle"
+          >
+            {{ statusMeta[task.status].label }}
+          </UBadge>
+          <UBadge
+            :color="priorityMeta[task.priority].color"
+            variant="soft"
+          >
+            {{ priorityMeta[task.priority].label }} Priority
+          </UBadge>
+        </div>
 
-      <div
-        v-if="loadingStatus === 'pending'"
-        class="lg:col-span-2 flex items-center justify-center min-h-64"
-      >
-        <UIcon
-          name="i-lucide-loader-circle"
-          class="size-8 animate-spin text-primary"
+        <h1 class="text-2xl font-semibold">{{ task.name }}</h1>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+          <FormDate
+            v-model="dueDate"
+            :show-mode="false"
+            @update:model-value="onUpdateDueDate"
+          >
+            <template #trigger>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded px-1 py-0.5 transition hover:bg-elevated"
+              >
+                <UIcon name="i-lucide-calendar" />
+                Due {{ task.dueAt ? $dfc(task.dueAt) : '—' }}
+              </button>
+            </template>
+          </FormDate>
+          <span class="inline-flex items-center gap-1">
+            <UIcon name="i-lucide-workflow" />
+            ID {{ task.id }}
+          </span>
+        </div>
+      </div>
+
+      <div @focusout="onDescriptionBlur">
+        <FormEditor
+          v-model="descriptionDraft"
+          content-type="markdown"
+          placeholder="Add short task details..."
+          min-height-class="min-h-32"
+          border-class="border-default"
         />
       </div>
 
-      <template v-else-if="task">
-        <div class="space-y-4">
-          <UCard>
-            <div class="space-y-3">
-              <div class="flex flex-wrap items-center gap-2">
-                <UBadge
-                  :color="statusMeta[task.status].color"
-                  variant="subtle"
+      <div class="space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold uppercase text-muted">Checklist</span>
+          <UButton
+            size="xs"
+            variant="ghost"
+            icon="i-lucide-plus"
+            @click="onDetailAddRow"
+          >
+            Add Item
+          </UButton>
+        </div>
+        <UProgress :model-value="completion.percent" />
+
+        <TaskItems
+          v-model="checklistRows"
+          variant="detail"
+          :meta-text="itemMeta"
+          @toggle="onDetailToggle"
+          @reorder="onDetailReorder"
+          @commit-text="onDetailCommit"
+          @remove="onDetailRemove"
+        />
+      </div>
+    </div>
+    <div class="space-y-4 w-96 flex-none border-l border-default p-4">
+      <USelect
+        v-model="status"
+        :items="[...statusItems]"
+        size="lg"
+        class="w-full"
+        value-key="value"
+        @update:model-value="onStatusChange"
+      />
+      <FormAutocomplete
+        v-model="addingUser"
+        api="/api/users"
+        :query="{ options: true }"
+        placeholder="Assign user"
+        size="lg"
+      />
+      <FormAutocomplete
+        v-model="addingTeam"
+        api="/api/teams"
+        :query="{ options: true }"
+        placeholder="Assign team"
+        class="flex-1"
+      />
+
+      <h3 class="text-sm font-semibold uppercase text-muted">Resources</h3>
+
+      <div class="space-y-2">
+        <template v-if="task.attachables.length">
+          <div
+            v-for="resource in task.attachables"
+            :key="resource.id"
+            class="flex items-center justify-between rounded-md border border-default p-2"
+          >
+            <div class="flex items-center gap-2">
+              <UIcon name="i-lucide-paperclip" />
+              <div>
+                <a
+                  :href="getAttachment(resource.attachment.id)"
+                  target="_blank"
+                  class="text-sm font-medium underline"
                 >
-                  {{ statusMeta[task.status].label }}
-                </UBadge>
-                <UBadge
-                  :color="priorityMeta[task.priority].color"
-                  variant="soft"
-                >
-                  {{ priorityMeta[task.priority].label }} Priority
-                </UBadge>
-              </div>
-              <h1 class="text-2xl font-semibold">{{ task.name }}</h1>
-              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
-                <FormDate
-                  v-model="dueDate"
-                  :show-mode="false"
-                  @update:model-value="onUpdateDueDate"
-                >
-                  <template #trigger>
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-1 rounded px-1 py-0.5 transition hover:bg-elevated"
-                    >
-                      <UIcon name="i-lucide-calendar" />
-                      Due {{ task.dueAt ? $dfc(task.dueAt) : '—' }}
-                    </button>
-                  </template>
-                </FormDate>
-                <span class="inline-flex items-center gap-1">
-                  <UIcon name="i-lucide-workflow" />
-                  ID {{ task.id }}
-                </span>
+                  {{ resource.attachment.name || `Attachment #${resource.attachment.id}` }}
+                </a>
+                <p class="text-xs text-muted">
+                  {{ resource.attachment.size ? `${resource.attachment.size} bytes` : '' }}
+                </p>
               </div>
             </div>
-          </UCard>
-
-          <div @focusout="onDescriptionBlur">
-            <FormEditor
-              v-model="descriptionDraft"
-              content-type="markdown"
-              placeholder="Add short task details..."
-              min-height-class="min-h-32"
-              border-class="border-default"
+            <UButton
+              icon="i-lucide-x"
+              color="error"
+              variant="ghost"
+              @click="onRemoveAttachment(resource.attachmentId)"
             />
           </div>
-
-          <UCard>
-            <div class="space-y-3">
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-sm font-semibold uppercase text-muted">Checklist</span>
-                <UButton
-                  size="xs"
-                  variant="ghost"
-                  icon="i-lucide-plus"
-                  @click="onDetailAddRow"
-                >
-                  Add Item
-                </UButton>
-              </div>
-              <UProgress :model-value="completion.percent" />
-
-              <TaskItems
-                v-model="checklistRows"
-                variant="detail"
-                :meta-text="itemMeta"
-                @toggle="onDetailToggle"
-                @reorder="onDetailReorder"
-                @commit-text="onDetailCommit"
-                @remove="onDetailRemove"
-              />
-            </div>
-          </UCard>
-        </div>
-
-        <div class="space-y-4">
-          <UCard>
-            <template #header>
-              <h3 class="text-sm font-semibold uppercase text-muted">Task Status</h3>
-            </template>
-            <div class="space-y-3">
-              <USelect
-                v-model="status"
-                :items="[...statusItems]"
-                value-key="value"
-                @update:model-value="onStatusChange"
-              />
-              <UBadge
-                :color="statusMeta[task.status].color"
-                variant="soft"
-              >
-                {{ statusMeta[task.status].label }}
-              </UBadge>
-            </div>
-          </UCard>
-
-          <UCard>
-            <template #header>
-              <h3 class="text-sm font-semibold uppercase text-muted">Ownership</h3>
-            </template>
-            <div class="space-y-2 text-sm">
-              <p><span class="text-muted">Creator:</span> {{ task.creator?.name || '—' }}</p>
-              <p><span class="text-muted">Reviewer:</span> {{ task.reviewer?.name || '—' }}</p>
-              <div class="space-y-2">
-                <div
-                  v-for="assigned in task.users"
-                  :key="assigned.id"
-                  class="flex items-center justify-between rounded-md border border-default p-2"
-                >
-                  <span>{{ assigned.user.name }}</span>
-                  <UButton
-                    icon="i-lucide-x"
-                    color="error"
-                    variant="ghost"
-                    @click="onRemoveUser(assigned.userId)"
-                  />
-                </div>
-                <div class="flex items-center gap-2">
-                  <FormAutocomplete
-                    v-model="addingUser"
-                    api="/api/users"
-                    :query="{ options: true }"
-                    placeholder="Assign user"
-                    class="flex-1"
-                  />
-                  <UButton
-                    icon="i-lucide-plus"
-                    variant="subtle"
-                    @click="onAssignUser"
-                  />
-                </div>
-              </div>
-              <div class="space-y-2 pt-2">
-                <div
-                  v-for="assigned in task.teams"
-                  :key="assigned.id"
-                  class="flex items-center justify-between rounded-md border border-default p-2"
-                >
-                  <span>{{ assigned.team.name }}</span>
-                  <UButton
-                    icon="i-lucide-x"
-                    color="error"
-                    variant="ghost"
-                    @click="onRemoveTeam(assigned.teamId)"
-                  />
-                </div>
-                <div class="flex items-center gap-2">
-                  <FormAutocomplete
-                    v-model="addingTeam"
-                    api="/api/teams"
-                    :query="{ options: true }"
-                    placeholder="Assign team"
-                    class="flex-1"
-                  />
-                  <UButton
-                    icon="i-lucide-plus"
-                    variant="subtle"
-                    @click="onAssignTeam"
-                  />
-                </div>
-              </div>
-            </div>
-          </UCard>
-
-          <UCard>
-            <template #header>
-              <h3 class="text-sm font-semibold uppercase text-muted">Resources</h3>
-            </template>
-            <div class="space-y-2">
-              <template v-if="task.attachables.length">
-                <div
-                  v-for="resource in task.attachables"
-                  :key="resource.id"
-                  class="flex items-center justify-between rounded-md border border-default p-2"
-                >
-                  <div class="flex items-center gap-2">
-                    <UIcon name="i-lucide-paperclip" />
-                    <div>
-                      <a
-                        :href="getAttachment(resource.attachment.id)"
-                        target="_blank"
-                        class="text-sm font-medium underline"
-                      >
-                        {{ resource.attachment.name || `Attachment #${resource.attachment.id}` }}
-                      </a>
-                      <p class="text-xs text-muted">
-                        {{ resource.attachment.size ? `${resource.attachment.size} bytes` : '' }}
-                      </p>
-                    </div>
-                  </div>
-                  <UButton
-                    icon="i-lucide-x"
-                    color="error"
-                    variant="ghost"
-                    @click="onRemoveAttachment(resource.attachmentId)"
-                  />
-                </div>
-              </template>
-              <template v-else>
-                <UAlert
-                  color="neutral"
-                  variant="subtle"
-                  title="No files yet"
-                  description="Upload related documents here."
-                />
-              </template>
-              <UInput
-                type="file"
-                @change="onUploadAttachment"
-              />
-            </div>
-          </UCard>
-        </div>
-      </template>
-
-      <UCard
-        v-else
-        class="lg:col-span-2"
-      >
-        <UAlert
-          color="warning"
-          variant="subtle"
-          title="Task not found"
-          description="This task does not exist in the current dataset."
+        </template>
+        <template v-else>
+          <UAlert
+            color="neutral"
+            variant="subtle"
+            title="No files yet"
+            description="Upload related documents here."
+          />
+        </template>
+        <UInput
+          type="file"
+          @change="onUploadAttachment"
         />
-      </UCard>
+      </div>
     </div>
+  </div>
+  <div
+    v-else-if="loadingStatus === 'pending'"
+    class="flex-1 flex justify-center p-8"
+  >
+    <UIcon
+      name="i-lucide-loader-circle"
+      class="size-8 animate-spin text-primary"
+    />
+  </div>
+  <div
+    v-else
+    class="flex-1 flex items-center justify-center p-4"
+  >
+    <UAlert
+      color="warning"
+      variant="subtle"
+      title="Task not found"
+      class="max-w-md w-full"
+      description="This task does not exist in the current dataset."
+    />
   </div>
 </template>

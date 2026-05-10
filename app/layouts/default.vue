@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
+withDefaults(
+  defineProps<{
+    padding?: boolean
+    scrollable?: boolean
+  }>(),
+  {
+    padding: true,
+    scrollable: true
+  }
+)
+
 const route = useRoute()
 const toast = useToast()
 
@@ -230,7 +241,11 @@ useUiColors()
         <UserMenu :collapsed="collapsed" />
       </template>
     </UDashboardSidebar>
-    <UDashboardPanel>
+    <UDashboardPanel
+      :ui="{
+        body: [!padding ? 'p-0 sm:p-0' : '', !scrollable ? 'overflow-y-hidden' : '']
+      }"
+    >
       <template #header>
         <UDashboardNavbar :title="title">
           <template #leading>

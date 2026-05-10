@@ -170,7 +170,12 @@ const columns = computed<TColumn<TTask>[]>(() => [
   {
     accessorKey: 'name',
     header: 'Name',
-    sortBy: 'name'
+    sortBy: 'name',
+    display: {
+      type: 'text',
+      class: 'w-64',
+      length: 40
+    }
   },
   {
     accessorKey: 'status',
@@ -445,8 +450,7 @@ const openUpdate = (task: TTask) => {
   formState.priority = task.priority
   formState.reviewers = task.reviewer ? [task.reviewer] : []
   formState.dueAt = task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 10) : ''
-  formState.items =
-    task.items?.length ? rowsFromApi(task.items) : [createMilestone('')]
+  formState.items = task.items?.length ? rowsFromApi(task.items) : [createMilestone('')]
   formOpen.value = true
 }
 
