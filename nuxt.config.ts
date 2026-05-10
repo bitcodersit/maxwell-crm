@@ -8,7 +8,8 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     'nuxt-auth-utils',
     '@nuxt/image',
-    'nuxt-cron'
+    'nuxt-cron',
+    '@peterbud/nuxt-query'
   ],
   devtools: {
     enabled: true
@@ -16,7 +17,11 @@ export default defineNuxtConfig({
   app: {
     head: {
       link: [
-        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
+        {
+          rel: 'icon',
+          type: 'image/png',
+          href: '/favicon.png'
+        },
         {
           rel: 'icon',
           type: 'image/png',
@@ -84,5 +89,8 @@ export default defineNuxtConfig({
   },
   image: {
     format: ['webp']
+  },
+  nuxtQuery: {
+    autoImports: true
   }
 })

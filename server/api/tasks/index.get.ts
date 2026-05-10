@@ -1,90 +1,8 @@
 import type { H3Event } from 'h3'
 import type { Prisma } from '~~/prisma/client/client'
+import type { UserSessionRequired } from '#auth-utils'
 
-const taskInclude = {
-  creator: {
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      avatarId: true
-    }
-  },
-  reviewer: {
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      avatarId: true
-    }
-  },
-  users: {
-    select: {
-      id: true,
-      userId: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          avatarId: true
-        }
-      }
-    }
-  },
-  teams: {
-    select: {
-      id: true,
-      teamId: true,
-      team: {
-        select: {
-          id: true,
-          name: true,
-          description: true
-        }
-      }
-    }
-  },
-  items: {
-    where: {
-      deletedAt: null
-    },
-    orderBy: [{ status: 'asc' as const }, { sortOrder: 'asc' as const }],
-    select: {
-      id: true,
-      name: true,
-      status: true,
-      sortOrder: true,
-      completedAt: true,
-      completedById: true,
-      completedBy: {
-        select: {
-          id: true,
-          name: true
-        }
-      }
-    }
-  },
-  attachables: {
-    select: {
-      id: true,
-      attachmentId: true,
-      attachment: {
-        select: {
-          id: true,
-          name: true,
-          path: true,
-          mime: true,
-          size: true,
-          provider: true,
-          createdAt: true
-        }
-      }
-    }
-  }
-}
-
-const getTaskScopedWhere = (user: { id: number }, where: Prisma.TaskWhereInput) => {
+const getTaskScopedWhere = (user: UserSessionRequired['user'], where: Prisma.TaskWhereInput) => {
   if (can(user, ['read-any-tasks'])) return where
   return {
     AND: [
@@ -185,7 +103,7 @@ export const getTasks = async (event: H3Event, query = getQuery(event)) => {
       skip,
       take,
       orderBy,
-      include: taskInclude
+      include: TaskInclude
     })
   ])
 

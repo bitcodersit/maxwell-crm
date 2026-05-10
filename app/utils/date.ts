@@ -1,3 +1,4 @@
+import { getLocalTimeZone, today } from '@internationalized/date'
 import { format } from 'date-fns'
 
 /**
@@ -13,4 +14,8 @@ export const $dfc = (
   const date = new Date(value as string | number | Date)
   if (Number.isNaN(date.getTime())) return fallback
   return format(date, formatStr)
+}
+
+export const todayDateValue = () => {
+  return today(getLocalTimeZone())
 }

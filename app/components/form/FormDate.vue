@@ -181,6 +181,7 @@ watch(mode, v => {
         :model-value="value"
         :range="mode === 'range'"
         :multiple="mode === 'multiple'"
+        :min-value="minValue"
         @update:model-value="onPick"
       />
       <div class="flex items-center justify-end gap-2">

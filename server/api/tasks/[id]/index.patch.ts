@@ -1,94 +1,13 @@
-import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 import type { Prisma } from '~~/prisma/client/client'
 
-const taskInclude = {
-  creator: {
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      avatarId: true
-    }
-  },
-  reviewer: {
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      avatarId: true
-    }
-  },
-  users: {
-    select: {
-      id: true,
-      userId: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          avatarId: true
-        }
-      }
-    }
-  },
-  teams: {
-    select: {
-      id: true,
-      teamId: true,
-      team: {
-        select: {
-          id: true,
-          name: true,
-          description: true
-        }
-      }
-    }
-  },
-  items: {
-    where: {
-      deletedAt: null
-    },
-    orderBy: [{ status: 'asc' as const }, { sortOrder: 'asc' as const }],
-    select: {
-      id: true,
-      name: true,
-      status: true,
-      sortOrder: true,
-      completedAt: true,
-      completedById: true,
-      completedBy: {
-        select: {
-          id: true,
-          name: true
-        }
-      }
-    }
-  },
-  attachables: {
-    select: {
-      id: true,
-      attachmentId: true,
-      attachment: {
-        select: {
-          id: true,
-          name: true,
-          path: true,
-          mime: true,
-          size: true,
-          provider: true,
-          createdAt: true
-        }
-      }
-    }
-  }
-}
+import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
+import { z } from 'zod'
 
 const zTaskPatch = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
-  status: z.nativeEnum(TaskStatus).optional(),
-  priority: z.nativeEnum(TaskPriority).optional(),
+  status: z.enum(TaskStatus).optional(),
+  priority: z.enum(TaskPriority).optional(),
   dueAt: z.coerce.date().nullable().optional(),
   reviewerId: z.number().int().positive().nullable().optional(),
   userIds: z.array(z.number().int().positive()).optional(),
@@ -110,7 +29,7 @@ const zTaskPatch = z.object({
       z.object({
         id: z.number().int().positive(),
         name: z.string().min(1).optional(),
-        status: z.nativeEnum(TaskItemStatus).optional(),
+        status: z.enum(TaskItemStatus).optional(),
         checked: z.boolean().optional(),
         completed: z.boolean().optional(),
         sortOrder: z.number().int().optional()
@@ -146,7 +65,11 @@ const hasOps = (input: z.infer<typeof zTaskPatch>) => {
   return Object.values(input).some(v => typeof v !== 'undefined')
 }
 
-const getItemStatus = (item: { status?: TaskItemStatus; checked?: boolean; completed?: boolean }) => {
+const getItemStatus = (item: {
+  status?: TaskItemStatus
+  checked?: boolean
+  completed?: boolean
+}) => {
   if (item.status) return item.status
   if (item.checked === true || item.completed === true) return TaskItemStatus.COMPLETED
   if (item.checked === false || item.completed === false) return TaskItemStatus.TODO
@@ -296,8 +219,7 @@ export default defineEventHandler(async event => {
 
     if (input.addItems?.length) {
       const todoNewCount = input.addItems.filter(item => {
-        const st =
-          item.checked || item.completed ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
+        const st = item.checked || item.completed ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
         return st === TaskItemStatus.TODO
       }).length
 
@@ -338,10 +260,8 @@ export default defineEventHandler(async event => {
         completedById: number | null
       }> = []
       for (const raw of input.addItems) {
-        const status =
-          raw.checked || raw.completed ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
-        const sortOrder =
-          status === TaskItemStatus.TODO ? nextTodoSort++ : nextCompletedSort++
+        const status = raw.checked || raw.completed ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
+        const sortOrder = status === TaskItemStatus.TODO ? nextTodoSort++ : nextCompletedSort++
         rowsToCreate.push({
           taskId,
           name: raw.name,
@@ -374,8 +294,7 @@ export default defineEventHandler(async event => {
         if (!existing) continue
 
         const parsedStatus = getItemStatus(item)
-        const nextStatus =
-          typeof parsedStatus !== 'undefined' ? parsedStatus : existing.status
+        const nextStatus = typeof parsedStatus !== 'undefined' ? parsedStatus : existing.status
         const statusTransition =
           typeof parsedStatus !== 'undefined' && parsedStatus !== existing.status
 
@@ -388,10 +307,7 @@ export default defineEventHandler(async event => {
           patch.completedAt = nextStatus === TaskItemStatus.COMPLETED ? now : null
           patch.completedById = nextStatus === TaskItemStatus.COMPLETED ? user.id : null
 
-          if (
-            nextStatus === TaskItemStatus.COMPLETED &&
-            existing.status === TaskItemStatus.TODO
-          ) {
+          if (nextStatus === TaskItemStatus.COMPLETED && existing.status === TaskItemStatus.TODO) {
             const maxCompletedSort = await tx.taskItem.aggregate({
               where: {
                 taskId,
@@ -462,7 +378,7 @@ export default defineEventHandler(async event => {
     where: {
       id: taskId
     },
-    include: taskInclude
+    include: TaskInclude
   })
   if (!updated || updated.deletedAt) throw err.notFound()
   return updated

@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { TTaskItemRow } from '~/components/task/TaskItems.vue'
-import type { Mail } from '~/types'
 import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
 definePageMeta({
@@ -74,13 +74,28 @@ const addingUser = ref<any[]>([])
 const addingTeam = ref<any[]>([])
 const status = ref<TaskStatus>(TaskStatus.TODO)
 
-const statusItems = [
-  { label: 'To Do', value: TaskStatus.TODO },
-  { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
-  { label: 'In Review', value: TaskStatus.IN_REVIEW },
-  { label: 'Completed', value: TaskStatus.COMPLETED },
-  { label: 'Cancelled', value: TaskStatus.CANCELLED }
-]
+const { data: task, status: loadingStatus } = useTaskQuery(taskId)
+const { mutate: patchTask } = useTaskPatchMutation(taskId)
+
+const statusItems: DropdownMenuItem[] = Object.values(TaskStatus).map(status => ({
+  value: status,
+  label: status,
+  onSelect() {
+    patchTask({
+      status
+    })
+  }
+}))
+
+const priorityItems: DropdownMenuItem[] = Object.values(TaskPriority).map(priority => ({
+  value: priority,
+  label: priority,
+  onSelect() {
+    patchTask({
+      priority
+    })
+  }
+}))
 
 type TBadgeColor = 'error' | 'warning' | 'neutral' | 'success' | 'primary' | 'info' | 'secondary'
 
@@ -98,10 +113,6 @@ const statusMeta: Record<TaskStatus, { label: string; color: TBadgeColor }> = {
   [TaskStatus.COMPLETED]: { label: 'Completed', color: 'success' },
   [TaskStatus.CANCELLED]: { label: 'Cancelled', color: 'error' }
 }
-
-const { data: task, status: loadingStatus } = useFetch<TTask>(() => `/api/tasks/${taskId.value}`, {
-  watch: [taskId]
-})
 
 const dueDate = ref<any>()
 const descriptionDraft = ref('')
@@ -172,42 +183,42 @@ const completion = computed(() => {
   return { done, total, percent }
 })
 
-const cloneTask = (t: TTask): TTask => JSON.parse(JSON.stringify(t)) as TTask
+// const cloneTask = (t: TTask): TTask => JSON.parse(JSON.stringify(t)) as TTask
 
-/** Reconcile task with server without toggling useFetch pending (avoids full-page spinner). */
-const reconcileTaskFromServer = async () => {
-  const next = await $fetch<TTask>(`/api/tasks/${taskId.value}`)
-  task.value = next
-}
+// /** Reconcile task with server without toggling useFetch pending (avoids full-page spinner). */
+// const reconcileTaskFromServer = async () => {
+//   const next = await $fetch<TTask>(`/api/tasks/${taskId.value}`)
+//   task.value = next
+// }
 
 /** Applies optimistic UI update, then PATCH in background; silent GET reconciles with server. */
-const patchTask = (body: Record<string, any>, optimistic?: (draft: TTask) => void) => {
-  if (!task.value) return
-  const backup = cloneTask(task.value)
-  try {
-    optimistic?.(task.value)
-  } catch {
-    return
-  }
+// const patchTask = (body: Record<string, any>, optimistic?: (draft: TTask) => void) => {
+//   if (!task.value) return
+//   const backup = cloneTask(task.value)
+//   try {
+//     optimistic?.(task.value)
+//   } catch {
+//     return
+//   }
 
-  void $fetch(`/api/tasks/${taskId.value}`, {
-    method: 'PATCH',
-    body
-  })
-    .then(async () => {
-      await reconcileTaskFromServer()
-    })
-    .catch(e => {
-      task.value = backup
-      const { message } = parseError(e)
-      toast.add({
-        color: 'error',
-        title: 'Update failed',
-        description: message
-      })
-      void reconcileTaskFromServer().catch(() => {})
-    })
-}
+//   void $fetch(`/api/tasks/${taskId.value}`, {
+//     method: 'PATCH',
+//     body
+//   })
+//     .then(async () => {
+//       await reconcileTaskFromServer()
+//     })
+//     .catch(e => {
+//       task.value = backup
+//       const { message } = parseError(e)
+//       toast.add({
+//         color: 'error',
+//         title: 'Update failed',
+//         description: message
+//       })
+//       void reconcileTaskFromServer().catch(() => {})
+//     })
+// }
 
 const onStatusChange = (next: TaskStatus) => {
   if (!task.value || next === task.value.status) return
@@ -414,52 +425,55 @@ const onRemoveAttachment = (attachmentId: number) => {
     v-if="task"
     class="flex flex-1"
   >
-    <div class="space-y-4 flex-1 p-4">
+    <div class="space-y-4 flex-1 p-8 overflow-y-auto scrollbar">
       <div class="space-y-3">
         <UButton
-          icon="i-lucide-arrow-left"
-          variant="ghost"
+          icon="i-lucide-chevron-left"
           color="neutral"
+          variant="link"
+          label="Go Back"
+          class="flex-none -ml-1 p-0"
           @click="router.push('/tasks')"
-        >
-          Back to task list
-        </UButton>
-        <div class="flex flex-wrap items-center gap-2">
-          <UBadge
-            :color="statusMeta[task.status].color"
-            variant="subtle"
-          >
-            {{ statusMeta[task.status].label }}
-          </UBadge>
-          <UBadge
-            :color="priorityMeta[task.priority].color"
-            variant="soft"
-          >
-            {{ priorityMeta[task.priority].label }} Priority
-          </UBadge>
-        </div>
-
+        />
         <h1 class="text-2xl font-semibold">{{ task.name }}</h1>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+        <div class="flex flex-wrap items-center gap-2">
+          <UDropdownMenu :items="statusItems">
+            <UBadge
+              :color="ColorsMap[task.status]"
+              size="lg"
+              variant="soft"
+            >
+              <UIcon name="i-lucide-check-circle" />
+              {{ task.status }}
+            </UBadge>
+          </UDropdownMenu>
+          <UDropdownMenu :items="priorityItems">
+            <UBadge
+              :color="ColorsMap[task.priority]"
+              size="lg"
+              variant="soft"
+            >
+              <UIcon name="i-lucide-flag" />
+              {{ task.priority }}
+            </UBadge>
+          </UDropdownMenu>
           <FormDate
             v-model="dueDate"
+            :mode="'single'"
             :show-mode="false"
+            :min-value="todayDateValue()"
             @update:model-value="onUpdateDueDate"
           >
             <template #trigger>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded px-1 py-0.5 transition hover:bg-elevated"
+              <UBadge
+                size="lg"
+                variant="soft"
               >
                 <UIcon name="i-lucide-calendar" />
-                Due {{ task.dueAt ? $dfc(task.dueAt) : '—' }}
-              </button>
+                {{ $dfc(task.dueAt, 'dd MMM yyyy', 'NO DUE DATE') }}
+              </UBadge>
             </template>
           </FormDate>
-          <span class="inline-flex items-center gap-1">
-            <UIcon name="i-lucide-workflow" />
-            ID {{ task.id }}
-          </span>
         </div>
       </div>
 
