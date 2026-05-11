@@ -48,17 +48,32 @@ const orderBy = ref<TBaseOrderBy>({})
 const inputRef = shallowRef<HTMLInputElement | null>(null)
 
 const { state: searchTerm, stateD: searchTermD } = useDebouncedState('', 300)
-const { data, status, refetch } = useFetchApi({
-  api,
-  immediate: false,
-  staleTime: 10 * 1000,
-  query: computed(() => ({
-    ...query.value,
-    q: searchTermD.value,
-    orderBy: orderBy.value,
-    idsNotIn: model.value.map(x => props.getValue(x)).join(',')
-  })),
-  getDefault() {
+
+const idsNotIn = useComputedDebounced(() => {
+  return model.value.map(x => props.getValue(x)).join(',')
+}, 1000)
+
+const queryKey = computed(() => {
+  return [
+    api.value,
+    {
+      ...query.value,
+      q: searchTermD.value,
+      orderBy: orderBy.value,
+      idsNotIn: idsNotIn.value
+    }
+  ] as const
+})
+
+const { data, status, isFetching } = useQuerySSR({
+  enabled: dropdownOpen,
+  queryKey,
+  queryFn({ queryKey: [api, query] }) {
+    return $fetch<TPaginated<Item>>(api, {
+      query
+    })
+  },
+  initialData() {
     return toPaginated<Item>()
   }
 })
@@ -91,7 +106,6 @@ const onSelectItem = (item?: Item) => {
     focusInput()
     dropdownOpen.value = true
     activeIndex.value = 0
-    refetch()
   }
 }
 
@@ -112,7 +126,6 @@ const onInput = (event: Event | string) => {
 const onFocus = () => {
   dropdownOpen.value = true
   activeIndex.value = 0
-  refetch()
 }
 
 const onKeydown = (e: KeyboardEvent) => {
@@ -122,9 +135,9 @@ const onKeydown = (e: KeyboardEvent) => {
     e.preventDefault()
     e.stopPropagation()
     if (
+      !isFetching.value &&
       e.key === 'Enter' &&
       dropdownOpen.value &&
-      status.value !== 'pending' &&
       selectableItems.value.length
     ) {
       const item = selectableItems.value[activeIndex.value]
@@ -140,7 +153,7 @@ const onKeydown = (e: KeyboardEvent) => {
     return
   }
 
-  if (!dropdownOpen.value || status.value === 'pending' || !selectableItems.value.length) return
+  if (!dropdownOpen.value || isFetching.value || !selectableItems.value.length) return
 
   if (e.key === 'ArrowDown') {
     e.preventDefault()
@@ -219,7 +232,7 @@ watch(dropdownOpen, async open => {
         class="overflow-visible"
       >
         <div
-          v-if="status === 'pending'"
+          v-if="isFetching"
           class="absolute inset-x-0 top-0 px-1.5"
         >
           <UProgress

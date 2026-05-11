@@ -1,11 +1,17 @@
 export const useTaskPatchMutation = (id: MaybeRefOrGetter<number>) => {
   const toast = useToast()
   const queryClient = useQueryClient()
+  const controller = ref<AbortController>()
   return useMutation({
     mutationFn: (body: Partial<TTask>) => {
+      if (controller.value) {
+        controller.value.abort()
+      }
+      controller.value = new AbortController()
       return $fetch<TTask>(`/api/tasks/${toValue(id)}`, {
         body,
-        method: 'PATCH'
+        method: 'PATCH',
+        signal: controller.value.signal
       })
     },
     onSuccess() {
