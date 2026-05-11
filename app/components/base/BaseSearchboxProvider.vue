@@ -65,7 +65,7 @@ const queryKey = computed(() => {
   ] as const
 })
 
-const { data, status, isFetching } = useQuerySSR({
+const { data, isFetching } = useQuerySSR({
   enabled: dropdownOpen,
   queryKey,
   queryFn({ queryKey: [api, query] }) {

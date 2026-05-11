@@ -8,16 +8,22 @@ type TModel = Pick<
 >
 
 const props = withDefaults(defineProps<{}>(), {})
-
 const model = defineModel<TModel[]>({
   default: () => []
 })
+
+const emit = defineEmits<{
+  (e: 'change'): void
+}>()
 
 const listRef = ref<HTMLElement | null>(null)
 useSortable(listRef, model, {
   filter: '.task-items__disabled',
   handle: '.task-items__handle',
-  animation: 150
+  animation: 150,
+  onEnd() {
+    emit('change')
+  }
 })
 
 const { getAttachment } = useGetAttachment()
@@ -39,6 +45,7 @@ const onAddItem = () => {
 
 const onRemoveItem = (id: number) => {
   model.value = model.value.filter(v => v.id !== id)
+  emit('change')
   nextTick(onFocusInput)
 }
 
@@ -58,6 +65,7 @@ const onChangeCheckbox = (item: TModel, checked: boolean | 'indeterminate') => {
       ...v,
       sortOrder: i
     }))
+  emit('change')
 }
 
 const completion = computed(() => {
@@ -133,6 +141,7 @@ const completion = computed(() => {
             class="flex-1"
             variant="none"
             :ui="{ base: 'px-0 py-0 text-base' }"
+            @blur="emit('change')"
           />
           <div
             v-else

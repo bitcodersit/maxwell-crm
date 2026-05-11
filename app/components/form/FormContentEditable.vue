@@ -13,9 +13,14 @@ const model = defineModel<string>({
   default: ''
 })
 
+const emit = defineEmits<{
+  (e: 'blur'): void
+}>()
+
 const onBlur = (event: Event) => {
   const input = event.target as HTMLInputElement
   model.value = input.textContent.trim()
+  emit('blur')
 }
 
 const element = useTemplateRef<HTMLElement>('contentEditable')

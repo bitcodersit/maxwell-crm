@@ -10,22 +10,20 @@ const router = useRouter()
 
 const id = computed(() => Number(route.params.id))
 const task = useState<TTask>(keys.task(id.value).toString())
-const dirty = ref(false)
 
-const { mutate } = useTaskPatchMutation(id)
-const { getAttachment } = useGetAttachment()
-
+const { mutate, isPending } = useTaskPatchMutation(id)
 const { status } = useTaskQuery(id, v => {
   task.value = v
-  dirty.value = false
 })
 
-const statusItems = getTaskStatusItems(value => {
-  task.value.status = value
+const statusItems = getTaskStatusItems(status => {
+  task.value.status = status
+  mutate({ status })
 })
 
-const priorityItems = getTaskPriorityItems(value => {
-  task.value.priority = value
+const priorityItems = getTaskPriorityItems(priority => {
+  task.value.priority = priority
+  mutate({ priority })
 })
 
 const daysLeft = computed(() => {
@@ -84,27 +82,36 @@ const taskTeams = computed<Pick<TTeam, 'id'>[]>({
   }
 })
 
-watchDebounced(
-  task,
-  value => {
-    if (!dirty.value) {
-      dirty.value = true
-      return
-    }
-    mutate(value)
-  },
-  {
-    deep: true,
-    debounce: 1000
-  }
-)
+const onChangeDescription = useDebounceFn((value: string) => {
+  task.value.description = value
+  mutate({ description: value || null })
+}, 1000)
+
+const onChangeDueAt = (value: unknown) => {
+  task.value.dueAt = value as any
+  mutate({ dueAt: (value as Date | null) ?? null })
+}
+
+const onChangeUsers = useDebounceFn(() => {
+  mutate({ users: task.value.users })
+}, 1000)
+
+const onChangeTeams = useDebounceFn(() => {
+  mutate({ teams: task.value.teams })
+}, 1000)
 </script>
 
 <template>
   <div
     v-if="task"
-    class="flex flex-1"
+    class="flex flex-1 relative"
   >
+    <UProgress
+      v-if="isPending"
+      size="sm"
+      class="absolute top-0 left-0 w-full"
+      :ui="{ base: 'rounded-none' }"
+    />
     <div class="space-y-4 flex-1 p-8 overflow-y-auto scrollbar">
       <div class="space-y-3">
         <UButton
@@ -120,6 +127,7 @@ watchDebounced(
           v-model="task.name"
           tag="h1"
           class="text-xl font-semibold outline-none focus:ring-1 focus:ring-primary rounded-lg focus:px-4 focus:py-2 transition-all"
+          @blur="mutate({ name: task.name })"
         />
         <div class="flex flex-wrap items-center gap-2">
           <UDropdownMenu :items="statusItems">
@@ -147,6 +155,7 @@ watchDebounced(
             :mode="'single'"
             :show-mode="false"
             :min-value="todayDateValue()"
+            @update:model-value="onChangeDueAt"
           >
             <template #trigger>
               <UChip :show="!task.dueAt">
@@ -177,21 +186,14 @@ watchDebounced(
         placeholder="Add short task details..."
         min-height-class="min-h-32"
         border-class="border-default"
-        @update:model-value="task.description = $event"
+        @update:model-value="onChangeDescription"
       />
-      <TaskItems v-model="task.items" />
+      <TaskItems
+        v-model="task.items"
+        @change="mutate({ items: task.items })"
+      />
     </div>
     <div class="space-y-4 w-96 flex-none border-l border-default p-4">
-      <UFormField label="Status">
-        <USelect
-          v-model="task.status"
-          :items="statusItems"
-          size="lg"
-          class="w-full"
-          value-key="value"
-        />
-      </UFormField>
-
       <UFormField label="Assigned users">
         <FormAutocomplete
           v-model="taskUsers"
@@ -200,9 +202,9 @@ watchDebounced(
           size="lg"
           class="flex-1"
           placeholder="Assign user"
+          @update:model-value="onChangeUsers"
         />
       </UFormField>
-
       <UFormField label="Assigned teams">
         <FormAutocomplete
           v-model="taskTeams"
@@ -211,6 +213,7 @@ watchDebounced(
           size="lg"
           class="flex-1"
           placeholder="Assign team"
+          @update:model-value="onChangeTeams"
         />
       </UFormField>
     </div>
