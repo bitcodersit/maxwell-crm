@@ -1,11 +1,12 @@
-export const useTaskQuery = (id: MaybeRefOrGetter<number>) => {
+export const useTaskQuery = (id: MaybeRefOrGetter<number>, callback?: (data: TTask) => void) => {
   const $fetch = useRequestFetch()
-  const query = useQuery({
+  return useQuerySSR({
     queryKey: keys.task(id),
-    queryFn: () => $fetch(`/api/tasks/${toValue(id)}`)
+    queryFn: () => {
+      return $fetch<TTask>(`/api/tasks/${toValue(id)}`).then(data => {
+        callback?.(data)
+        return data
+      })
+    }
   })
-  onServerPrefetch(async () => {
-    await query.suspense()
-  })
-  return query
 }

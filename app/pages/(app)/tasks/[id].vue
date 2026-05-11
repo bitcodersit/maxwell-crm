@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui'
 import type { TTaskItemRow } from '~/components/task/TaskItems.vue'
 import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
@@ -27,58 +26,37 @@ const taskId = computed(() => Number(route.params.id))
 const checklistRows = ref<TTaskItemRow[]>([])
 const addingUser = ref<any[]>([])
 const addingTeam = ref<any[]>([])
-const status = ref<TaskStatus>(TaskStatus.TODO)
 
-const { data: task, status: loadingStatus } = useTaskQuery(taskId)
-const { mutate: patchTask } = useTaskPatchMutation(taskId)
+const firstLoad = ref(true)
+const task = useState<TTask>(keys.task(taskId.value).toString())
 
-const statusItems: DropdownMenuItem[] = Object.values(TaskStatus).map(status => ({
-  value: status,
-  label: status,
-  onSelect() {
-    patchTask({
-      status
-    })
-  }
-}))
+const { mutate } = useTaskPatchMutation(taskId)
+const { status } = useTaskQuery(taskId, v => {
+  task.value = v
+  firstLoad.value = true
+})
 
-const priorityItems: DropdownMenuItem[] = Object.values(TaskPriority).map(priority => ({
-  value: priority,
-  label: priority,
-  onSelect() {
-    patchTask({
-      priority
-    })
-  }
-}))
+const statusItems = getTaskStatusItems(value => {
+  task.value.status = value
+})
 
-const descriptionDraft = ref('')
+const priorityItems = getTaskPriorityItems(value => {
+  task.value.priority = value
+})
 
-watch(
+watchDebounced(
   task,
   value => {
-    if (value) {
-      status.value = value.status
-      descriptionDraft.value = value.description ?? ''
-    }
-  },
-  { immediate: true }
-)
-
-watch(
-  () => task.value,
-  t => {
-    if (!t) {
-      checklistRows.value = []
+    if (firstLoad.value) {
+      firstLoad.value = false
       return
     }
-    checklistRows.value = t.items.map(i => ({
-      id: i.id,
-      text: i.name,
-      done: i.status === TaskItemStatus.COMPLETED
-    }))
+    mutate(value)
   },
-  { immediate: true }
+  {
+    deep: true,
+    debounce: 1000
+  }
 )
 
 const itemMeta = (row: TTaskItemRow) => {
@@ -94,43 +72,6 @@ const completion = computed(() => {
   const percent = total ? Math.round((done / total) * 100) : 0
   return { done, total, percent }
 })
-
-// const cloneTask = (t: TTask): TTask => JSON.parse(JSON.stringify(t)) as TTask
-
-// /** Reconcile task with server without toggling useFetch pending (avoids full-page spinner). */
-// const reconcileTaskFromServer = async () => {
-//   const next = await $fetch<TTask>(`/api/tasks/${taskId.value}`)
-//   task.value = next
-// }
-
-/** Applies optimistic UI update, then PATCH in background; silent GET reconciles with server. */
-// const patchTask = (body: Record<string, any>, optimistic?: (draft: TTask) => void) => {
-//   if (!task.value) return
-//   const backup = cloneTask(task.value)
-//   try {
-//     optimistic?.(task.value)
-//   } catch {
-//     return
-//   }
-
-//   void $fetch(`/api/tasks/${taskId.value}`, {
-//     method: 'PATCH',
-//     body
-//   })
-//     .then(async () => {
-//       await reconcileTaskFromServer()
-//     })
-//     .catch(e => {
-//       task.value = backup
-//       const { message } = parseError(e)
-//       toast.add({
-//         color: 'error',
-//         title: 'Update failed',
-//         description: message
-//       })
-//       void reconcileTaskFromServer().catch(() => {})
-//     })
-// }
 
 const onStatusChange = (next: TaskStatus) => {
   if (!task.value || next === task.value.status) return
@@ -330,28 +271,6 @@ const onRemoveAttachment = (attachmentId: number) => {
     t.attachables = t.attachables.filter(a => a.attachmentId !== attachmentId)
   })
 }
-
-const onChangeName = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const name = input.textContent.trim()
-  if (!name || name === task.value?.name) return
-  patchTask({ name })
-}
-
-const onChangeDescription = () => {
-  if (!task.value) return
-  const nextTrimmed = descriptionDraft.value.trim()
-  const serverTrimmed = (task.value.description ?? '').trim()
-  if (nextTrimmed === serverTrimmed) return
-  const description = nextTrimmed === '' ? null : nextTrimmed
-  patchTask({ description })
-}
-
-const onChangeDueDate = (dueAt: any = null) => {
-  if (task.value && dueAt !== task.value.dueAt?.toString().slice(0, 10)) {
-    patchTask({ dueAt: dueAt || null })
-  }
-}
 </script>
 
 <template>
@@ -369,13 +288,11 @@ const onChangeDueDate = (dueAt: any = null) => {
           class="flex-none -ml-1 p-0"
           @click="router.push('/tasks')"
         />
-        <h1
-          class="text-2xl font-semibold outline-none focus:underline"
-          :contenteditable="true"
-          @blur="onChangeName"
-        >
-          {{ task.name }}
-        </h1>
+        <FormContentEditable
+          v-model="task.name"
+          tag="h1"
+          class="text-2xl font-semibold outline-none focus:ring-1 focus:ring-primary rounded-lg focus:px-4 focus:py-2 transition-all"
+        />
         <div class="flex flex-wrap items-center gap-2">
           <UDropdownMenu :items="statusItems">
             <UBadge
@@ -398,11 +315,10 @@ const onChangeDueDate = (dueAt: any = null) => {
             </UBadge>
           </UDropdownMenu>
           <FormDate
-            :model-value="task.dueAt"
+            v-model="task.dueAt"
             :mode="'single'"
             :show-mode="false"
             :min-value="todayDateValue()"
-            @update:model-value="onChangeDueDate"
           >
             <template #trigger>
               <UBadge
@@ -417,15 +333,14 @@ const onChangeDueDate = (dueAt: any = null) => {
         </div>
       </div>
 
-      <div @focusout="onChangeDescription">
-        <FormEditor
-          v-model="descriptionDraft"
-          content-type="markdown"
-          placeholder="Add short task details..."
-          min-height-class="min-h-32"
-          border-class="border-default"
-        />
-      </div>
+      <FormEditor
+        :model-value="task.description || ''"
+        content-type="markdown"
+        placeholder="Add short task details..."
+        min-height-class="min-h-32"
+        border-class="border-default"
+        @update:model-value="task.description = $event"
+      />
 
       <div class="space-y-3">
         <div class="flex items-center justify-between gap-2">
@@ -439,9 +354,9 @@ const onChangeDueDate = (dueAt: any = null) => {
             Add Item
           </UButton>
         </div>
-        <UProgress :model-value="completion.percent" />
+        <!-- <UProgress :model-value="completion.percent" /> -->
 
-        <TaskItems
+        <!-- <TaskItems
           v-model="checklistRows"
           variant="detail"
           :meta-text="itemMeta"
@@ -449,17 +364,16 @@ const onChangeDueDate = (dueAt: any = null) => {
           @reorder="onDetailReorder"
           @commit-text="onDetailCommit"
           @remove="onDetailRemove"
-        />
+        /> -->
       </div>
     </div>
     <div class="space-y-4 w-96 flex-none border-l border-default p-4">
       <USelect
-        v-model="status"
-        :items="[...statusItems]"
+        v-model="task.status"
+        :items="statusItems"
         size="lg"
         class="w-full"
         value-key="value"
-        @update:model-value="onStatusChange"
       />
       <FormAutocomplete
         v-model="addingUser"
@@ -524,7 +438,7 @@ const onChangeDueDate = (dueAt: any = null) => {
     </div>
   </div>
   <div
-    v-else-if="loadingStatus === 'pending'"
+    v-else-if="status === 'pending'"
     class="flex-1 flex justify-center p-8"
   >
     <UIcon

@@ -4,7 +4,7 @@ import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums
 import { z } from 'zod'
 
 const zTaskPatch = z.object({
-  name: z.string().min(1).optional(),
+  name: zName('Task name is required!'),
   description: z.string().nullable().optional(),
   status: z.enum(TaskStatus).optional(),
   priority: z.enum(TaskPriority).optional(),
@@ -37,7 +37,7 @@ const zTaskPatch = z.object({
     )
     .optional(),
   deleteItemIds: z.array(z.number().int().positive()).optional()
-})
+}) satisfies z.ZodType<Partial<TTask>>
 
 const getOwnScope = (userId: number) =>
   ({

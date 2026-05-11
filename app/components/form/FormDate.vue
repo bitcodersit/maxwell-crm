@@ -66,19 +66,19 @@ const toCalendarValue = (input?: TModelValue) => {
   return iso ? (parseDate(iso) as TValue) : undefined
 }
 
-const toOutputValue = (next?: any): TModelValue | undefined => {
-  if (!next) return undefined
+const toOutputValue = (next?: any): TModelValue | null => {
+  if (!next) return null
   if (mode.value !== 'single') return next
 
   const iso = getIsoDate(next as any)
-  if (!iso) return undefined
+  if (!iso) return null
 
   if (model.value instanceof Date) {
     return getDateFromIso(iso)
   }
 
   const date = getDateFromIso(iso)
-  if (!date) return undefined
+  if (!date) return null
   return df(date, props.outputFormat)
 }
 

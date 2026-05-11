@@ -1,6 +1,6 @@
 export const useTasksQuery = (query?: MaybeRefOrGetter<Record<string, any>>) => {
   const $fetch = useRequestFetch()
-  const result = useQuery({
+  return useQuerySSR({
     queryKey: keys.tasks(query),
     queryFn() {
       return $fetch<TPaginated<TTask>>(`/api/tasks`, {
@@ -11,8 +11,4 @@ export const useTasksQuery = (query?: MaybeRefOrGetter<Record<string, any>>) => 
       return toPaginated<TTask>()
     }
   })
-  onServerPrefetch(async () => {
-    await result.suspense()
-  })
-  return result
 }
