@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { TTaskItemRow } from '~/components/task/TaskItems.vue'
-import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
+import { differenceInCalendarDays, isToday } from 'date-fns'
+import { TaskItemStatus, TaskStatus } from '~~/prisma/client/enums'
 
 definePageMeta({
   layout: 'tasks'
@@ -23,17 +23,16 @@ const toast = useToast()
 const { getAttachment } = useGetAttachment()
 
 const taskId = computed(() => Number(route.params.id))
-const checklistRows = ref<TTaskItemRow[]>([])
 const addingUser = ref<any[]>([])
 const addingTeam = ref<any[]>([])
 
-const firstLoad = ref(true)
 const task = useState<TTask>(keys.task(taskId.value).toString())
+const dirty = ref(false)
 
 const { mutate } = useTaskPatchMutation(taskId)
 const { status } = useTaskQuery(taskId, v => {
   task.value = v
-  firstLoad.value = true
+  dirty.value = false
 })
 
 const statusItems = getTaskStatusItems(value => {
@@ -47,8 +46,8 @@ const priorityItems = getTaskPriorityItems(value => {
 watchDebounced(
   task,
   value => {
-    if (firstLoad.value) {
-      firstLoad.value = false
+    if (!dirty.value) {
+      dirty.value = true
       return
     }
     mutate(value)
@@ -58,12 +57,6 @@ watchDebounced(
     debounce: 1000
   }
 )
-
-const itemMeta = (row: TTaskItemRow) => {
-  const it = task.value?.items.find(i => i.id === row.id)
-  if (!it) return undefined
-  return it.completedBy?.name ? `Completed by ${it.completedBy.name}` : 'Pending peer review'
-}
 
 const completion = computed(() => {
   const list = task.value?.items || []
@@ -151,10 +144,6 @@ const onDetailRemove = ({ row }: { row: TTaskItemRow }) => {
   patchTask({ deleteItemIds: [row.id] }, t => {
     t.items = t.items.filter(i => i.id !== row.id)
   })
-}
-
-const onDetailAddRow = () => {
-  checklistRows.value.unshift({ id: -Date.now(), text: '', done: false })
 }
 
 const onAssignUser = () => {
@@ -271,6 +260,38 @@ const onRemoveAttachment = (attachmentId: number) => {
     t.attachables = t.attachables.filter(a => a.attachmentId !== attachmentId)
   })
 }
+
+const daysLeft = computed(() => {
+  if (!task.value?.dueAt) {
+    return {
+      text: 'No due date',
+      color: 'neutral' as const
+    }
+  }
+
+  const dueDate = new Date(task.value.dueAt)
+  const diff = differenceInCalendarDays(dueDate, new Date())
+
+  if (isToday(dueDate)) {
+    return {
+      text: 'Due today',
+      color: 'error' as const
+    }
+  }
+
+  if (diff > 0) {
+    return {
+      text: `${diff} day${diff === 1 ? '' : 's'} left`,
+      color: diff < 7 ? ('warning' as const) : ('success' as const)
+    }
+  }
+
+  const overdue = Math.abs(diff)
+  return {
+    text: `Overdue by ${overdue} day${overdue === 1 ? '' : 's'}`,
+    color: 'error' as const
+  }
+})
 </script>
 
 <template>
@@ -288,10 +309,11 @@ const onRemoveAttachment = (attachmentId: number) => {
           class="flex-none -ml-1 p-0"
           @click="router.push('/tasks')"
         />
+        <!-- disabled -->
         <FormContentEditable
           v-model="task.name"
           tag="h1"
-          class="text-2xl font-semibold outline-none focus:ring-1 focus:ring-primary rounded-lg focus:px-4 focus:py-2 transition-all"
+          class="text-xl font-semibold outline-none focus:ring-1 focus:ring-primary rounded-lg focus:px-4 focus:py-2 transition-all"
         />
         <div class="flex flex-wrap items-center gap-2">
           <UDropdownMenu :items="statusItems">
@@ -321,18 +343,29 @@ const onRemoveAttachment = (attachmentId: number) => {
             :min-value="todayDateValue()"
           >
             <template #trigger>
-              <UBadge
-                size="lg"
-                variant="soft"
-              >
-                <UIcon name="i-lucide-calendar" />
-                {{ $dfc(task.dueAt, 'dd MMM yyyy', 'NO DUE DATE') }}
-              </UBadge>
+              <UChip :show="!task.dueAt">
+                <UBadge
+                  :color="task.dueAt ? daysLeft.color : 'neutral'"
+                  size="lg"
+                  variant="soft"
+                >
+                  <UIcon name="i-lucide-calendar" />
+                  <span v-if="task.dueAt">
+                    {{ $dfc(task.dueAt, 'dd MMM yyyy', 'NO DUE DATE') }}
+                    • {{ daysLeft.text }}
+                  </span>
+                  <span
+                    v-else
+                    class="italic"
+                  >
+                    No due date
+                  </span>
+                </UBadge>
+              </UChip>
             </template>
           </FormDate>
         </div>
       </div>
-
       <FormEditor
         :model-value="task.description || ''"
         content-type="markdown"
@@ -341,31 +374,7 @@ const onRemoveAttachment = (attachmentId: number) => {
         border-class="border-default"
         @update:model-value="task.description = $event"
       />
-
-      <div class="space-y-3">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-sm font-semibold uppercase text-muted">Checklist</span>
-          <UButton
-            size="xs"
-            variant="ghost"
-            icon="i-lucide-plus"
-            @click="onDetailAddRow"
-          >
-            Add Item
-          </UButton>
-        </div>
-        <!-- <UProgress :model-value="completion.percent" /> -->
-
-        <!-- <TaskItems
-          v-model="checklistRows"
-          variant="detail"
-          :meta-text="itemMeta"
-          @toggle="onDetailToggle"
-          @reorder="onDetailReorder"
-          @commit-text="onDetailCommit"
-          @remove="onDetailRemove"
-        /> -->
-      </div>
+      <TaskItems v-model="task.items" />
     </div>
     <div class="space-y-4 w-96 flex-none border-l border-default p-4">
       <USelect

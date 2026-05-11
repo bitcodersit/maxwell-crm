@@ -1,4 +1,5 @@
 import type { TUser } from '@@/shared/types'
+import { capitalize } from 'vue'
 
 export function userToSession(user: TUser) {
   return {
@@ -10,6 +11,20 @@ export function userToSession(user: TUser) {
     roles: (user.userRoles?.map(ur => ur.role?.name).filter(Boolean) ?? []) as string[],
     permissions: (user.userRoles?.flatMap(
       ur => ur.role?.rolePermissions?.map(rp => rp.permission?.name).filter(Boolean) ?? []
-    ) ?? []) as string[]
+    ) ?? []) as string[],
+    can: (
+      user.userRoles?.flatMap(
+        ur => ur.role?.rolePermissions?.map(rp => rp.permission?.name).filter(Boolean) ?? []
+      ) ?? []
+    ).reduce(
+      (acc, permission) => {
+        const [operation, subject, module] = (permission as string).split('-')
+        if (operation && subject && module) {
+          ;(acc as any)[`${operation}${capitalize(subject)}${capitalize(module)}`] = true
+        }
+        return acc
+      },
+      {} as TUser['can']
+    )
   }
 }

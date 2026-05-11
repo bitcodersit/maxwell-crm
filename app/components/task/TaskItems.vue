@@ -1,159 +1,168 @@
 <script setup lang="ts">
-import type { Ref } from 'vue'
-import type { Options as SortableOptions } from 'sortablejs'
 import { useSortable } from '@vueuse/integrations/useSortable'
+import { TaskItemStatus } from '~~/prisma/client/enums'
 
-export type TTaskItemRow = {
-  id: number
-  text: string
-  done: boolean
-}
+type TModel = Pick<
+  TTaskItem,
+  'id' | 'name' | 'status' | 'sortOrder' | 'completedAt' | 'completedBy'
+>
 
-const props = withDefaults(
-  defineProps<{
-    variant?: 'form' | 'detail'
-    /** When true, completing moves the row to the bottom (task list modal checklist UX). */
-    moveDoneToEnd?: boolean
-    /** When true, removing the last row resets it to one empty placeholder row. */
-    keepAtLeastOneRow?: boolean
-    metaText?: (row: TTaskItemRow) => string | undefined
-    sortable?: boolean
-  }>(),
-  {
-    variant: 'form',
-    moveDoneToEnd: false,
-    keepAtLeastOneRow: false,
-    sortable: true
-  }
-)
+const props = withDefaults(defineProps<{}>(), {})
 
-const model = defineModel<TTaskItemRow[]>({ required: true })
-
-const emit = defineEmits<{
-  toggle: [payload: { row: TTaskItemRow; done: boolean }]
-  reorder: [payload: { rows: TTaskItemRow[] }]
-  'commit-text': [payload: { row: TTaskItemRow; text: string }]
-  remove: [payload: { row: TTaskItemRow }]
-  add: []
-}>()
+const model = defineModel<TModel[]>({
+  default: () => []
+})
 
 const listRef = ref<HTMLElement | null>(null)
+useSortable(listRef, model, {
+  filter: '.task-items__disabled',
+  handle: '.task-items__handle',
+  animation: 150
+})
 
-if (props.sortable) {
-  const sortableOpts: SortableOptions = {
-    handle: '.task-items__handle',
-    animation: 150,
-    onEnd() {
-      emit('reorder', { rows: [...model.value] })
-    }
+const { getAttachment } = useGetAttachment()
+
+const onFocusInput = () => {
+  listRef.value?.querySelector('input')?.focus()
+}
+
+const onAddItem = () => {
+  model.value.unshift({
+    id: -Date.now(),
+    name: '',
+    status: TaskItemStatus.TODO,
+    sortOrder: (model.value[0]?.sortOrder ?? 0) - 1,
+    completedAt: null
+  })
+  nextTick(onFocusInput)
+}
+
+const onRemoveItem = (id: number) => {
+  model.value = model.value.filter(v => v.id !== id)
+  nextTick(onFocusInput)
+}
+
+const { user } = useUserSession()
+const onChangeCheckbox = (item: TModel, checked: boolean | 'indeterminate') => {
+  item.status = checked ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
+  item.completedAt = checked ? new Date() : null
+  item.completedBy = checked ? (user.value as TUser) : null
+  model.value = model.value
+    .sort((a, b) => {
+      if (a.status === b.status) {
+        return a.sortOrder - b.sortOrder
+      }
+      return a.status === TaskItemStatus.COMPLETED ? 1 : -1
+    })
+    .map((v, i) => ({
+      ...v,
+      sortOrder: i
+    }))
+}
+
+const completion = computed(() => {
+  const done = model.value.filter(v => v.status === TaskItemStatus.COMPLETED).length
+  const total = model.value.length
+  return {
+    done,
+    total,
+    percent: total ? Math.round((done / total) * 100) : 0
   }
-  useSortable(listRef, model as Ref<TTaskItemRow[]>, sortableOpts)
-}
-
-function onToggle(index: number, value: boolean | 'indeterminate') {
-  const done = value === true
-  const row = model.value[index]
-  if (!row) return
-
-  const next = [...model.value]
-  next[index] = { ...row, done }
-
-  if (props.moveDoneToEnd && done) {
-    const [moved] = next.splice(index, 1)
-    if (moved) next.push(moved)
-  }
-
-  model.value = next
-  const after = model.value.find(r => r.id === row.id)
-  if (after) emit('toggle', { row: after, done })
-}
-
-function onRemove(index: number) {
-  const row = model.value[index]
-  if (!row) return
-
-  if (props.keepAtLeastOneRow && model.value.length <= 1) {
-    const prev = row
-    model.value = [{ id: -Date.now(), text: '', done: false }]
-    if (prev.id > 0) emit('remove', { row: prev })
-    return
-  }
-
-  model.value = model.value.filter((_, i) => i !== index)
-  emit('remove', { row })
-}
-
-function onTextBlur(index: number) {
-  const row = model.value[index]
-  if (!row) return
-  emit('commit-text', { row, text: row.text })
-}
-
-const rowWrapClass = computed(() =>
-  props.variant === 'detail'
-    ? 'flex flex-1 flex-col gap-1 rounded-md border border-default bg-default/30 p-3'
-    : 'group flex flex-1 items-center gap-2 rounded-lg border border-default bg-elevated/50 px-3 py-2'
-)
-
-const outerClass = computed(() =>
-  props.variant === 'detail' ? 'flex items-start gap-2' : 'flex items-center gap-2'
-)
+})
 </script>
 
 <template>
-  <div
-    ref="listRef"
-    class="space-y-2"
-  >
-    <div
-      v-for="(row, index) in model"
-      :key="row.id"
-      :class="outerClass"
-    >
+  <div class="space-y-3">
+    <div class="flex items-center justify-between gap-4">
+      <div class="text-sm text-muted">
+        <span>Checklist</span>
+        <span>
+          {{ ` • ${completion.done} / ${completion.total} completed (${completion.percent}%)` }}
+        </span>
+      </div>
       <UButton
-        v-if="sortable"
-        size="sm"
-        icon="i-lucide-grip-vertical"
-        color="neutral"
+        icon="i-lucide-plus"
+        size="xs"
         variant="ghost"
-        :ui="{ leadingIcon: 'text-muted/50' }"
-        class="task-items__handle mt-0.5 cursor-grab flex-none active:cursor-grabbing"
-        tabindex="-1"
-      />
-
-      <div :class="rowWrapClass">
-        <div class="flex items-center gap-2">
-          {{ row.sortOrder }}
+        @click="onAddItem"
+      >
+        Add Item
+      </UButton>
+    </div>
+    <UProgress
+      :model-value="completion.percent"
+      size="sm"
+    />
+    <div
+      ref="listRef"
+      class="space-y-2"
+    >
+      <div
+        v-for="item in model"
+        :key="item.id"
+        :class="{
+          'opacity-50': item.status === TaskItemStatus.COMPLETED,
+          'task-items__disabled': item.status === TaskItemStatus.COMPLETED
+        }"
+        class="flex items-center gap-2"
+      >
+        <div class="flex-none w-7">
+          <UButton
+            v-if="item.status !== TaskItemStatus.COMPLETED"
+            :ui="{ leadingIcon: 'text-muted/50' }"
+            size="sm"
+            icon="i-lucide-grip-vertical"
+            color="neutral"
+            class="task-items__handle cursor-grab flex-none active:cursor-grabbing"
+            variant="ghost"
+            tabindex="-1"
+          />
+        </div>
+        <div
+          class="flex flex-1 gap-4 items-center rounded-md border border-default bg-default/30 p-3"
+        >
           <UCheckbox
-            :model-value="row.done"
-            @update:model-value="onToggle(index, $event)"
+            :disabled="!item.name.trim().length"
+            :model-value="item.status === TaskItemStatus.COMPLETED"
+            @update:model-value="onChangeCheckbox(item, $event)"
           />
           <UInput
-            v-model="row.text"
+            v-if="item.status !== TaskItemStatus.COMPLETED"
+            v-model="item.name"
             placeholder="Add next requirement..."
             class="flex-1"
             variant="none"
-            :ui="{ base: variant === 'form' ? 'px-0' : '' }"
-            :class="variant === 'detail' && row.done ? 'line-through text-muted' : ''"
-            @blur="onTextBlur(index)"
+            :ui="{ base: 'px-0 py-0 text-base' }"
           />
+          <div
+            v-else
+            class="flex-1 text-base"
+          >
+            {{ item.name }}
+          </div>
+          <UTooltip
+            v-if="item.completedBy"
+            :delay-duration="0"
+          >
+            <UAvatar
+              :size="'xs'"
+              :src="getAttachment(item.completedBy.avatarId)"
+              :alt="item.completedBy.name"
+            />
+            <template #content>
+              Completed by <b>{{ item.completedBy.name }}</b> on
+              <b>{{ $dfc(item.completedAt, 'dd MMM yyyy hh:mm a', 'NO DONE DATE') }}</b>
+            </template>
+          </UTooltip>
           <UButton
-            v-if="model.length"
+            v-if="model.length && item.status !== TaskItemStatus.COMPLETED"
+            icon="i-lucide-x"
             color="neutral"
             variant="ghost"
-            icon="i-lucide-x"
-            :class="
-              variant === 'form' ? 'opacity-0 transition-opacity group-hover:opacity-100' : ''
-            "
-            @click="onRemove(index)"
+            :ui="{ base: 'text-muted/50' }"
+            @click="onRemoveItem(item.id)"
           />
         </div>
-        <p
-          v-if="variant === 'detail' && metaText?.(row)"
-          class="text-xs text-muted"
-        >
-          {{ metaText(row) }}
-        </p>
       </div>
     </div>
   </div>

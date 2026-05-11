@@ -3,6 +3,7 @@ withDefaults(
   defineProps<{
     tag?: string
     class?: string
+    disabled?: boolean
   }>(),
   {
     tag: 'div'
@@ -30,7 +31,7 @@ watch(model, value => {
     ref="contentEditable"
     :is="tag"
     :class="class"
-    :contenteditable="true"
+    :contenteditable="!disabled"
     @blur="onBlur"
   >
     {{ model }}

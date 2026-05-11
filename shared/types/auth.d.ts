@@ -1,14 +1,8 @@
-// shared/types/auth.d.ts
 declare module '#auth-utils' {
-  interface User {
-    id: number
-    name: string
-    email: string | null
-    phone: string | null
-    roles: string[]
-    permissions: string[]
-    avatarId?: number | null
-  }
+  interface User extends Pick<
+    TUser,
+    'id' | 'name' | 'email' | 'phone' | 'avatarId' | 'roles' | 'permissions' | 'can'
+  > {}
 
   interface UserSession {
     // Add your own fields

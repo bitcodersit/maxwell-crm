@@ -1,6 +1,6 @@
 import { TeamMemberRole } from '~~/prisma/client/enums'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const { user } = await requireUserSession(event)
 
@@ -17,12 +17,12 @@ export default defineEventHandler(async (event) => {
             where: {
               teamId: input.id,
               userId: user.id,
-              role: TeamMemberRole.LEADER,
+              role: TeamMemberRole.LEADER
             },
             select: {
               id: true,
-              role: true,
-            },
+              role: true
+            }
           })
         : null
 
@@ -32,21 +32,21 @@ export default defineEventHandler(async (event) => {
       }
 
       if (input.members?.length && leader) {
-        const currentUserInMembers = input.members.find((member) => member.userId === user.id)
+        const currentUserInMembers = input.members.find(member => member.userId === user.id)
 
         if (!currentUserInMembers) {
           throw err.unprocessable({
             members: {
-              errors: ['Team leader cannot remove themselves from the team'],
-            },
+              errors: ['Team leader cannot remove themselves from the team']
+            }
           })
         }
 
         if (currentUserInMembers.role !== TeamMemberRole.LEADER) {
           throw err.unprocessable({
             members: {
-              errors: ['Team leader cannot change their own role'],
-            },
+              errors: ['Team leader cannot change their own role']
+            }
           })
         }
       }
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
       const team = await prisma.team.update({
         include,
         where: {
-          id: input.id,
+          id: input.id
         },
         data: {
           avatarId: input.avatarId,
@@ -64,28 +64,28 @@ export default defineEventHandler(async (event) => {
             ? {
                 deleteMany: {
                   userId: {
-                    notIn: input.members.map((member) => member.userId),
-                  },
+                    notIn: input.members.map(member => member.userId)
+                  }
                 },
-                upsert: input.members.map((member) => ({
+                upsert: input.members.map(member => ({
                   where: {
                     teamId_userId: {
                       teamId: input.id!,
-                      userId: member.userId,
-                    },
+                      userId: member.userId
+                    }
                   },
                   update: {
-                    role: member.role,
+                    role: member.role
                   },
                   create: {
                     role: member.role,
                     userId: member.userId,
-                    assignerId: user.id,
-                  },
-                })),
+                    assignerId: user.id
+                  }
+                }))
               }
-            : undefined,
-        },
+            : undefined
+        }
       })
       return team
     }
@@ -103,14 +103,14 @@ export default defineEventHandler(async (event) => {
         description: input.description,
         members: {
           createMany: {
-            data: (input.members || []).map((member) => ({
+            data: (input.members || []).map(member => ({
               userId: member.userId,
               role: member.role,
-              assignerId: user.id,
-            })),
-          },
-        },
-      },
+              assignerId: user.id
+            }))
+          }
+        }
+      }
     })
     return team
   } catch (error: any) {
@@ -119,8 +119,8 @@ export default defineEventHandler(async (event) => {
     if (message.includes('teams_name_key')) {
       throw err.unprocessable({
         name: {
-          errors: ['Name is already taken, please try a different name'],
-        },
+          errors: ['Name is already taken, please try a different name']
+        }
       })
     }
     throw error
@@ -130,23 +130,23 @@ export default defineEventHandler(async (event) => {
 const selectUser = {
   id: true,
   name: true,
-  email: true,
+  email: true
 }
 
 const include = {
   creator: {
-    select: selectUser,
+    select: selectUser
   },
   members: {
     include: {
       user: {
-        select: selectUser,
+        select: selectUser
       },
       assigner: {
-        select: selectUser,
-      },
-    },
-  },
+        select: selectUser
+      }
+    }
+  }
 }
 
 const zTeam = z.object({
@@ -158,14 +158,14 @@ const zTeam = z.object({
     .array(
       z.object({
         userId: z.number(),
-        role: z.enum(TeamMemberRole).default(TeamMemberRole.MEMBER),
+        role: z.enum(TeamMemberRole).default(TeamMemberRole.MEMBER)
       })
     )
     .min(1, 'At least one member is required')
-    .refine((v) => v.some((m) => m.role === TeamMemberRole.LEADER), {
-      message: 'At least one leader is required',
+    .refine(v => v.some(m => m.role === TeamMemberRole.LEADER), {
+      message: 'At least one leader is required'
     })
-    .refine((v) => v.some((m) => m.role === TeamMemberRole.MEMBER), {
-      message: 'At least one member is required',
-    }),
+    .refine(v => v.some(m => m.role === TeamMemberRole.MEMBER), {
+      message: 'At least one member is required'
+    })
 })

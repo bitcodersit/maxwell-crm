@@ -44,7 +44,9 @@ export const TaskInclude = {
       {
         status: 'asc' as const
       },
-      { sortOrder: 'asc' as const }
+      {
+        sortOrder: 'asc' as const
+      }
     ],
     select: {
       id: true,
