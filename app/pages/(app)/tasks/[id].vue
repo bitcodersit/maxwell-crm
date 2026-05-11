@@ -12,18 +12,26 @@ const id = computed(() => Number(route.params.id))
 const task = useState<TTask>(keys.task(id.value).toString())
 
 const { mutate, isPending } = useTaskPatchMutation(id)
-const { status } = useTaskQuery(id, v => {
+const { data, status } = useTaskQuery(id, v => {
   task.value = v
 })
 
+const onMutate = (update: Partial<TTask>) => {
+  const diff = getDeepDiff(task.value, data.value)
+  const updateKeys = Object.keys(update)
+  if (updateKeys.some(key => key in diff)) {
+    mutate(update)
+  }
+}
+
 const statusItems = getTaskStatusItems(status => {
   task.value.status = status
-  mutate({ status })
+  onMutate({ status })
 })
 
 const priorityItems = getTaskPriorityItems(priority => {
   task.value.priority = priority
-  mutate({ priority })
+  onMutate({ priority })
 })
 
 const daysLeft = computed(() => {
@@ -84,20 +92,20 @@ const taskTeams = computed<Pick<TTeam, 'id'>[]>({
 
 const onChangeDescription = useDebounceFn((value: string) => {
   task.value.description = value
-  mutate({ description: value || null })
+  onMutate({ description: value || null })
 }, 1000)
 
 const onChangeDueAt = (value: unknown) => {
   task.value.dueAt = value as any
-  mutate({ dueAt: (value as Date | null) ?? null })
+  onMutate({ dueAt: (value as Date | null) ?? null })
 }
 
 const onChangeUsers = useDebounceFn(() => {
-  mutate({ users: task.value.users })
+  onMutate({ users: task.value.users })
 }, 1000)
 
 const onChangeTeams = useDebounceFn(() => {
-  mutate({ teams: task.value.teams })
+  onMutate({ teams: task.value.teams })
 }, 1000)
 </script>
 
@@ -127,7 +135,7 @@ const onChangeTeams = useDebounceFn(() => {
           v-model="task.name"
           tag="h1"
           class="text-xl font-semibold outline-none focus:ring-1 focus:ring-primary rounded-lg focus:px-4 focus:py-2 transition-all"
-          @blur="mutate({ name: task.name })"
+          @blur="onMutate({ name: task.name })"
         />
         <div class="flex flex-wrap items-center gap-2">
           <UDropdownMenu :items="statusItems">
@@ -190,7 +198,7 @@ const onChangeTeams = useDebounceFn(() => {
       />
       <TaskItems
         v-model="task.items"
-        @change="mutate({ items: task.items })"
+        @change="onMutate({ items: task.items })"
       />
     </div>
     <div class="space-y-4 w-96 flex-none border-l border-default p-4">

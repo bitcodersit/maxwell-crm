@@ -19,10 +19,10 @@ export const useTaskPatchMutation = (
     },
     onSuccess(data) {
       // callback?.(data)
-      // queryClient.setQueryData(keys.task(id), (old: TTask) => {
-      //   if (!old) return data
-      //   return { ...old, ...data }
-      // })
+      queryClient.setQueryData(keys.task(id), (old: TTask) => {
+        if (!old) return data
+        return { ...old, ...data }
+      })
       queryClient.invalidateQueries({
         queryKey: keys.tasks()
       })
