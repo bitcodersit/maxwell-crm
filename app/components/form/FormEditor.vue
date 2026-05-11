@@ -6,9 +6,13 @@ const props = withDefaults(
     placeholder?: string
     contentType?: EditorContentType
     minHeightClass?: string
+    contentClass?: string
     borderClass?: string
+    editable?: boolean
   }>(),
   {
+    editable: true,
+    contentClass: '',
     placeholder: 'Start writing...',
     contentType: 'markdown',
     minHeightClass: 'min-h-32',
@@ -86,13 +90,15 @@ const toolbarItems = [
       v-model="model"
       :content-type="contentType"
       :placeholder="placeholder"
+      :editable="editable"
       :ui="{
         base: ['px-3 py-2 text-sm', minHeightClass],
-        content: '[&>div]:px-3 [&>div]:py-2'
+        content: ['[&>div]:px-3 [&>div]:py-2', contentClass]
       }"
       class="w-full"
     >
       <UEditorToolbar
+        v-if="editable"
         :editor="editor"
         :items="toolbarItems"
         class="border-b p-2"

@@ -11,6 +11,7 @@ const router = useRouter()
 const id = computed(() => Number(route.params.id))
 const task = useState<TTask>(keys.task(id.value).toString())
 
+const { user } = useUserSession()
 const { mutate, isPending } = useTaskPatchMutation(id)
 const { data, status } = useTaskQuery(id, v => {
   task.value = v
@@ -24,12 +25,12 @@ const onMutate = (update: Partial<TTask>) => {
   }
 }
 
-const statusItems = getTaskStatusItems(status => {
+const statusItems = useTaskStatusItems(status => {
   task.value.status = status
   onMutate({ status })
 })
 
-const priorityItems = getTaskPriorityItems(priority => {
+const priorityItems = useTaskPriorityItems(priority => {
   task.value.priority = priority
   onMutate({ priority })
 })
@@ -133,6 +134,7 @@ const onChangeTeams = useDebounceFn(() => {
         <!-- disabled -->
         <FormContentEditable
           v-model="task.name"
+          :disabled="!user?.can?.updateAnyTasks"
           tag="h1"
           class="text-xl font-semibold outline-none focus:ring-1 focus:ring-primary rounded-lg focus:px-4 focus:py-2 transition-all"
           @blur="onMutate({ name: task.name })"
@@ -143,16 +145,21 @@ const onChangeTeams = useDebounceFn(() => {
               :color="ColorsMap[task.status]"
               size="lg"
               variant="soft"
+              class="cursor-pointer"
             >
               <UIcon name="i-lucide-check-circle" />
               {{ task.status }}
             </UBadge>
           </UDropdownMenu>
-          <UDropdownMenu :items="priorityItems">
+          <UDropdownMenu
+            :items="priorityItems"
+            :disabled="!priorityItems.length"
+          >
             <UBadge
               :color="ColorsMap[task.priority]"
               size="lg"
               variant="soft"
+              class="cursor-pointer"
             >
               <UIcon name="i-lucide-flag" />
               {{ task.priority }}
@@ -162,11 +169,15 @@ const onChangeTeams = useDebounceFn(() => {
             v-model="task.dueAt"
             :mode="'single'"
             :show-mode="false"
+            :disabled="!user?.can?.updateAnyTasks"
             :min-value="todayDateValue()"
             @update:model-value="onChangeDueAt"
           >
             <template #trigger>
-              <UChip :show="!task.dueAt">
+              <UChip
+                :show="!task.dueAt"
+                class="cursor-pointer"
+              >
                 <UBadge
                   :color="task.dueAt ? daysLeft.color : 'neutral'"
                   size="lg"
@@ -190,10 +201,12 @@ const onChangeTeams = useDebounceFn(() => {
       </div>
       <FormEditor
         :model-value="task.description || ''"
-        content-type="markdown"
+        :editable="!!user?.can?.updateAnyTasks"
+        :border-class="!user?.can?.updateAnyTasks ? 'border-none' : 'border-default'"
+        :content-class="!user?.can?.updateAnyTasks ? '[&>div]:px-0 [&>div]:py-0' : ''"
         placeholder="Add short task details..."
+        content-type="markdown"
         min-height-class="min-h-32"
-        border-class="border-default"
         @update:model-value="onChangeDescription"
       />
       <TaskItems

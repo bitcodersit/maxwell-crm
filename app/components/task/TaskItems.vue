@@ -7,6 +7,9 @@ type TModel = Pick<
   'id' | 'name' | 'status' | 'sortOrder' | 'completedAt' | 'completedBy'
 >
 
+const { user } = useUserSession()
+const { getAttachment } = useGetAttachment()
+
 const props = withDefaults(defineProps<{}>(), {})
 const model = defineModel<TModel[]>({
   default: () => []
@@ -18,6 +21,7 @@ const emit = defineEmits<{
 
 const listRef = ref<HTMLElement | null>(null)
 useSortable(listRef, model, {
+  disabled: !user.value?.can?.updateAnyTasks,
   filter: '.task-items__disabled',
   handle: '.task-items__handle',
   animation: 150,
@@ -25,8 +29,6 @@ useSortable(listRef, model, {
     emit('change')
   }
 })
-
-const { getAttachment } = useGetAttachment()
 
 const onFocusInput = () => {
   listRef.value?.querySelector('input')?.focus()
@@ -49,7 +51,6 @@ const onRemoveItem = (id: number) => {
   nextTick(onFocusInput)
 }
 
-const { user } = useUserSession()
 const onChangeCheckbox = (item: TModel, checked: boolean | 'indeterminate') => {
   item.status = checked ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
   item.completedAt = checked ? new Date() : null
@@ -89,6 +90,7 @@ const completion = computed(() => {
         </span>
       </div>
       <UButton
+        v-if="!!user?.can?.updateAnyTasks"
         icon="i-lucide-plus"
         size="xs"
         variant="ghost"
@@ -118,6 +120,7 @@ const completion = computed(() => {
           <UButton
             v-if="item.status !== TaskItemStatus.COMPLETED"
             :ui="{ leadingIcon: 'text-muted/50' }"
+            :disabled="!user?.can?.updateAnyTasks"
             size="sm"
             icon="i-lucide-grip-vertical"
             color="neutral"
@@ -135,7 +138,7 @@ const completion = computed(() => {
             @update:model-value="onChangeCheckbox(item, $event)"
           />
           <UInput
-            v-if="item.status !== TaskItemStatus.COMPLETED"
+            v-if="item.status !== TaskItemStatus.COMPLETED && !!user?.can?.updateAnyTasks"
             v-model="item.name"
             placeholder="Add next requirement..."
             class="flex-1"
@@ -164,7 +167,11 @@ const completion = computed(() => {
             </template>
           </UTooltip>
           <UButton
-            v-if="model.length && item.status !== TaskItemStatus.COMPLETED"
+            v-if="
+              model.length &&
+              item.status !== TaskItemStatus.COMPLETED &&
+              !!user?.can?.updateAnyTasks
+            "
             icon="i-lucide-x"
             color="neutral"
             variant="ghost"

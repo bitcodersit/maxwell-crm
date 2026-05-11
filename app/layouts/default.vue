@@ -21,6 +21,7 @@ const { user } = useUserSession()
 const { title, links: panelLinks, isSearchOpen, isNotificationsOpen } = useDashboard()
 
 const links = computed(() => {
+  const can = user.value?.can
   return [
     [
       {
@@ -35,6 +36,7 @@ const links = computed(() => {
         label: 'Tasks',
         icon: 'i-lucide-list-checks',
         to: '/tasks',
+        visible: !!(can?.readAnyTasks || can?.readOwnTasks),
         onSelect: () => {
           open.value = false
         }
@@ -43,7 +45,7 @@ const links = computed(() => {
         label: 'Teams',
         icon: 'i-lucide-users-round',
         to: '/teams',
-        visible: can(user.value, ['read-any-teams', 'read-own-teams']),
+        visible: !!(can?.readAnyTeams || can?.readOwnTeams),
         onSelect: () => {
           open.value = false
         }
@@ -52,7 +54,7 @@ const links = computed(() => {
         label: 'Users',
         icon: 'i-lucide-users',
         to: '/users',
-        visible: can(user.value, ['read-any-users']),
+        visible: !!can?.readAnyUsers,
         onSelect: () => {
           open.value = false
         }
@@ -61,7 +63,7 @@ const links = computed(() => {
         label: 'Customers',
         icon: 'i-lucide-user-round-search',
         to: '/customers',
-        visible: can(user.value, ['read-any-users']),
+        visible: !!can?.readAnyUsers,
         onSelect: () => {
           open.value = false
         }
@@ -70,7 +72,7 @@ const links = computed(() => {
         label: 'Roles',
         icon: 'i-lucide-list-todo',
         to: '/roles',
-        visible: can(user.value, ['read-any-roles']),
+        visible: !!can?.readAnyRoles,
         onSelect: () => {
           open.value = false
         }
@@ -79,20 +81,20 @@ const links = computed(() => {
         label: 'Permissions',
         icon: 'i-lucide-list-todo',
         to: '/permissions',
-        visible: can(user.value, ['read-any-permissions']),
+        visible: !!can?.readAnyPermissions,
         onSelect: () => {
           open.value = false
         }
       },
-      {
-        label: 'Inbox',
-        icon: 'i-lucide-inbox',
-        to: '/inbox',
-        badge: '4',
-        onSelect: () => {
-          open.value = false
-        }
-      },
+      // {
+      //   label: 'Inbox',
+      //   icon: 'i-lucide-inbox',
+      //   to: '/inbox',
+      //   badge: '4',
+      //   onSelect: () => {
+      //     open.value = false
+      //   }
+      // },
       {
         label: 'Settings',
         to: '/settings',

@@ -133,10 +133,11 @@ watch(mode, v => {
 
 <template>
   <UPopover
-    v-model:open="open"
+    :open="disabled ? false : open"
     :arrow="true"
     :ui="{ content: 'p-3 flex flex-col gap-3' }"
     :content="{ align: 'start', side: 'bottom' }"
+    @update:open="open = $event"
   >
     <slot
       name="trigger"
@@ -162,7 +163,6 @@ watch(mode, v => {
         {{ triggerLabel || displayValue || triggerPlaceholder }}
       </UButton>
     </slot>
-
     <template #content>
       <URadioGroup
         v-if="showMode"

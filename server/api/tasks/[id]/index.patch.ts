@@ -88,7 +88,7 @@ export default defineEventHandler(async event => {
   const nextStatus = input.status ?? existing.status
 
   if (!user.can?.updateAnyTasks && input.status !== undefined && input.status !== existing.status) {
-    const statuses: TaskStatus[] = [TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW]
+    const statuses: TaskStatus[] = [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW]
     if (!statuses.includes(nextStatus)) {
       throw err.unprocessable({
         status: {
