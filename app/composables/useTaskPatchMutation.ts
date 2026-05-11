@@ -1,4 +1,7 @@
-export const useTaskPatchMutation = (id: MaybeRefOrGetter<number>) => {
+export const useTaskPatchMutation = (
+  id: MaybeRefOrGetter<number>
+  // callback?: (data: TTask) => void
+) => {
   const toast = useToast()
   const queryClient = useQueryClient()
   const controller = ref<AbortController>()
@@ -14,7 +17,12 @@ export const useTaskPatchMutation = (id: MaybeRefOrGetter<number>) => {
         signal: controller.value.signal
       })
     },
-    onSuccess() {
+    onSuccess(data) {
+      // callback?.(data)
+      // queryClient.setQueryData(keys.task(id), (old: TTask) => {
+      //   if (!old) return data
+      //   return { ...old, ...data }
+      // })
       queryClient.invalidateQueries({
         queryKey: keys.tasks()
       })
