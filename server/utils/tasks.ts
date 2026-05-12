@@ -1,4 +1,38 @@
-import { Prisma } from '~~/prisma/client/client'
+import { TaskItemStatus, TaskPriority, TaskStatus, type Prisma } from '~~/prisma/client/client'
+
+const zItems = z.object({
+  id: z.number(),
+  name: z.string().default(''),
+  status: z.enum(TaskItemStatus).default(TaskItemStatus.TODO),
+  completedAt: z.coerce.date().nullish(),
+  completedById: z.number().nullish()
+})
+
+const zTaskUser = z.object({
+  userId: z.number()
+})
+
+const zTaskTeam = z.object({
+  teamId: z.number()
+})
+
+const zTaskCommon = z.object({
+  description: z.string().nullish(),
+  status: z.enum(TaskStatus).optional().default(TaskStatus.TODO),
+  priority: z.enum(TaskPriority).optional().default(TaskPriority.MEDIUM),
+  dueAt: z.coerce.date().nullish(),
+  items: z.array(zItems).optional()
+})
+
+export const zTaskPost = zTaskCommon.extend({
+  name: zName('Task name is required!')
+})
+
+export const zTaskPatch = zTaskCommon.extend({
+  name: zName('Task name is required!').optional(),
+  users: z.array(zTaskUser).optional(),
+  teams: z.array(zTaskTeam).optional()
+})
 
 export const TaskInclude = {
   creator: {

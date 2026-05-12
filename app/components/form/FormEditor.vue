@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EditorContentType, EditorToolbarItem } from '@nuxt/ui'
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     placeholder?: string
     contentType?: EditorContentType
@@ -20,7 +20,7 @@ const props = withDefaults(
   }
 )
 
-const model = defineModel<string>({ default: '' })
+const model = defineModel<TMaybe<string>>({ default: '' })
 
 const toolbarItems = [
   [

@@ -1,15 +1,15 @@
 export const actions = {
   view: {
     label: 'View Details',
-    icon: 'i-lucide-eye',
+    icon: 'i-lucide-eye'
   },
   update: {
     label: 'Update',
-    icon: 'i-lucide-pencil',
+    icon: 'i-lucide-pencil'
   },
   delete: {
     label: 'Delete',
     icon: 'i-lucide-trash',
-    color: 'error',
-  },
+    color: 'error' as const
+  }
 }

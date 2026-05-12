@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { differenceInCalendarDays, isToday } from 'date-fns'
-
 definePageMeta({
   layout: 'tasks'
 })
@@ -35,38 +33,6 @@ const priorityItems = useTaskPriorityItems(priority => {
   onMutate({ priority })
 })
 
-const daysLeft = computed(() => {
-  if (!task.value?.dueAt) {
-    return {
-      text: 'No due date',
-      color: 'neutral' as const
-    }
-  }
-
-  const dueDate = new Date(task.value.dueAt)
-  const diff = differenceInCalendarDays(dueDate, new Date())
-
-  if (isToday(dueDate)) {
-    return {
-      text: 'Due today',
-      color: 'error' as const
-    }
-  }
-
-  if (diff > 0) {
-    return {
-      text: `${diff} day${diff === 1 ? '' : 's'} left`,
-      color: diff < 7 ? ('warning' as const) : ('success' as const)
-    }
-  }
-
-  const overdue = Math.abs(diff)
-  return {
-    text: `Overdue by ${overdue} day${overdue === 1 ? '' : 's'}`,
-    color: 'error' as const
-  }
-})
-
 const taskUsers = computed<Pick<TUser, 'id'>[]>({
   get() {
     return (task.value?.users || []).map(v => v.user).filter(v => !!v)
@@ -91,8 +57,8 @@ const taskTeams = computed<Pick<TTeam, 'id'>[]>({
   }
 })
 
-const onChangeDescription = useDebounceFn((value: string) => {
-  task.value.description = value
+const onChangeDescription = useDebounceFn((value: TMaybe<string>) => {
+  task.value.description = value ?? null
   onMutate({ description: value || null })
 }, 1000)
 
@@ -141,60 +107,32 @@ const onChangeTeams = useDebounceFn(() => {
         />
         <div class="flex flex-wrap items-center gap-2">
           <UDropdownMenu :items="statusItems">
-            <UBadge
-              :color="ColorsMap[task.status]"
-              size="lg"
-              variant="soft"
-              class="cursor-pointer"
-            >
-              <UIcon name="i-lucide-check-circle" />
-              {{ task.status }}
-            </UBadge>
+            <TaskStatusBadge
+              :size="'lg'"
+              :status="task.status"
+            />
           </UDropdownMenu>
           <UDropdownMenu
             :items="priorityItems"
             :disabled="!priorityItems.length"
           >
-            <UBadge
-              :color="ColorsMap[task.priority]"
-              size="lg"
-              variant="soft"
-              class="cursor-pointer"
-            >
-              <UIcon name="i-lucide-flag" />
-              {{ task.priority }}
-            </UBadge>
+            <TaskPriorityBadge
+              :size="'lg'"
+              :priority="task.priority"
+            />
           </UDropdownMenu>
           <FormDate
             v-model="task.dueAt"
-            :mode="'single'"
             :show-mode="false"
             :disabled="!user?.can?.updateAnyTasks"
             :min-value="todayDateValue()"
             @update:model-value="onChangeDueAt"
           >
             <template #trigger>
-              <UChip
-                :show="!task.dueAt"
-                class="cursor-pointer"
-              >
-                <UBadge
-                  :color="task.dueAt ? daysLeft.color : 'neutral'"
-                  size="lg"
-                  variant="soft"
-                >
-                  <UIcon name="i-lucide-calendar" />
-                  <template v-if="task.dueAt">
-                    {{ $dfc(task.dueAt, 'dd MMM yyyy') }} • {{ daysLeft.text }}
-                  </template>
-                  <span
-                    v-else
-                    class="italic"
-                  >
-                    No due date
-                  </span>
-                </UBadge>
-              </UChip>
+              <TaskDueDate
+                :size="'lg'"
+                :due-at="task.dueAt"
+              />
             </template>
           </FormDate>
         </div>

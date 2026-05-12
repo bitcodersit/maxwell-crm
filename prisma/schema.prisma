@@ -242,7 +242,7 @@ enum TaskItemStatus {
 model Task {
     id Int @id @default(autoincrement())
 
-    name        String
+    name        String  @db.Text
     description String? @db.Text
 
     status   TaskStatus   @default(TODO)
@@ -277,7 +277,7 @@ model TaskItem {
     id Int @id @default(autoincrement())
 
     taskId    Int
-    name      String
+    name      String @db.Text
     sortOrder Int    @default(0)
 
     status        TaskItemStatus @default(TODO)

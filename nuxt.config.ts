@@ -11,6 +11,12 @@ export default defineNuxtConfig({
     'nuxt-cron',
     '@peterbud/nuxt-query'
   ],
+  components: [
+    {
+      path: '~/components',
+      pathPrefix: false
+    }
+  ],
   devtools: {
     enabled: true
   },

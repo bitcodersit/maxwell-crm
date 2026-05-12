@@ -1,34 +1,5 @@
 import type { Prisma } from '~~/prisma/client/client'
-
-import { TaskItemStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
-import { z } from 'zod'
-
-const zItems = z.object({
-  id: z.number(),
-  name: z.string().default(''),
-  status: z.enum(TaskItemStatus).default(TaskItemStatus.TODO),
-  completedAt: z.coerce.date().nullish(),
-  completedById: z.number().nullish()
-})
-
-const zTaskUser = z.object({
-  userId: z.number()
-})
-
-const zTaskTeam = z.object({
-  teamId: z.number()
-})
-
-const zTaskPatch = z.object({
-  name: zName('Task name is required!').optional(),
-  description: z.string().nullable().optional(),
-  status: z.enum(TaskStatus).optional(),
-  priority: z.enum(TaskPriority).optional(),
-  dueAt: z.coerce.date().nullable().optional(),
-  items: z.array(zItems).optional(),
-  users: z.array(zTaskUser).optional(),
-  teams: z.array(zTaskTeam).optional()
-})
+import { TaskItemStatus, TaskStatus } from '~~/prisma/client/enums'
 
 const getOwnScope = (userId: number) =>
   ({
