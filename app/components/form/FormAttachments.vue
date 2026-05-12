@@ -9,7 +9,7 @@ const props = withDefaults(
   }>(),
   {
     multiple: true,
-    accept: 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv'
+    accept: 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.zip,.rar,.7z,.tar,.gz,.bz2,.xz'
   }
 )
 
@@ -193,6 +193,7 @@ const onDeleteSelected = async () => {
         icon="i-lucide-plus"
         size="xs"
         label="Add"
+        variant="subtle"
         @click="onAddAttachment"
       />
     </div>
@@ -249,6 +250,17 @@ const onDeleteSelected = async () => {
         </div>
         <div class="flex items-center gap-2">
           <!--  -->
+        </div>
+      </div>
+    </UCard>
+    <UCard v-if="!attachments.length">
+      <div class="flex items-center justify-center h-full">
+        <div class="text-center space-y-2">
+          <UIcon
+            name="i-lucide-file"
+            class="size-5 text-muted"
+          />
+          <div class="text-sm text-muted">Attachments will appear here...</div>
         </div>
       </div>
     </UCard>

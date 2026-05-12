@@ -32,7 +32,12 @@ export const deleteAttachments = async (event: H3Event, ids: number[]) => {
     await storage.delete(attachment.path)
   }
 
-  const data = await prisma.attachment.deleteMany({ where })
+  const data = await prisma.attachment.updateMany({
+    where,
+    data: {
+      deletedAt: new Date()
+    }
+  })
   return {
     message: 'Attachments deleted successfully',
     data

@@ -1,6 +1,6 @@
+import type { UserSessionRequired } from '#auth-utils'
 import type { H3Event } from 'h3'
 import type { Prisma } from '~~/prisma/client/client'
-import type { UserSessionRequired } from '#auth-utils'
 
 const getTaskScopedWhere = (user: UserSessionRequired['user'], where: Prisma.TaskWhereInput) => {
   if (can(user, ['read-any-tasks'])) return where

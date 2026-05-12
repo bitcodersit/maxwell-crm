@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { BadgeProps } from '@nuxt/ui'
+import { capitalize } from 'vue'
 
 defineProps<{
   size?: BadgeProps['size']
@@ -15,6 +16,6 @@ defineProps<{
     class="cursor-pointer"
   >
     <UIcon name="i-lucide-flag" />
-    {{ priority }}
+    {{ capitalize(priority.split('_').join(' ').toLowerCase()) }}
   </UBadge>
 </template>

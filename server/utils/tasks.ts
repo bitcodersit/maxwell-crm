@@ -95,6 +95,11 @@ export const TaskInclude = {
     }
   },
   attachables: {
+    where: {
+      attachment: {
+        deletedAt: null
+      }
+    },
     select: {
       id: true,
       attachmentId: true,
