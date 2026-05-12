@@ -13,7 +13,7 @@ const getId = (query: any, key: string): TId | undefined => {
     const ids = value
       .filter(Boolean)
       .map(Number)
-      .filter((v) => !isNaN(v))
+      .filter(v => !isNaN(v))
     if (!ids.length) return undefined
     return { in: ids }
   }
@@ -25,7 +25,7 @@ const getId = (query: any, key: string): TId | undefined => {
     if (isNaN(gte) || isNaN(lte)) return undefined
     return {
       gte,
-      lte,
+      lte
     }
   }
   const ids = v
@@ -40,7 +40,7 @@ const getId = (query: any, key: string): TId | undefined => {
 const getText = (query: any, key: string) => {
   return {
     text: (query[key] || '').toString().trim() as string,
-    textMode: (query[key + 'Mode'] || 'contains').toString().trim() as string,
+    textMode: (query[key + 'Mode'] || 'contains').toString().trim() as string
   }
 }
 
@@ -50,9 +50,9 @@ const getDate = (query: any, key: string) => {
   // array of dates
   if (Array.isArray(date)) {
     if (!date.length) return
-    return date.map((date) => ({
+    return date.map(date => ({
       gte: startOfDay(new Date(date)),
-      lte: endOfDay(new Date(date)),
+      lte: endOfDay(new Date(date))
     }))
   }
 
@@ -65,14 +65,14 @@ const getDate = (query: any, key: string) => {
   if (start && end) {
     return {
       gte: startOfDay(new Date(start)),
-      lte: endOfDay(new Date(end)),
+      lte: endOfDay(new Date(end))
     }
   }
 
   // single date
   return {
     gte: startOfDay(new Date(dateStr)),
-    lte: endOfDay(new Date(dateStr)),
+    lte: endOfDay(new Date(dateStr))
   }
 }
 
@@ -104,12 +104,12 @@ export const getWhere = <T>(query: Record<string, any>, where: T = {} as T) => {
         if (typeof updater === 'function') {
           where = {
             ...where,
-            ...updater(text, textMode),
+            ...updater(text, textMode)
           }
         } else {
           where = {
             ...where,
-            [updater]: textMode === 'contains' ? { contains: text } : text,
+            [updater]: textMode === 'contains' ? { contains: text } : text
           }
         }
       }
@@ -121,7 +121,7 @@ export const getWhere = <T>(query: Record<string, any>, where: T = {} as T) => {
         if (typeof updater === 'function') {
           where = { ...where, ...updater(date) }
         } else if (Array.isArray(date)) {
-          where = { ...where, OR: date.map((d) => ({ [key]: d })) }
+          where = { ...where, OR: date.map(d => ({ [key]: d })) }
         } else {
           where = { ...where, [key]: date }
         }
@@ -140,7 +140,7 @@ export const getWhere = <T>(query: Record<string, any>, where: T = {} as T) => {
       return this
     },
     true(key: string, updater: string | (() => Partial<T>) = key) {
-      return this.bool(key, (value) => {
+      return this.bool(key, value => {
         if (!value) return {}
         if (typeof updater === 'function') {
           return updater()
@@ -149,7 +149,7 @@ export const getWhere = <T>(query: Record<string, any>, where: T = {} as T) => {
       })
     },
     false(key: string, updater: string | (() => Partial<T>) = key) {
-      return this.bool(key, (value) => {
+      return this.bool(key, value => {
         if (value) return {}
         if (typeof updater === 'function') {
           return updater()
@@ -157,9 +157,22 @@ export const getWhere = <T>(query: Record<string, any>, where: T = {} as T) => {
         return { [updater]: false } as Partial<T>
       })
     },
-
+    array(key: string, updater: string | ((value: any[]) => Partial<T>) = key) {
+      const value = query[key]
+      const values = Array.isArray(value)
+        ? value
+        : (value || '').toString().trim().split(',').filter(Boolean)
+      if (values.length) {
+        if (typeof updater === 'function') {
+          where = { ...where, ...updater(values) }
+        } else {
+          where = { ...where, [updater]: { in: values } }
+        }
+      }
+      return this
+    },
     get(): T {
       return where
-    },
+    }
   }
 }

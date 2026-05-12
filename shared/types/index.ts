@@ -17,8 +17,8 @@ export type TPaginated<T> = {
   totalPages: number
   firstPage: number
   lastPage: number
-  nextPage: number
-  previousPage: number
+  nextPage: TMaybe<number>
+  previousPage: TMaybe<number>
   hasNextPage: boolean
   hasPreviousPage: boolean
   fetchedAt?: number

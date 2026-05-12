@@ -43,12 +43,8 @@ export const getTasks = async (event: H3Event, query = getQuery(event)) => {
     .id('id')
     .text('name')
     .text('description')
-    .text('status', status => ({
-      status: status as any
-    }))
-    .text('priority', priority => ({
-      priority: priority as any
-    }))
+    .array('status')
+    .array('priority')
     .id('creatorId')
     .id('reviewerId')
     .date('dueAt')

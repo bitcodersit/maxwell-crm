@@ -1,15 +1,16 @@
-<script context="module" lang="ts">
+<script lang="ts">
+import type { TBaseOrderByItem } from '@/components/base/BaseOrderByDropdown.vue'
+
 type TValue = number | string
 type TItem = Record<string, any>
 </script>
 
 <script setup lang="ts" generic="Value extends TValue = TValue, Item extends TItem = TItem">
-import type { TBaseOrderByItem } from '@/components/base/BaseOrderByDropdown.vue'
-
 export type TFilterCheckboxProps<Value extends TValue = TValue, Item extends TItem = TItem> = {
   api: string
   label?: string
   query?: Record<string, any>
+  dense?: boolean
   valueKey?: string
   modelValue?: Value[]
   labelClass?: string
@@ -18,6 +19,7 @@ export type TFilterCheckboxProps<Value extends TValue = TValue, Item extends TIt
 }
 
 const props = withDefaults(defineProps<TFilterCheckboxProps<Value, Item>>(), {
+  dense: false,
   valueKey: 'id',
   getLabel: (item: Item) => item.name
 })
@@ -80,21 +82,32 @@ watch(modelValue, v => {
     :ui="{ content: 'p-3 flex flex-col max-w-64 w-full max-h-[600px]' }"
     :content="{ align: 'start', side: 'bottom' }"
   >
-    <UChip :show="!!modelValue">
+    <UChip
+      :size="dense ? 'xs' : 'md'"
+      :inset="dense"
+      :show="!!modelValue"
+    >
       <UButton
-        icon="i-lucide-filter"
+        :icon="!dense ? 'i-lucide-filter' : undefined"
+        :size="dense ? 'xs' : 'md'"
+        :ui="{
+          base: dense ? 'rounded-full' : '',
+          leadingIcon: dense ? 'size-3.5' : 'size-4'
+        }"
         color="primary"
         variant="subtle"
-        :ui="{ leadingIcon: 'size-4' }"
         @click:trailing="onClear"
         @click="onOpen"
       >
         {{ label ?? 'Text' }}
-        <UKbd v-if="modelValue?.length">
+        <UKbd
+          v-if="modelValue?.length && !dense"
+          size="sm"
+        >
           {{ modelValue.length }}
         </UKbd>
         <template
-          v-if="modelValue"
+          v-if="modelValue?.length && !dense"
           #trailing
         >
           <UButton
@@ -111,6 +124,7 @@ watch(modelValue, v => {
     <template #content>
       <div class="">
         <UInput
+          v-if="!dense"
           v-model="searchTerm"
           :autofocus="true"
           class="w-full"
@@ -123,7 +137,10 @@ watch(modelValue, v => {
           animation="swing"
         />
       </div>
-      <div class="flex items-center justify-between gap-2 mt-1">
+      <div
+        v-if="!dense"
+        class="flex items-center justify-between gap-2 mt-1"
+      >
         <div class="flex items-center gap-2">
           <span
             role="button"
@@ -181,24 +198,24 @@ watch(modelValue, v => {
       <div class="flex items-center gap-2 justify-end mt-3">
         <UButton
           v-if="modelValue"
-          icon="i-lucide-x"
+          :icon="!dense ? 'i-lucide-x' : undefined"
+          :size="dense ? 'xs' : 'sm'"
           label="Clear"
-          size="sm"
           color="error"
           variant="subtle"
           @click="onClear"
         />
         <UButton
           :disabled="!state?.length"
-          icon="i-lucide-check"
+          :size="dense ? 'xs' : 'sm'"
+          :icon="!dense ? 'i-lucide-check' : undefined"
           color="primary"
           label="Apply"
           variant="solid"
-          size="sm"
           @click="onApply"
         >
           <template
-            v-if="state?.length"
+            v-if="state?.length && !dense"
             #trailing
           >
             <UKbd size="sm">

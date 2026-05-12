@@ -4,17 +4,20 @@ export const toPaginated = <T>(
   page: number = 1,
   perPage: number = 10
 ): TPaginated<T> => {
+  const lastPage = Math.ceil(total / perPage)
+  const hasPreviousPage = page > 1
+  const hasNextPage = page < lastPage
   return {
     page,
     total,
     perPage,
-    totalPages: Math.ceil(total / perPage),
+    lastPage,
+    totalPages: lastPage,
     firstPage: 1,
-    lastPage: Math.ceil(total / perPage),
-    nextPage: page + 1,
-    previousPage: page - 1,
-    hasNextPage: page < Math.ceil(total / perPage),
-    hasPreviousPage: page > 1,
+    previousPage: hasPreviousPage ? page - 1 : null,
+    nextPage: hasNextPage ? page + 1 : null,
+    hasNextPage,
+    hasPreviousPage,
     data
   }
 }

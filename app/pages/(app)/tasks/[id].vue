@@ -12,7 +12,7 @@ const task = useState<TTask>(keys.task(id.value).toString())
 const { user } = useUserSession()
 const { mutate, isPending } = useTaskPatchMutation(id)
 const { data, status } = useTaskQuery(id, v => {
-  task.value = v
+  task.value = { ...v }
 })
 
 const onMutate = (update: Partial<TTask>) => {

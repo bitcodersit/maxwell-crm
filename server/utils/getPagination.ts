@@ -11,6 +11,6 @@ export const getPagination = (query: any) => {
     paginate<T>(data: T[], total = data.length) {
       if (!paginate) return data
       return toPaginated(data, total, page, take)
-    },
+    }
   }
 }

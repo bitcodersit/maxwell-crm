@@ -7,21 +7,23 @@ type TMode = 'single' | 'range' | 'multiple'
 export type TFilterDateProps = CalendarProps & {
   mode?: TMode
   label?: string
+  dense?: boolean
 }
 
 const props = withDefaults(defineProps<TFilterDateProps>(), {
   mode: 'single',
+  dense: false
 })
 
 const emit = defineEmits<{
-  (e: 'update:mode', mode?: TMode): void
-  (e: 'update:modelValue', value?: TValue): void
+  'update:mode': [mode?: TMode]
+  'update:modelValue': [value?: TValue]
 }>()
 
 const { mode: modelMode, modelValue } = toRefs(props)
 
 const open = ref(false)
-const mode = ref<TMode>(modelMode.value)
+const mode2 = ref<TMode>(modelMode.value)
 const value = ref<any>(modelValue.value)
 
 const onClear = () => {
@@ -33,20 +35,20 @@ const onClear = () => {
 
 const onApply = () => {
   if (!value.value) return
-  emit('update:mode', mode.value)
+  emit('update:mode', mode2.value)
   emit('update:modelValue', value.value)
   open.value = false
 }
 
-watch(modelValue, (v) => {
+watch(modelValue, v => {
   if (!v) return
   if (v == value.value) return
   value.value = v
 })
 
-watch(modelMode, (v) => {
-  if (v === mode.value) return
-  mode.value = v ?? 'single'
+watch(modelMode, v => {
+  if (v === mode2.value) return
+  mode2.value = v ?? 'single'
 })
 </script>
 
@@ -57,24 +59,35 @@ watch(modelMode, (v) => {
     :ui="{ content: 'p-3 flex flex-col gap-3' }"
     :content="{ align: 'start', side: 'bottom' }"
   >
-    <UChip :show="!!modelValue">
+    <UChip
+      :show="!!modelValue"
+      :size="dense ? 'xs' : 'md'"
+      :inset="dense"
+    >
       <UButton
-        icon="i-lucide-filter"
         color="primary"
         variant="subtle"
-        :ui="{ leadingIcon: 'size-4' }"
+        :icon="!dense ? 'i-lucide-filter' : undefined"
+        :size="dense ? 'xs' : 'md'"
+        :ui="{
+          base: dense ? 'rounded-full' : '',
+          leadingIcon: dense ? 'size-3.5' : 'size-4'
+        }"
         @click="open = true"
       >
         {{ label ?? 'Date' }}
-        <template v-if="modelValue">
+        <template v-if="modelValue && !dense">
           |
           {{
             calendarFormatDate(modelValue, {
-              returnType: 'display',
+              returnType: 'display'
             })
           }}
         </template>
-        <template v-if="modelValue" #trailing>
+        <template
+          v-if="modelValue && !dense"
+          #trailing
+        >
           <UButton
             icon="i-lucide-x"
             size="xs"
@@ -88,21 +101,25 @@ watch(modelMode, (v) => {
     </UChip>
     <template #content>
       <URadioGroup
-        v-model="mode"
+        v-model="mode2"
         orientation="horizontal"
-        @change="value = undefined"
         :items="[
           { label: 'Single', value: 'single' },
           { label: 'Range', value: 'range' },
-          { label: 'Multiple', value: 'multiple' },
+          { label: 'Multiple', value: 'multiple' }
         ]"
+        @change="value = undefined"
       />
-      <UCalendar v-model="value" :range="mode === 'range'" :multiple="mode === 'multiple'" />
+      <UCalendar
+        v-model="value"
+        :range="mode2 === 'range'"
+        :multiple="mode2 === 'multiple'"
+      />
       <div class="flex items-center gap-2 justify-end">
         <UButton
           v-if="modelValue"
-          icon="i-lucide-x"
-          size="sm"
+          :icon="!dense ? 'i-lucide-x' : undefined"
+          :size="dense ? 'xs' : 'sm'"
           color="error"
           variant="subtle"
           @click="onClear"
@@ -110,10 +127,10 @@ watch(modelMode, (v) => {
           Clear
         </UButton>
         <UButton
-          icon="i-lucide-check"
+          :icon="!dense ? 'i-lucide-check' : undefined"
+          :size="dense ? 'xs' : 'sm'"
           color="primary"
           variant="solid"
-          size="sm"
           :disabled="!value"
           @click="onApply"
         >

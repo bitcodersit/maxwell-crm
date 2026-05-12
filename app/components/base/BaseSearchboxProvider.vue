@@ -1,12 +1,12 @@
 <script context="module" lang="ts">
+import type { TBaseOrderByItem, TBaseOrderBy } from './BaseOrderByDropdown.vue'
+import type { ClassValue } from 'vue'
+
 type TValue = number | string
 type TItem = Record<string, any>
 </script>
 
 <script setup lang="ts" generic="Item extends TItem = TItem, Value extends TValue = TValue">
-import type { ClassValue } from 'vue'
-import type { TBaseOrderByItem, TBaseOrderBy } from './BaseOrderByDropdown.vue'
-
 export type TBaseSearchboxProviderSlotProps = {
   searchTerm: string
   onInput: (event: Event | string) => void
