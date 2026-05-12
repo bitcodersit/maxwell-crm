@@ -1,50 +1,21 @@
 <script setup lang="ts">
-import { TaskPriority, TaskStatus } from '~~/prisma/client/enums'
+import { TaskStatus } from '~~/prisma/client/enums'
 import { format, isToday } from 'date-fns'
 
-const { data, refetch } = useFetchApi({
-  api: '/api/tasks',
-  server: true,
-  getDefault() {
-    return toPaginated<TTask>()
-  }
-})
-
-const item = defineModel<TTask | null>()
-const itemRefs = ref<Record<number, Element | null>>({})
-
 const router = useRouter()
-watch(item, () => {
-  if (!item.value) return
-  router.push(`/tasks/${item.value.id}`)
-  const ref = itemRefs.value[item.value.id]
-  if (!ref) return
-  ref.scrollIntoView({
-    block: 'nearest',
-    inline: 'nearest'
-  })
+const query = ref<Record<string, any>>({
+  page: 1,
+  perPage: 10
 })
 
-defineShortcuts({
-  arrowdown: () => {
-    const index = data.value.data.findIndex((task: TTask) => task.id === item.value?.id)
-
-    if (index === -1) {
-      item.value = data.value.data[0]
-    } else if (index < data.value.data.length - 1) {
-      item.value = data.value.data[index + 1]
-    }
-  },
-  arrowup: () => {
-    const index = data.value.data.findIndex((task: TTask) => task.id === item.value?.id)
-
-    if (index === -1) {
-      item.value = data.value.data[data.value.data.length - 1]
-    } else if (index > 0) {
-      item.value = data.value.data[index - 1]
-    }
+const { data } = useTasksQuery(query)
+const { item, onRef } = useArrows(
+  computed(() => data.value.data),
+  task => task?.id,
+  task => {
+    router.push(`/tasks/${task.id}`)
   }
-})
+)
 </script>
 
 <template>
@@ -55,43 +26,25 @@ defineShortcuts({
   >
     <div class="flex overflow-hidden h-full">
       <div class="w-96 border-r h-full flex flex-col flex-none border-default">
-        <div class="p-4">
-          <UButton
-            icon="i-lucide-plus"
-            variant="ghost"
-            size="sm"
-            @click="refetch"
-          >
-            Refresh
-          </UButton>
-        </div>
+        <div class="p-4"></div>
         <div class="overflow-y-auto scrollbar divide-y divide-default flex-1">
           <div
             v-for="(task, index) in data.data"
             :key="index"
-            :ref="
-              el => {
-                itemRefs[task.id] = el as Element | null
-              }
-            "
+            :ref="el => onRef(el, task)"
           >
             <div
-              class="p-4 sm:px-6 text-sm cursor-pointer border-l-2 transition-colors relative"
+              class="p-4 sm:px-6 text-sm cursor-pointer border-l-2 transition-colors relative gap-1 flex flex-col"
               :class="[
                 task.status === TaskStatus.TODO ? 'text-highlighted' : 'text-toned',
-                item && item.id === task.id
+                task.id === Number($route.params.id)
                   ? 'border-primary bg-primary/10'
                   : 'border-bg hover:border-primary hover:bg-primary/5'
               ]"
               @click="item = task"
             >
               <div class="flex gap-4 justify-between items-center">
-                <!-- <UChip
-                  
-                  class="flex-none"
-                > -->
                 <div class="truncate">{{ task.name }}</div>
-                <!-- </UChip> -->
                 <div
                   class="text-xs text-dimmed flex-none"
                   :class="[task.status === TaskStatus.TODO && 'font-semibold']"
@@ -110,18 +63,16 @@ defineShortcuts({
               </p>
               <div class="flex gap-2">
                 <UBadge
+                  :color="ColorsMap[task.status]"
                   size="sm"
-                  :color="task.status === TaskStatus.TODO ? 'primary' : 'neutral'"
-                  :variant="task.status === TaskStatus.TODO ? 'soft' : 'outline'"
-                  :show="task.status === TaskStatus.TODO"
+                  variant="soft"
                 >
                   {{ task.status }}
                 </UBadge>
                 <UBadge
+                  :color="ColorsMap[task.priority]"
                   size="sm"
-                  :color="task.priority === TaskPriority.URGENT ? 'error' : 'neutral'"
-                  :variant="task.priority === TaskPriority.URGENT ? 'soft' : 'outline'"
-                  :show="task.priority === TaskPriority.URGENT"
+                  variant="soft"
                 >
                   {{ task.priority }}
                 </UBadge>

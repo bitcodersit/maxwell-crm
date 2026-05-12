@@ -13,23 +13,23 @@ export type TFormAutocompleteProps<
 > = TBaseSearchboxProviderProps<Item, Value> &
   Pick<InputTagsProps, 'size' | 'placeholder'> & {
     labelClass?: string
-    itemKey?: (item: Item) => Value
   }
 
 const props = defineProps<TFormAutocompleteProps<Item, Value>>()
 const model = defineModel<Item[]>({ default: () => [] })
 
 const providerProps = computed(() => {
-  const { size, placeholder, labelClass, itemKey, getValue, ...rest } = props
-  return {
-    ...rest,
-    getValue: getValue || itemKey,
-  }
+  const { size, placeholder, labelClass, modelValue, ...rest } = props as any
+  return rest
 })
 </script>
 
 <template>
-  <BaseSearchboxProvider v-model="model" v-bind="providerProps" class="w-full">
+  <BaseSearchboxProvider
+    v-model="model"
+    v-bind="providerProps"
+    class="w-full"
+  >
     <template #default="{ onInput, onFocus, onKeydown, setInputRef }">
       <UInputTags
         :ref="setInputRef"
@@ -41,7 +41,7 @@ const providerProps = computed(() => {
         :add-on-paste="false"
         class="w-full"
         :ui="{
-          itemText: labelClass,
+          itemText: labelClass
         }"
         @focus="onFocus"
         @keydown.capture="onKeydown"

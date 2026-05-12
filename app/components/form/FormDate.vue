@@ -6,7 +6,7 @@ import { format as df } from 'date-fns'
 type TValue = CalendarProps['modelValue']
 type TMode = 'single' | 'range' | 'multiple'
 type TTrigger = 'input' | 'button'
-type TModelValue = TValue | string | Date
+type TModelValue = TValue | string | Date | null
 
 export type TFormDateProps = Omit<CalendarProps, 'modelValue'> & {
   mode?: TMode
@@ -66,19 +66,19 @@ const toCalendarValue = (input?: TModelValue) => {
   return iso ? (parseDate(iso) as TValue) : undefined
 }
 
-const toOutputValue = (next?: any): TModelValue | undefined => {
-  if (!next) return undefined
+const toOutputValue = (next?: any): TModelValue | null => {
+  if (!next) return null
   if (mode.value !== 'single') return next
 
   const iso = getIsoDate(next as any)
-  if (!iso) return undefined
+  if (!iso) return null
 
   if (model.value instanceof Date) {
     return getDateFromIso(iso)
   }
 
   const date = getDateFromIso(iso)
-  if (!date) return undefined
+  if (!date) return null
   return df(date, props.outputFormat)
 }
 
@@ -99,9 +99,7 @@ const inputTriggerProps = computed(() => {
 
 const setValue = (next?: any) => {
   value.value = next
-  const output = toOutputValue(next)
-  emit('update:modelValue', output)
-  model.value = output
+  model.value = toOutputValue(next)
 }
 
 const onClear = () => {
@@ -135,10 +133,11 @@ watch(mode, v => {
 
 <template>
   <UPopover
-    v-model:open="open"
+    :open="disabled ? false : open"
     :arrow="true"
     :ui="{ content: 'p-3 flex flex-col gap-3' }"
     :content="{ align: 'start', side: 'bottom' }"
+    @update:open="open = $event"
   >
     <slot
       name="trigger"
@@ -164,7 +163,6 @@ watch(mode, v => {
         {{ triggerLabel || displayValue || triggerPlaceholder }}
       </UButton>
     </slot>
-
     <template #content>
       <URadioGroup
         v-if="showMode"
@@ -181,6 +179,7 @@ watch(mode, v => {
         :model-value="value"
         :range="mode === 'range'"
         :multiple="mode === 'multiple'"
+        :min-value="minValue"
         @update:model-value="onPick"
       />
       <div class="flex items-center justify-end gap-2">

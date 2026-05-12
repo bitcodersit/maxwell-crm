@@ -1,0 +1,8 @@
+export const keys = {
+  task(id: MaybeRefOrGetter<number>) {
+    return ['/api/tasks/{id}', id]
+  },
+  tasks(query?: MaybeRefOrGetter<Record<string, any>>) {
+    return query ? ['/api/tasks', query] : ['/api/tasks']
+  }
+}

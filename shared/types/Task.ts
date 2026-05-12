@@ -1,23 +1,24 @@
 import type { Task, TaskItem, TaskTeam, TaskUser } from '~~/prisma/client/client'
+import type { TMaybe } from '.'
 
 export type TTaskItem = TaskItem & {
-  task?: TTask
-  completedBy?: TUser
+  task?: TMaybe<TTask>
+  completedBy?: TMaybe<TUser>
 }
 
 export type TTaskUser = TaskUser & {
-  task?: TTask
-  user?: TUser
+  task?: TMaybe<TTask>
+  user?: TMaybe<TUser>
 }
 
 export type TTaskTeam = TaskTeam & {
-  task?: TTask
-  team?: TTeam
+  task?: TMaybe<TTask>
+  team?: TMaybe<TTeam>
 }
 
 export type TTask = Task & {
-  creator?: TUser
-  reviewer?: TUser
+  creator?: TMaybe<TUser>
+  reviewer?: TMaybe<TUser>
   items?: TTaskItem[]
   users?: TTaskUser[]
   teams?: TTaskTeam[]
