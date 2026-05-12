@@ -1,4 +1,5 @@
 import type { Prisma } from '~~/prisma/client/client'
+import type { TZTaskItem } from '~~/server/utils/tasks'
 import { TaskItemStatus, TaskStatus } from '~~/prisma/client/enums'
 
 const getOwnScope = (userId: number) =>
@@ -56,18 +57,23 @@ export default defineEventHandler(async event => {
   if (!existing) throw err.notFound()
 
   const input = await validate(await readBody(event), zTaskPatch)
-  const nextStatus = input.status ?? existing.status
 
-  if (!user.can?.updateAnyTasks && input.status !== undefined && input.status !== existing.status) {
+  if (!user.can?.updateAnyTasks && input.status && input.status !== existing.status) {
     const statuses: TaskStatus[] = [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW]
-    if (!statuses.includes(nextStatus)) {
+    if (!statuses.includes(input.status)) {
       throw err.unprocessable({
         status: {
-          errors: [`You are not allowed to update the status to ${nextStatus}`]
+          errors: [`You are not allowed to update the status to ${input.status}`]
         }
       })
     }
   }
+
+  const getItemUpdateCommon = (item: TZTaskItem) => ({
+    status: item.status,
+    completedAt: item.status === TaskItemStatus.COMPLETED ? item.completedAt || new Date() : null,
+    completedById: item.status === TaskItemStatus.COMPLETED ? item.completedById || user.id : null
+  })
 
   const canUpdateAnyTasks = !!user.can?.updateAnyTasks
   const data: Prisma.TaskUpdateInput = {
@@ -75,17 +81,18 @@ export default defineEventHandler(async event => {
       ? { name: input.name.trim() || existing.name }
       : {}),
     ...(canUpdateAnyTasks && input.dueAt !== undefined ? { dueAt: input.dueAt } : {}),
-    ...(input.status !== undefined ? { status: nextStatus } : {}),
-    ...(canUpdateAnyTasks && input.priority !== undefined ? { priority: input.priority } : {}),
-    ...(canUpdateAnyTasks && input.description !== undefined
-      ? { description: input.description }
-      : {}),
-    ...(canUpdateAnyTasks && input.status !== undefined && input.status !== existing.status
+    ...(input.status ? { status: input.status } : {}),
+    ...(canUpdateAnyTasks && input.priority ? { priority: input.priority } : {}),
+    ...(canUpdateAnyTasks && input.description ? { description: input.description } : {}),
+    ...(canUpdateAnyTasks &&
+    input.status &&
+    input.status !== existing.status &&
+    input.status === TaskStatus.COMPLETED
       ? {
-          reviewerId: input.status === TaskStatus.COMPLETED ? user.id : existing.reviewerId
+          reviewerId: user.id
         }
       : {}),
-    ...(canUpdateAnyTasks && input.items !== undefined
+    ...(canUpdateAnyTasks && input.items?.length
       ? {
           items: {
             deleteMany: {
@@ -97,11 +104,7 @@ export default defineEventHandler(async event => {
               const itemData = {
                 sortOrder,
                 name: item.name,
-                status: item.status,
-                completedAt:
-                  item.status === TaskItemStatus.COMPLETED ? item.completedAt || new Date() : null,
-                completedById:
-                  item.status === TaskItemStatus.COMPLETED ? item.completedById || user.id : null
+                ...getItemUpdateCommon(item)
               }
               return {
                 where: {
@@ -112,6 +115,19 @@ export default defineEventHandler(async event => {
                 create: itemData
               }
             })
+          }
+        }
+      : {}),
+    ...(!canUpdateAnyTasks && input.items?.length
+      ? {
+          items: {
+            update: input.items.map(item => ({
+              where: {
+                id: item.id,
+                taskId: id
+              },
+              data: getItemUpdateCommon(item)
+            }))
           }
         }
       : {}),
@@ -162,6 +178,7 @@ export default defineEventHandler(async event => {
         }
       : {})
   }
+  console.log('update', data, input)
   return prisma.task.update({
     where,
     data,

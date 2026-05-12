@@ -1,5 +1,7 @@
+import { z } from 'zod'
 import { TaskItemStatus, TaskPriority, TaskStatus, type Prisma } from '~~/prisma/client/client'
 
+export type TZTaskItem = z.infer<typeof zItems>
 const zItems = z.object({
   id: z.number(),
   name: z.string().default(''),
@@ -18,18 +20,20 @@ const zTaskTeam = z.object({
 
 const zTaskCommon = z.object({
   description: z.string().nullish(),
-  status: z.enum(TaskStatus).optional().default(TaskStatus.TODO),
-  priority: z.enum(TaskPriority).optional().default(TaskPriority.MEDIUM),
   dueAt: z.coerce.date().nullish(),
   items: z.array(zItems).optional()
 })
 
 export const zTaskPost = zTaskCommon.extend({
-  name: zName('Task name is required!')
+  name: zName('Task name is required!'),
+  status: z.enum(TaskStatus).optional().default(TaskStatus.TODO),
+  priority: z.enum(TaskPriority).optional().default(TaskPriority.MEDIUM)
 })
 
 export const zTaskPatch = zTaskCommon.extend({
   name: zName('Task name is required!').optional(),
+  status: z.enum(TaskStatus).nullish(),
+  priority: z.enum(TaskPriority).nullish(),
   users: z.array(zTaskUser).optional(),
   teams: z.array(zTaskTeam).optional()
 })
