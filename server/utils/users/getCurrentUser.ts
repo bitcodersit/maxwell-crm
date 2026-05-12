@@ -1,6 +1,11 @@
 import type { H3Event } from 'h3'
 
-export const getCurrentUser = async (event: H3Event, cache = true) => {
+export type TGetCurrentUserOptions = {
+  cache?: boolean
+}
+
+export const getCurrentUser = async (event: H3Event, options?: TGetCurrentUserOptions) => {
+  const { cache = true } = options ?? {}
   const session = await requireUserSession(event)
   if (cache) return session.user
 
@@ -32,8 +37,3 @@ export const getCurrentUser = async (event: H3Event, cache = true) => {
 
   return userToSession(user)
 }
-
-export default defineEventHandler(event => {
-  const query = getQuery(event)
-  return getCurrentUser(event, query.cache ? isTrue(query.cache) : true)
-})

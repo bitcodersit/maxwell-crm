@@ -59,6 +59,9 @@ importers:
       nuxt:
         specifier: ^4.4.2
         version: 4.4.4(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@electric-sql/pglite@0.4.1)(@parcel/watcher@2.5.6)(@types/node@25.6.0)(@vue/compiler-sfc@3.5.33)(cac@6.7.14)(db0@0.3.4(@electric-sql/pglite@0.4.1)(mysql2@3.15.3))(eslint@10.2.1(jiti@2.6.1))(ioredis@5.10.1)(lightningcss@1.32.0)(magicast@0.5.2)(mysql2@3.15.3)(optionator@0.9.4)(rollup-plugin-visualizer@7.0.1(rollup@4.60.2))(rollup@4.60.2)(srvx@0.11.15)(terser@5.46.2)(tsx@4.21.0)(typescript@6.0.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.2)(tsx@4.21.0)(yaml@2.8.3))(vue-tsc@3.2.7(typescript@6.0.3))(yaml@2.8.3)
+      nuxt-easy-lightbox:
+        specifier: ^1.1.0
+        version: 1.1.0(magicast@0.5.2)(vue@3.5.33(typescript@6.0.3))
       sortablejs:
         specifier: ^1.15.7
         version: 1.15.7
@@ -5534,6 +5537,9 @@ packages:
   nuxt-cron@1.8.0:
     resolution: {integrity: sha512-XgNdounfdXNHOVlYTFDhc28yerwBP7+MP4Tk8GmC6GkxWo3nCWZ/pmqpan+tCmVVhUn6ltpe5KSCChWgl5P3kg==}
 
+  nuxt-easy-lightbox@1.1.0:
+    resolution: {integrity: sha512-a8eseAvAC2w+zmptmb4+4UmaCwxRtgZkrfMHo84lAc4aINK+J7ZFDx3zzAr/hhpNHZEduNgSbF9LbfqDSFRzxA==}
+
   nuxt@4.4.4:
     resolution: {integrity: sha512-r9E3PYo+uJazltAmjm0TwFW3MQ++Wd//2uRZgCyqkt7VSAVJ5KnRRwUF7JktK/NZbLYAUDiV3tgqE9ZYbHbymA==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -6988,6 +6994,12 @@ packages:
 
   vue-devtools-stub@0.1.0:
     resolution: {integrity: sha512-RutnB7X8c5hjq39NceArgXg28WZtZpGc3+J16ljMiYnFhKvd8hITxSWQSQ5bvldxMDU6gG5mkxl1MTQLXckVSQ==}
+
+  vue-easy-lightbox@1.19.0:
+    resolution: {integrity: sha512-YxLXgjEn91UF3DuK1y8u3Pyx2sJ7a/MnBpkyrBSQkvU1glzEJASyAZ7N+5yDpmxBQDVMwCsL2VmxWGIiFrWCgA==}
+    engines: {node: '>=14.18.3'}
+    peerDependencies:
+      vue: ^3.0.0
 
   vue-eslint-parser@10.4.0:
     resolution: {integrity: sha512-Vxi9pJdbN3ZnVGLODVtZ7y4Y2kzAAE2Cm0CZ3ZDRvydVYxZ6VrnBhLikBsRS+dpwj4Jv4UCv21PTEwF5rQ9WXg==}
@@ -13043,6 +13055,14 @@ snapshots:
     transitivePeerDependencies:
       - magicast
 
+  nuxt-easy-lightbox@1.1.0(magicast@0.5.2)(vue@3.5.33(typescript@6.0.3)):
+    dependencies:
+      '@nuxt/kit': 4.4.4(magicast@0.5.2)
+      vue-easy-lightbox: 1.19.0(vue@3.5.33(typescript@6.0.3))
+    transitivePeerDependencies:
+      - magicast
+      - vue
+
   nuxt@4.4.4(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@electric-sql/pglite@0.4.1)(@parcel/watcher@2.5.6)(@types/node@25.6.0)(@vue/compiler-sfc@3.5.33)(cac@6.7.14)(db0@0.3.4(@electric-sql/pglite@0.4.1)(mysql2@3.15.3))(eslint@10.2.1(jiti@2.6.1))(ioredis@5.10.1)(lightningcss@1.32.0)(magicast@0.5.2)(mysql2@3.15.3)(optionator@0.9.4)(rollup-plugin-visualizer@7.0.1(rollup@4.60.2))(rollup@4.60.2)(srvx@0.11.15)(terser@5.46.2)(tsx@4.21.0)(typescript@6.0.3)(vite@7.3.2(@types/node@25.6.0)(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.2)(tsx@4.21.0)(yaml@2.8.3))(vue-tsc@3.2.7(typescript@6.0.3))(yaml@2.8.3):
     dependencies:
       '@dxup/nuxt': 0.4.1(magicast@0.5.2)(typescript@6.0.3)
@@ -14738,6 +14758,10 @@ snapshots:
       vue: 3.5.33(typescript@6.0.3)
 
   vue-devtools-stub@0.1.0: {}
+
+  vue-easy-lightbox@1.19.0(vue@3.5.33(typescript@6.0.3)):
+    dependencies:
+      vue: 3.5.33(typescript@6.0.3)
 
   vue-eslint-parser@10.4.0(eslint@10.2.1(jiti@2.6.1)):
     dependencies:

@@ -74,6 +74,18 @@ const onChangeUsers = useDebounceFn(() => {
 const onChangeTeams = useDebounceFn(() => {
   onMutate({ teams: task.value.teams })
 }, 1000)
+
+const attachments = computed<TAttachment[]>({
+  get() {
+    return task.value.attachables?.map(v => v.attachment).filter(v => !!v) ?? []
+  },
+  set(value) {
+    task.value.attachables = value.map(attachment => ({
+      ...attachment.attachables?.[0],
+      attachment
+    })) as TAttachable[]
+  }
+})
 </script>
 
 <template>
@@ -152,7 +164,7 @@ const onChangeTeams = useDebounceFn(() => {
         @change="onMutate({ items: task.items })"
       />
     </div>
-    <div class="space-y-4 w-96 flex-none border-l border-default p-4">
+    <div class="space-y-4 w-96 flex-none border-l border-default p-4 overflow-auto scrollbar">
       <UFormField label="Assigned users">
         <FormAutocomplete
           v-model="taskUsers"
@@ -173,6 +185,14 @@ const onChangeTeams = useDebounceFn(() => {
           class="flex-1"
           placeholder="Assign team"
           @update:model-value="onChangeTeams"
+        />
+      </UFormField>
+      <UFormField>
+        <FormAttachments
+          v-model="attachments"
+          :folder="'tasks'"
+          :attachable-id="id"
+          :attachable-field="'taskId'"
         />
       </UFormField>
     </div>

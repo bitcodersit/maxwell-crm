@@ -185,13 +185,13 @@ model Attachment {
     size Int?
     mime String?
 
-    users User[]
-    teams Team[]
-
-    createdAt   DateTime     @default(now())
-    updatedAt   DateTime     @default(now()) @updatedAt
-    deletedAt   DateTime?
+    users       User[]
+    teams       Team[]
     attachables Attachable[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
 
     @@index([path])
     @@map("attachments")
