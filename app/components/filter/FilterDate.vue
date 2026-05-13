@@ -1,30 +1,54 @@
 <script setup lang="ts">
 import type { CalendarProps } from '@nuxt/ui'
+export type TDateFilterMode = 'lt' | 'lte' | 'eq' | 'gte' | 'gt' | 'range' | 'multiple'
 
 type TValue = CalendarProps['modelValue']
-type TMode = 'single' | 'range' | 'multiple'
+
+const DATE_FILTER_MODE_ITEMS: { label: string; value: TDateFilterMode }[] = [
+  { label: 'Exact', value: 'eq' },
+  { label: 'Less than', value: 'lt' },
+  { label: 'Less than or equal to', value: 'lte' },
+  { label: 'Greater than or equal to', value: 'gte' },
+  { label: 'Greater than', value: 'gt' },
+  { label: 'Range', value: 'range' },
+  { label: 'Multiple', value: 'multiple' }
+]
 
 export type TFilterDateProps = CalendarProps & {
-  mode?: TMode
+  mode?: TDateFilterMode
   label?: string
   dense?: boolean
 }
 
 const props = withDefaults(defineProps<TFilterDateProps>(), {
-  mode: 'single',
+  mode: 'eq',
   dense: false
 })
 
 const emit = defineEmits<{
-  'update:mode': [mode?: TMode]
+  'update:mode': [mode?: TDateFilterMode]
   'update:modelValue': [value?: TValue]
 }>()
 
 const { mode: modelMode, modelValue } = toRefs(props)
 
 const open = ref(false)
-const mode2 = ref<TMode>(modelMode.value)
+const filterMode = ref<TDateFilterMode>(modelMode.value)
 const value = ref<any>(modelValue.value)
+
+const modeKind = (m: TDateFilterMode) => {
+  if (m === 'range') return 'range'
+  if (m === 'multiple') return 'multiple'
+  return 'single'
+}
+
+const onUpdateMode = (v?: TDateFilterMode) => {
+  if (!v) return
+  if (modeKind(v) !== modeKind(filterMode.value)) {
+    value.value = undefined
+  }
+  filterMode.value = v
+}
 
 const onClear = () => {
   value.value = undefined
@@ -35,7 +59,7 @@ const onClear = () => {
 
 const onApply = () => {
   if (!value.value) return
-  emit('update:mode', mode2.value)
+  emit('update:mode', filterMode.value)
   emit('update:modelValue', value.value)
   open.value = false
 }
@@ -47,8 +71,9 @@ watch(modelValue, v => {
 })
 
 watch(modelMode, v => {
-  if (v === mode2.value) return
-  mode2.value = v ?? 'single'
+  if (filterMode.value !== v) {
+    filterMode.value = v
+  }
 })
 </script>
 
@@ -100,20 +125,17 @@ watch(modelMode, v => {
       </UButton>
     </UChip>
     <template #content>
-      <URadioGroup
-        v-model="mode2"
-        orientation="horizontal"
-        :items="[
-          { label: 'Single', value: 'single' },
-          { label: 'Range', value: 'range' },
-          { label: 'Multiple', value: 'multiple' }
-        ]"
-        @change="value = undefined"
+      <USelect
+        :model-value="filterMode"
+        :items="DATE_FILTER_MODE_ITEMS"
+        size="sm"
+        class="w-full"
+        @update:model-value="onUpdateMode"
       />
       <UCalendar
         v-model="value"
-        :range="mode2 === 'range'"
-        :multiple="mode2 === 'multiple'"
+        :range="filterMode === 'range'"
+        :multiple="filterMode === 'multiple'"
       />
       <div class="flex items-center gap-2 justify-end">
         <UButton

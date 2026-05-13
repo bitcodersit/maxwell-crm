@@ -217,7 +217,6 @@ const columns = computed<TColumn<TTask>[]>(() => [
   {
     accessorKey: 'users',
     header: 'Assignee',
-    sortBy: 'users',
     display: {
       type: 'array',
       slice: 2,
@@ -236,7 +235,6 @@ const columns = computed<TColumn<TTask>[]>(() => [
   {
     accessorKey: 'teams',
     header: 'Teams',
-    sortBy: 'teams',
     display: {
       type: 'array',
       slice: 2,
@@ -465,7 +463,7 @@ const getActions: TGetActions<TTask> = (item, v) => [
           <div class="space-y-5">
             <div class="space-y-1">
               <div class="flex items-center justify-between text-sm">
-                <span>Weekly Sprint Progress</span>
+                <span>This Week</span>
                 <span class="font-semibold">{{ sprintProgress.percent }}%</span>
               </div>
               <UProgress :model-value="sprintProgress.percent" />
@@ -476,7 +474,7 @@ const getActions: TGetActions<TTask> = (item, v) => [
             </div>
             <div class="space-y-1">
               <div class="flex items-center justify-between text-sm">
-                <span>Monthly Quota Alignment</span>
+                <span>This Month</span>
                 <span class="font-semibold">{{ monthlyAlignment.percent }}%</span>
               </div>
               <UProgress

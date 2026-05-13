@@ -5,7 +5,17 @@ type TIdRange = { lte: number; gte: number }
 type TId = TIdIn | TIdRange
 
 type TDateRange = { gte: Date; lte: Date }
-type TDate = TDateRange | TDateRange[]
+type TDateOpen = { gte: Date } | { lte: Date } | { lt: Date } | { gt: Date }
+type TDate = TDateRange | TDateRange[] | TDateOpen
+
+const normalizeSingleDateMode = (raw: string): 'lt' | 'lte' | 'eq' | 'gte' | 'gt' => {
+  const m = raw.toLowerCase()
+  if (m === 'exact' || m === 'single') return 'eq'
+  if (m === 'before') return 'lt'
+  if (m === 'after') return 'gt'
+  if (m === 'lt' || m === 'lte' || m === 'eq' || m === 'gte' || m === 'gt') return m
+  return 'eq'
+}
 
 const getId = (query: any, key: string): TId | undefined => {
   const value = query[key]
@@ -46,8 +56,9 @@ const getText = (query: any, key: string) => {
 
 const getDate = (query: any, key: string) => {
   const date = query[key]
+  const mode = normalizeSingleDateMode((query[key + 'Mode'] ?? 'eq').toString().trim())
 
-  // array of dates
+  // array of dates (multiple)
   if (Array.isArray(date)) {
     if (!date.length) return
     return date.map(date => ({
@@ -60,8 +71,7 @@ const getDate = (query: any, key: string) => {
   const dateStr = date?.toString()?.trim()
   if (!dateStr) return
 
-  // range
-  const [start, end] = dateStr.split(',')
+  const [start, end] = dateStr.split(',').map((s: string) => s.trim())
   if (start && end) {
     return {
       gte: startOfDay(new Date(start)),
@@ -69,11 +79,14 @@ const getDate = (query: any, key: string) => {
     }
   }
 
-  // single date
-  return {
-    gte: startOfDay(new Date(dateStr)),
-    lte: endOfDay(new Date(dateStr))
-  }
+  const dayStart = startOfDay(new Date(start))
+  const dayEnd = endOfDay(new Date(start))
+
+  if (mode === 'lt') return { lt: dayStart }
+  if (mode === 'lte') return { lte: dayEnd }
+  if (mode === 'gt') return { gt: dayEnd }
+  if (mode === 'gte') return { gte: dayStart }
+  return { gte: dayStart, lte: dayEnd }
 }
 
 const getBool = (query: any, key: string): boolean | undefined => {

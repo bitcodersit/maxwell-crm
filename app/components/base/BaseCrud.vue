@@ -305,7 +305,7 @@ const mColumns = computed<TableColumn<T>[]>(() => {
 
 // Filter
 const isClearable = computed(() => {
-  return Object.keys(getDeepDiff(initialQuery.value, query.value)).length > 0
+  return Object.keys(getDeepDiff(query.value, initialQuery.value)).length > 0
 })
 
 const onClearFilters = () => {
