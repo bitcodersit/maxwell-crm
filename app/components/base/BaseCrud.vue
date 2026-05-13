@@ -65,9 +65,9 @@ export type TBaseCrudModal = {
 }
 
 type TQuery = {
-  page: number
-  perPage: number
-  orderBy: Record<string, 'asc' | 'desc' | undefined>
+  page?: number
+  perPage?: number
+  orderBy?: Record<string, 'asc' | 'desc' | undefined>
   [key: string]: any
 }
 
@@ -86,18 +86,17 @@ const props = withDefaults(
     formItem?: Record<string, unknown>
     exportUrl?: string
     formClass?: string
-    staleTime?: number
-    dateFields?: string[]
     gridClass?: string
     leftClass?: string
-    perPageOptions?: number[]
     deleteUrl?: string | ((item: T | T[]) => string)
+    dateFields?: string[]
+    perPageOptions?: number[]
+    initialQuery?: TQuery
     getActions?: TGetActions<T>
     getPostBody?: (state: TFormState) => object | FormData
     getFormState?: (item?: T) => TFormState
   }>(),
   {
-    staleTime: 30 * 1000,
     leftClass: 'col-span-1',
     gridClass: 'grid grid-cols-1',
     fields: () => [],
@@ -115,26 +114,24 @@ const props = withDefaults(
   }
 )
 
-const {
-  getUrl,
-  columns,
-  postUrl,
-  exportUrl,
-  deleteUrl,
-  staleTime,
-  dateFields,
-  getPostBody,
-  getFormState
-} = toRefs(props)
+const { getUrl, columns, postUrl, exportUrl, deleteUrl, dateFields, getPostBody, getFormState } =
+  toRefs(props)
 
 const def = toPaginated<T>()
 const table = useTemplateRef('table')
 
-const initialQuery = {
+const fallbackQuery = {
   page: def.page,
   perPage: def.perPage,
   orderBy: {}
 }
+
+const initialQuery = computed(() => {
+  return {
+    ...fallbackQuery,
+    ...props.initialQuery
+  }
+})
 
 const getPersisted = <T,>(
   key: string,
@@ -147,7 +144,12 @@ const getPersisted = <T,>(
         ...parsed,
         ...calendarFormatDates(parsed, dateFields.value, {
           returnType: 'dateValue'
-        })
+        }),
+        ...initial,
+        orderBy: {
+          ...parsed?.orderBy,
+          ...(initial as any)?.orderBy
+        }
       }
     } catch {
       return { ...initial }
@@ -162,7 +164,7 @@ const getPersisted = <T,>(
 
 const query = ref(
   getPersisted<TQuery>('query', (v, parse) => {
-    return v ? parse(v, initialQuery) : { ...initialQuery }
+    return v ? parse(v, initialQuery.value) : { ...initialQuery.value }
   })
 )
 
@@ -267,7 +269,7 @@ const mColumns = computed<TableColumn<T>[]>(() => {
           return header({ column, ...rest })
         }
         if (sortBy) {
-          const v = query.value.orderBy[sortBy]
+          const v = query.value.orderBy?.[sortBy]
           return h(UButton, {
             color: 'neutral',
             variant: 'ghost',
@@ -282,6 +284,9 @@ const mColumns = computed<TableColumn<T>[]>(() => {
               leadingIcon: 'size-4'
             },
             onClick() {
+              if (!query.value.orderBy) {
+                query.value.orderBy = {}
+              }
               if (!v) {
                 query.value.orderBy[sortBy] = 'asc'
               } else if (v === 'asc') {
@@ -298,23 +303,29 @@ const mColumns = computed<TableColumn<T>[]>(() => {
   })
 })
 
-const initialKeys = Object.keys(initialQuery)
+// Filter
 const isClearable = computed(() => {
-  return Object.keys(query.value)
-    .filter(k => !initialKeys.includes(k))
-    .some(k => !!query.value[k])
+  return Object.keys(getDeepDiff(initialQuery.value, query.value)).length > 0
 })
 
 const onClearFilters = () => {
   query.value = {
-    ...initialQuery
+    ...initialQuery.value
   }
 }
 
+// Order By
+const isOrdered = computed(() => {
+  return (
+    Object.keys(getDeepDiff(initialQuery.value.orderBy || {}, query.value.orderBy || {})).length > 0
+  )
+})
 const onClearOrderBy = () => {
   query.value = {
     ...query.value,
-    orderBy: {}
+    orderBy: {
+      ...initialQuery.value.orderBy
+    }
   }
 }
 
@@ -570,7 +581,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
         </UTooltip>
         <UTooltip text="Clear Sorting">
           <UButton
-            v-if="Object.keys(query.orderBy).length"
+            v-if="isOrdered"
             icon="i-lucide-arrow-up-down"
             color="error"
             variant="subtle"

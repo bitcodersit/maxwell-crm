@@ -141,6 +141,14 @@ const monthlyAlignment = computed(() => {
 })
 
 const formOpen = ref(false)
+const initialQuery = ref<Record<string, any>>({
+  perPage: 10,
+  status: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.FAILED],
+  orderBy: {
+    dueAt: 'asc'
+  }
+})
+
 const getUsersCell = useUsersCell()
 
 const columns = computed<TColumn<TTask>[]>(() => [
@@ -365,6 +373,7 @@ const getActions: TGetActions<TTask> = (item, v) => [
     :columns="columns"
     :date-fields="['dueAt', 'createdAt', 'updatedAt']"
     :get-actions="getActions"
+    :initial-query="initialQuery"
     grid-class="grid grid-cols-12 gap-4"
     left-class="col-span-9"
   >
