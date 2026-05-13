@@ -10,49 +10,6 @@ const TaskPriorityBadge = resolveComponent('TaskPriorityBadge')
 
 const { data, refetch } = useTasksOverviewQuery()
 
-const overview = computed(() => {
-  return (
-    data.value ?? {
-      summary: {
-        total: 0,
-        todo: 0,
-        inReview: 0,
-        failed: 0,
-        cancelled: 0,
-        inProgress: 0,
-        completed: 0,
-        goalEligible: 0,
-        goalHit: 0,
-        goalFail: 0,
-        goalHitRate: 0,
-        goalFailRate: 0
-      },
-      weekly: {
-        done: 0,
-        total: 0,
-        remaining: 0,
-        percent: 0,
-        changePercent: 0,
-        volumeChangePercent: 0
-      },
-      monthly: {
-        completed: 0,
-        target: 0,
-        remaining: 0,
-        percent: 0,
-        changePercent: 0,
-        volumeChangePercent: 0
-      },
-      trends: {
-        completedWeekOverWeek: 0,
-        completedMonthOverMonth: 0
-      }
-    }
-  )
-})
-
-const formatDelta = value => `${value >= 0 ? '+' : ''}${value}%`
-
 const performers = [
   { name: 'Vielka Mooney', role: 'Senior Salesman', active: 42, hitRate: 115 },
   { name: 'India Oliver', role: 'Mid Salesman', active: 28, hitRate: 92 },
@@ -60,84 +17,79 @@ const performers = [
 ]
 
 const overviewCards = computed(() => {
-  const total = overview.value.summary.total
-  const todo = overview.value.summary.todo
-  const inReview = overview.value.summary.inReview
-  const failed = overview.value.summary.failed
-  const inProgress = overview.value.summary.inProgress
-  const completed = overview.value.summary.completed
-  const goalEligible = overview.value.summary.goalEligible
-  const goalHit = overview.value.summary.goalHit
-  const goalFail = overview.value.summary.goalFail
-  const hitRate = overview.value.summary.goalHitRate
-  const failRate = overview.value.summary.goalFailRate
-
   return [
     {
-      key: 'total',
-      title: 'Total Tasks',
-      value: total.toLocaleString(),
       icon: 'i-lucide-clipboard-list',
-      trend: `${formatDelta(overview.value.weekly.volumeChangePercent)} WoW`,
-      tone: 'success',
-      titleColor: 'secondary',
-      subTitle: 'Todo',
-      subTitleColor: 'neutral',
-      subValue: todo.toLocaleString(),
-      valueTooltip: '',
-      subValueTooltip: ''
+      color: 'secondary',
+      items: [
+        {
+          name: 'Total Tasks',
+          color: 'secondary',
+          value: data.value.summary.total.toLocaleString()
+        },
+        {
+          name: 'Todo',
+          color: 'neutral',
+          value: data.value.summary.todo.toLocaleString()
+        }
+      ]
     },
     {
-      key: 'progress',
-      title: 'In Progress',
-      value: String(inProgress),
       icon: 'i-lucide-git-branch',
-      trend: `${overview.value.weekly.total} new this week`,
-      tone: 'primary',
-      titleColor: 'primary',
-      subTitle: 'In Review',
-      subTitleColor: 'warning',
-      subValue: inReview.toLocaleString(),
-      valueTooltip: '',
-      subValueTooltip: ''
+      color: 'primary',
+      items: [
+        {
+          name: 'In Progress',
+          color: 'primary',
+          value: data.value.summary.inProgress.toLocaleString()
+        },
+        {
+          name: 'In Review',
+          color: 'warning',
+          value: data.value.summary.inReview.toLocaleString()
+        }
+      ]
     },
     {
-      key: 'done',
-      title: 'Completed',
-      value: String(completed),
       icon: 'i-lucide-circle-check-big',
-      trend: `${formatDelta(overview.value.trends.completedWeekOverWeek)} WoW`,
-      tone: 'success',
-      titleColor: 'success',
-      subTitle: 'Failed',
-      subTitleColor: 'error',
-      subValue: failed.toLocaleString(),
-      valueTooltip: '',
-      subValueTooltip: ''
+      color: 'success',
+      items: [
+        {
+          name: 'Completed',
+          color: 'success',
+          value: data.value.summary.completed.toLocaleString()
+        },
+        {
+          name: 'Failed',
+          color: 'error',
+          value: data.value.summary.failed.toLocaleString()
+        },
+        {
+          name: 'Cancelled',
+          color: 'error',
+          value: data.value.summary.cancelled.toLocaleString()
+        }
+      ]
     },
     {
-      key: 'rate',
-      title: 'Goal Hit Rate',
-      value: `${hitRate}%`,
       icon: 'i-lucide-trophy',
-      trend: `${formatDelta(overview.value.monthly.changePercent)} MoM`,
-      tone: 'warning',
-      titleColor: 'success',
-      subTitle: 'Goal Fail Rate',
-      subTitleColor: 'error',
-      subValue: `${failRate}%`,
-      valueTooltip: `${goalHit.toLocaleString()} of ${goalEligible.toLocaleString()} tasks completed on/before due date`,
-      subValueTooltip: `${goalFail.toLocaleString()} of ${goalEligible.toLocaleString()} tasks are overdue and not completed`
+      color: 'warning',
+      items: [
+        {
+          name: 'Success Rate',
+          color: 'success',
+          tooltip: `${data.value.summary.goalHit.toLocaleString()} of ${data.value.summary.goalEligible.toLocaleString()} tasks completed on/before due date`,
+          value: `${data.value.summary.goalHitRate}%`
+        },
+        {
+          name: 'Failure Rate',
+          color: 'error',
+          tooltip: `${data.value.summary.goalFail.toLocaleString()} of ${data.value.summary.goalEligible.toLocaleString()} tasks are overdue and not completed`,
+          value: `${data.value.summary.goalFailRate}%`
+        }
+      ]
     }
   ]
-})
-
-const sprintProgress = computed(() => {
-  return overview.value.weekly
-})
-
-const monthlyAlignment = computed(() => {
-  return overview.value.monthly
 })
 
 const formOpen = ref(false)
@@ -393,59 +345,58 @@ const getActions: TGetActions<TTask> = (item, v) => [
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <UCard
           v-for="card in overviewCards"
-          :key="card.key"
+          :key="card.icon"
         >
           <div class="space-y-3">
             <div class="flex items-start justify-between">
               <div>
                 <div
                   class="rounded-md flex items-center justify-center size-10"
-                  :class="`bg-${card.titleColor}/10`"
+                  :class="`bg-${card.color}/10`"
                 >
                   <UIcon
                     :name="card.icon"
                     class="size-5"
-                    :class="`text-${card.titleColor}`"
+                    :class="`text-${card.color}`"
                   />
                 </div>
               </div>
-              <UBadge
+              <!-- <UBadge
+                v-if="card.trend"
                 :color="card.tone"
                 variant="soft"
               >
                 {{ card.trend }}
-              </UBadge>
+              </UBadge> -->
             </div>
             <div class="flex items-end gap-1">
-              <div class="flex-1">
+              <div
+                v-for="(item, index) in card.items"
+                :key="item.name"
+                class="flex-1"
+              >
                 <div
                   class="text-xs uppercase tracking-wide"
-                  :class="`text-${card.titleColor}`"
+                  :class="[
+                    `text-${item.color}`,
+                    {
+                      'opacity-60': !!index
+                    }
+                  ]"
                 >
-                  {{ card.title }}
+                  {{ item.name }}
                 </div>
-                <UTooltip :text="card.valueTooltip">
+                <UTooltip :text="item.tooltip">
                   <div
-                    class="text-3xl font-bold"
-                    :class="`text-${card.titleColor}`"
+                    :class="[
+                      `text-${item.color}`,
+                      {
+                        'text-3xl font-bold': !index,
+                        'text-2xl font-semibold opacity-60': !!index
+                      }
+                    ]"
                   >
-                    {{ card.value }}
-                  </div>
-                </UTooltip>
-              </div>
-              <div class="flex-1">
-                <div
-                  class="text-xs uppercase tracking-wide opacity-60"
-                  :class="`text-${card.subTitleColor}`"
-                >
-                  {{ card.subTitle }}
-                </div>
-                <UTooltip :text="card.subValueTooltip">
-                  <div
-                    class="text-2xl font-semibold opacity-60"
-                    :class="`text-${card.subTitleColor}`"
-                  >
-                    {{ card.subValue }}
+                    {{ item.value }}
                   </div>
                 </UTooltip>
               </div>
@@ -464,32 +415,30 @@ const getActions: TGetActions<TTask> = (item, v) => [
             <div class="space-y-1">
               <div class="flex items-center justify-between text-sm">
                 <span>This Week</span>
-                <span class="font-semibold">{{ sprintProgress.percent }}%</span>
+                <span class="font-semibold">{{ data.weekly.percent }}%</span>
               </div>
-              <UProgress :model-value="sprintProgress.percent" />
+              <UProgress :model-value="data.weekly.percent" />
               <div class="flex items-center justify-between text-xs text-muted">
-                <span>{{ sprintProgress.done }} completed</span>
-                <span>{{ Math.max(sprintProgress.total - sprintProgress.done, 0) }} remaining</span>
+                <span>{{ data.weekly.done }} / {{ data.weekly.total }} completed</span>
+                <span>{{ Math.max(data.weekly.total - data.weekly.done, 0) }} remaining</span>
               </div>
             </div>
             <div class="space-y-1">
               <div class="flex items-center justify-between text-sm">
                 <span>This Month</span>
-                <span class="font-semibold">{{ monthlyAlignment.percent }}%</span>
+                <span class="font-semibold">{{ data.monthly.percent }}%</span>
               </div>
               <UProgress
-                :model-value="monthlyAlignment.percent"
+                :model-value="data.monthly.percent"
                 color="warning"
               />
               <div class="flex items-center justify-between text-xs text-muted">
-                <span>{{ monthlyAlignment.completed.toLocaleString() }} completed</span>
+                <span
+                  >{{ data.monthly.completed.toLocaleString() }} /
+                  {{ data.monthly.target.toLocaleString() }} completed</span
+                >
                 <span>
-                  {{
-                    Math.max(
-                      monthlyAlignment.target - monthlyAlignment.completed,
-                      0
-                    ).toLocaleString()
-                  }}
+                  {{ Math.max(data.monthly.target - data.monthly.completed, 0).toLocaleString() }}
                   remaining
                 </span>
               </div>
