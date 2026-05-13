@@ -1,5 +1,3 @@
-import { TaskItemStatus } from '~~/prisma/client/enums'
-
 export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
   if (!user.can?.createAnyTasks) {
@@ -16,7 +14,7 @@ export default defineEventHandler(async event => {
       description: input.description,
       status: input.status,
       priority: input.priority,
-      dueAt: input.dueAt ?? null,
+      dueAt: input.dueAt,
       creatorId: user.id,
       reviewerId: user.id,
       reviewedAt: new Date(),

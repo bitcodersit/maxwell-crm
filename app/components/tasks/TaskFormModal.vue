@@ -46,12 +46,17 @@ const formRef = useTemplateRef('formRef')
 const taskStatuses = useTaskStatusItems()
 const taskPriorities = useTaskPriorityItems()
 
+const onReset = () => {
+  form.value = newForm()
+  open.value = false
+}
+
 const { mutate, isPending } = useTaskPostMutation()
 const onSubmit = (event: FormSubmitEvent<TTask>) => {
   mutate(event.data, {
     onSuccess(data) {
+      onReset()
       navigateTo(`/tasks/${data.id}`)
-      open.value = false
     },
     onError(error) {
       const { message, errors } = parseError(error)
@@ -60,11 +65,6 @@ const onSubmit = (event: FormSubmitEvent<TTask>) => {
       else formRef.value?.setErrors([{ name: 'name', message }])
     }
   })
-}
-
-const onReset = () => {
-  form.value = newForm()
-  open.value = false
 }
 </script>
 
@@ -146,18 +146,7 @@ const onReset = () => {
             />
           </UFormField>
           <UFormField
-            name="description"
-            label="Description"
-            class="col-span-12"
-          >
-            <FormEditor
-              v-model="form.description"
-              content-type="markdown"
-              placeholder="Add short task details..."
-              min-height-class="min-h-32"
-            />
-          </UFormField>
-          <UFormField
+            label="Status"
             name="status"
             class="col-span-4"
           >
@@ -170,6 +159,7 @@ const onReset = () => {
             />
           </UFormField>
           <UFormField
+            label="Priority"
             name="priority"
             class="col-span-4"
           >
@@ -182,13 +172,27 @@ const onReset = () => {
             />
           </UFormField>
           <UFormField
+            required
             name="dueAt"
+            label="Due Date"
             class="col-span-4"
           >
             <FormDate
               v-model="form.dueAt"
               size="lg"
               placeholder="Select due date..."
+            />
+          </UFormField>
+          <UFormField
+            name="description"
+            label="Description"
+            class="col-span-12"
+          >
+            <FormEditor
+              v-model="form.description"
+              content-type="markdown"
+              placeholder="Add short task details..."
+              min-height-class="min-h-32"
             />
           </UFormField>
           <UFormField

@@ -21,4 +21,15 @@ export const zPhoneParse = (value: string) => {
   return parsePhoneNumberWithError(value, 'BD').number
 }
 
+export const zDate = (message = 'Invalid date') => {
+  return z.coerce.date(message)
+}
+
+export const zDateRequired = (message = 'Date is required!') => {
+  return z.preprocess(
+    (v: unknown) => (v === null || v === undefined || v === '' ? undefined : v),
+    zDate(message)
+  )
+}
+
 export { z }

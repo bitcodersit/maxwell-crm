@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const router = useRouter()
+const formOpen = ref(false)
 const query = ref<Record<string, any>>({
   perPage: 10,
   status: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.FAILED],
@@ -22,7 +22,7 @@ const { item, onRef } = useArrows(
   computed(() => tasks.value),
   task => task?.id,
   task => {
-    router.push(`/tasks/${task.id}`)
+    navigateTo(`/tasks/${task.id}`)
   }
 )
 
@@ -35,6 +35,7 @@ const onScroll = (event: Event) => {
 </script>
 
 <template>
+  <TaskFormModal v-model:open="formOpen" />
   <NuxtLayout
     :name="'default'"
     :padding="false"
@@ -85,6 +86,13 @@ const onScroll = (event: Event) => {
                 ]"
               />
             </UButton>
+            <UButton
+              size="xs"
+              variant="subtle"
+              class="rounded-full"
+              icon="i-lucide-plus"
+              @click="formOpen = true"
+            />
           </div>
         </div>
         <!-- on scroll bottom, fetch next page -->
