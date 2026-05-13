@@ -172,32 +172,19 @@ const selected = ref(
   })
 )
 
-const nuxtApp = useNuxtApp()
-const refreshKey = ref(0)
-const key = computed(() => `${getUrl.value}:${refreshKey.value}:${JSON.stringify(query.value)}`)
-
 const fetchQuery = computed(() => {
   return calendarFormatDates(query.value, dateFields.value, {
     formatStr: 'yyyy-MM-dd'
   })
 })
 
-const { data, status } = useFetch<TPaginated<T>>(getUrl, {
-  key,
-  lazy: true,
-  server: false,
-  query: fetchQuery,
-  default: () => def,
-  getCachedData(key) {
-    const data = nuxtApp.payload.data[key]
-    if (!data || Date.now() - data.fetchedAt > staleTime.value) return
-    return data
-  },
-  transform(data) {
-    return {
-      ...data,
-      fetchedAt: Date.now()
-    }
+const { data, isFetching, refetch } = useQuerySSR<TPaginated<T>>({
+  initialData: () => def,
+  queryKey: [getUrl, fetchQuery],
+  queryFn: () => {
+    return $fetch<TPaginated<T>>(getUrl.value, {
+      query: fetchQuery.value
+    })
   }
 })
 
@@ -367,7 +354,7 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
       })
       formOpen.value = false
       selected.value = {}
-      refresh()
+      refetch()
       if (viewModal.value && viewItem.value) {
         onView(item as T)
       }
@@ -401,7 +388,7 @@ const onDelete = async (item: T | T[]) => {
           title: 'Success! 🎉',
           description: 'Item deleted successfully'
         })
-        refresh()
+        refetch()
         viewModal.value = false
       })
       .catch(e => {
@@ -488,12 +475,7 @@ const onView = (item: T, props = viewProps.value) => {
   viewModal.value = true
 }
 
-const refresh = () => {
-  refreshKey.value++
-}
-
 defineExpose({
-  refresh,
   onView,
   onUpdate,
   onDelete,
@@ -572,7 +554,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             icon="i-lucide-refresh-cw"
             color="primary"
             variant="subtle"
-            @click="refresh"
+            @click="() => refetch()"
           />
         </UTooltip>
         <UTooltip text="Clear filters">
@@ -720,7 +702,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
           :sticky="true"
           :data="data.data"
           :columns="mColumns"
-          :loading="status === 'pending'"
+          :loading="isFetching"
           :ui="{
             base: 'table-fixed border-separate border-spacing-0',
             thead: '[&>tr]:after:content-none',

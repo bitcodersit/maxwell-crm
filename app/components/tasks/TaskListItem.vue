@@ -34,7 +34,7 @@ const emit = defineEmits<{
         :size="'sm'"
         :priority="task.priority"
       />
-      <TaskDueDate
+      <TaskDueDateBadge
         :size="'sm'"
         :due-at="task.dueAt"
       />

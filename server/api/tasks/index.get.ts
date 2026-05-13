@@ -50,14 +50,14 @@ export const getTasks = async (event: H3Event, query = getQuery(event)) => {
     .date('dueAt')
     .date('createdAt')
     .date('updatedAt')
-    .id('userIds', userId => ({
+    .id('users', userId => ({
       users: {
         some: {
           userId
         }
       }
     }))
-    .id('teamIds', teamId => ({
+    .id('teams', teamId => ({
       teams: {
         some: {
           teamId

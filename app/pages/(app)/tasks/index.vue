@@ -1,39 +1,11 @@
 <script setup lang="ts">
 import type { TColumn, TFilter, TGetActions } from '@/components/base/BaseCrud.vue'
-import { TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
-
-const statusItems = [
-  { label: 'To Do', value: TaskStatus.TODO },
-  { label: 'In Progress', value: TaskStatus.IN_PROGRESS },
-  { label: 'In Review', value: TaskStatus.IN_REVIEW },
-  { label: 'Completed', value: TaskStatus.COMPLETED },
-  { label: 'Cancelled', value: TaskStatus.CANCELLED }
-]
-
-const priorityItems = [
-  { label: 'Urgent', value: TaskPriority.URGENT },
-  { label: 'High', value: TaskPriority.HIGH },
-  { label: 'Medium', value: TaskPriority.MEDIUM },
-  { label: 'Low', value: TaskPriority.LOW }
-]
-
-const priorityColorMap: Record<TaskPriority, string> = {
-  [TaskPriority.URGENT]: 'error',
-  [TaskPriority.HIGH]: 'warning',
-  [TaskPriority.MEDIUM]: 'neutral',
-  [TaskPriority.LOW]: 'success'
-}
-
-const statusColorMap: Record<TaskStatus, string> = {
-  [TaskStatus.TODO]: 'neutral',
-  [TaskStatus.IN_PROGRESS]: 'primary',
-  [TaskStatus.IN_REVIEW]: 'warning',
-  [TaskStatus.COMPLETED]: 'success',
-  [TaskStatus.CANCELLED]: 'error'
-}
+const TaskStatusBadge = resolveComponent('TaskStatusBadge')
+const TaskDueDateBadge = resolveComponent('TaskDueDateBadge')
+const TaskPriorityBadge = resolveComponent('TaskPriorityBadge')
 
 const overviewTasks = ref<TTask[]>([])
 
@@ -118,6 +90,7 @@ const monthlyAlignment = computed(() => {
   return { completed, target, percent }
 })
 
+const getUsersCell = useUsersCell()
 const columns = computed<TColumn<TTask>[]>(() => [
   {
     id: 'select',
@@ -145,12 +118,8 @@ const columns = computed<TColumn<TTask>[]>(() => [
     header: 'Status',
     sortBy: 'status',
     cell: ({ row }) =>
-      h(UBadge, {
-        label:
-          statusItems.find(item => item.value === row.original.status)?.label ||
-          row.original.status,
-        color: statusColorMap[row.original.status],
-        variant: 'subtle'
+      h(TaskStatusBadge, {
+        status: row.original.status
       })
   },
   {
@@ -158,12 +127,8 @@ const columns = computed<TColumn<TTask>[]>(() => [
     header: 'Priority',
     sortBy: 'priority',
     cell: ({ row }) =>
-      h(UBadge, {
-        label:
-          priorityItems.find(item => item.value === row.original.priority)?.label ||
-          row.original.priority,
-        color: priorityColorMap[row.original.priority],
-        variant: 'subtle'
+      h(TaskPriorityBadge, {
+        priority: row.original.priority
       })
   },
   // {
@@ -182,7 +147,48 @@ const columns = computed<TColumn<TTask>[]>(() => [
     accessorKey: 'dueAt',
     header: 'Due',
     sortBy: 'dueAt',
-    cell: ({ row }) => (row.original.dueAt ? $dfc(row.original.dueAt) : '—')
+    cell: ({ row }) =>
+      h(TaskDueDateBadge, {
+        dueAt: row.original.dueAt
+      })
+  },
+  {
+    accessorKey: 'users',
+    header: 'Assignee',
+    sortBy: 'users',
+    display: {
+      type: 'array',
+      slice: 2,
+      class: 'flex flex-wrap -ml-1 -mt-1'
+    },
+    cell({ row, ...ctx }) {
+      if (!row.original.users?.length) return '—'
+      return getUsersCell(
+        row.original.users.map(v => v.user!),
+        {
+          modal: (ctx as any).modal
+        }
+      )
+    }
+  },
+  {
+    accessorKey: 'teams',
+    header: 'Teams',
+    sortBy: 'teams',
+    display: {
+      type: 'array',
+      slice: 2,
+      class: 'flex flex-wrap -ml-1 -mt-1'
+    },
+    cell({ row, ...ctx }) {
+      if (!row.original.teams?.length) return '—'
+      return getUsersCell(
+        row.original.teams.map(v => v.team!),
+        {
+          modal: (ctx as any).modal
+        }
+      )
+    }
   },
   // {
   //   accessorKey: 'createdAt',
@@ -219,15 +225,6 @@ const filters: TFilter[] = [
     }
   },
   {
-    name: 'name',
-    type: 'input',
-    props: {
-      label: 'Name',
-      placeholder: 'Search by task name',
-      modeable: true
-    }
-  },
-  {
     name: 'status',
     type: 'input',
     props: {
@@ -246,28 +243,6 @@ const filters: TFilter[] = [
     }
   },
   {
-    name: 'creatorId',
-    type: 'checkbox-api',
-    props: {
-      label: 'Creator',
-      api: '/api/users',
-      query: {
-        options: true
-      }
-    }
-  },
-  {
-    name: 'reviewerId',
-    type: 'checkbox-api',
-    props: {
-      label: 'Reviewer',
-      api: '/api/users',
-      query: {
-        options: true
-      }
-    }
-  },
-  {
     name: 'dueAt',
     type: 'date',
     props: {
@@ -275,17 +250,25 @@ const filters: TFilter[] = [
     }
   },
   {
-    name: 'createdAt',
-    type: 'date',
+    name: 'users',
+    type: 'checkbox-api',
     props: {
-      label: 'Created'
+      label: 'Assignee',
+      api: '/api/users',
+      query: {
+        options: true
+      }
     }
   },
   {
-    name: 'updatedAt',
-    type: 'date',
+    name: 'teams',
+    type: 'checkbox-api',
     props: {
-      label: 'Updated'
+      label: 'Teams',
+      api: '/api/teams',
+      query: {
+        options: true
+      }
     }
   }
 ]

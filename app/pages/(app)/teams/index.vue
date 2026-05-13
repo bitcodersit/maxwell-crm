@@ -11,7 +11,6 @@ import { TeamMemberRole } from '~~/prisma/client/enums'
 const crudRef = useTemplateRef('crudRef')
 
 const UIcon = resolveComponent('UIcon')
-const UBadge = resolveComponent('UBadge')
 const UAvatar = resolveComponent('UAvatar')
 
 const { getAttachment } = useGetAttachment()
@@ -72,6 +71,7 @@ const fields: TField[] = [
   }
 ]
 
+const getUsersCell = useUsersCell()
 const columns = computed<TColumn<TTeam>[]>(() => [
   {
     id: 'select',
@@ -110,45 +110,25 @@ const columns = computed<TColumn<TTeam>[]>(() => [
     },
     cell({ row, ...ctx }) {
       if (!row.original.members?.length) return '—'
-      return row.original.members
-        .map(member => ({
-          id: member.user?.id,
-          name: member.user?.name,
-          avatarId: member.user?.avatarId,
-          role: member.role
-        }))
-        .filter(member => member.name)
-        .map(member => {
-          const modal = (ctx as any).modal
-          return h(
-            UBadge,
-            {
-              size: modal ? 'lg' : 'md',
-              class: modal ? 'ml-1 mt-1 rounded-full' : 'mr-1 rounded-full',
-              color: 'neutral',
-              variant: 'subtle',
-              ui: {
-                base: 'rounded-full'
-              }
-            },
-            () =>
-              h('div', { class: 'flex items-center gap-1' }, [
-                h(UAvatar, {
-                  size: '2xs',
-                  src: getAttachment(member.avatarId),
-                  alt: member.name,
-                  class: 'bg-primary/20'
-                }),
-                h('span', member.name),
-                member.role === TeamMemberRole.LEADER
-                  ? h(UIcon, {
-                      name: 'i-lucide-star',
-                      class: 'text-warning'
-                    })
-                  : null
-              ])
-          )
-        })
+      return getUsersCell(
+        (row.original.members || [])
+          .filter(v => !!v.user)
+          .map(v => {
+            return {
+              name: v.user?.name ?? '',
+              avatarId: v.user?.avatarId ?? null,
+              role: v.role
+            }
+          }),
+        {
+          modal: (ctx as any).modal,
+          right: v => {
+            return v.role === TeamMemberRole.LEADER
+              ? h(UIcon, { name: 'i-lucide-star', class: 'text-warning' })
+              : null
+          }
+        }
+      )
     }
   },
   {
@@ -204,24 +184,24 @@ const filters: TFilter[] = [
       placeholder: 'eg 1 or 1,2,3 or 1-10'
     }
   },
-  {
-    name: 'name',
-    type: 'input',
-    props: {
-      label: 'Name',
-      placeholder: 'Search by team name',
-      modeable: true
-    }
-  },
-  {
-    name: 'description',
-    type: 'input',
-    props: {
-      label: 'Description',
-      placeholder: 'Search by description',
-      modeable: true
-    }
-  },
+  // {
+  //   name: 'name',
+  //   type: 'input',
+  //   props: {
+  //     label: 'Name',
+  //     placeholder: 'Search by team name',
+  //     modeable: true
+  //   }
+  // },
+  // {
+  //   name: 'description',
+  //   type: 'input',
+  //   props: {
+  //     label: 'Description',
+  //     placeholder: 'Search by description',
+  //     modeable: true
+  //   }
+  // },
   {
     name: 'memberUserIds',
     type: 'checkbox-api',

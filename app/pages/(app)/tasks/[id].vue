@@ -141,7 +141,7 @@ const attachments = computed<TAttachment[]>({
             @update:model-value="onChangeDueAt"
           >
             <template #trigger>
-              <TaskDueDate
+              <TaskDueDateBadge
                 :size="'lg'"
                 :due-at="task.dueAt"
               />
