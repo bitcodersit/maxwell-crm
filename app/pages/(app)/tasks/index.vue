@@ -2,12 +2,56 @@
 import type { TColumn, TFilter, TGetActions } from '@/components/base/BaseCrud.vue'
 
 const crudRef = useTemplateRef('crudRef')
+
 const UBadge = resolveComponent('UBadge')
 const TaskStatusBadge = resolveComponent('TaskStatusBadge')
 const TaskDueDateBadge = resolveComponent('TaskDueDateBadge')
 const TaskPriorityBadge = resolveComponent('TaskPriorityBadge')
 
-const overviewTasks = ref<TTask[]>([])
+const { data, refetch } = useTasksOverviewQuery()
+
+const overview = computed(() => {
+  return (
+    data.value ?? {
+      summary: {
+        total: 0,
+        todo: 0,
+        inReview: 0,
+        failed: 0,
+        cancelled: 0,
+        inProgress: 0,
+        completed: 0,
+        goalEligible: 0,
+        goalHit: 0,
+        goalFail: 0,
+        goalHitRate: 0,
+        goalFailRate: 0
+      },
+      weekly: {
+        done: 0,
+        total: 0,
+        remaining: 0,
+        percent: 0,
+        changePercent: 0,
+        volumeChangePercent: 0
+      },
+      monthly: {
+        completed: 0,
+        target: 0,
+        remaining: 0,
+        percent: 0,
+        changePercent: 0,
+        volumeChangePercent: 0
+      },
+      trends: {
+        completedWeekOverWeek: 0,
+        completedMonthOverMonth: 0
+      }
+    }
+  )
+})
+
+const formatDelta = value => `${value >= 0 ? '+' : ''}${value}%`
 
 const performers = [
   { name: 'Vielka Mooney', role: 'Senior Salesman', active: 42, hitRate: 115 },
@@ -15,29 +59,18 @@ const performers = [
   { name: 'Taylor Wynn', role: 'Account Manager', active: 15, hitRate: 78 }
 ]
 
-const loadOverview = async () => {
-  try {
-    const res = await $fetch<{ data?: TTask[] }>('/api/tasks', {
-      query: {
-        page: 1,
-        perPage: 200
-      }
-    })
-    overviewTasks.value = Array.isArray(res?.data) ? res.data : []
-  } catch {
-    overviewTasks.value = []
-  }
-}
-
-onMounted(loadOverview)
-
 const overviewCards = computed(() => {
-  const total = overviewTasks.value.length
-  const inProgress = overviewTasks.value.filter(
-    task => task.status === TaskStatus.IN_PROGRESS
-  ).length
-  const completed = overviewTasks.value.filter(task => task.status === TaskStatus.COMPLETED).length
-  const hitRate = total ? Math.round((completed / total) * 100) : 0
+  const total = overview.value.summary.total
+  const todo = overview.value.summary.todo
+  const inReview = overview.value.summary.inReview
+  const failed = overview.value.summary.failed
+  const inProgress = overview.value.summary.inProgress
+  const completed = overview.value.summary.completed
+  const goalEligible = overview.value.summary.goalEligible
+  const goalHit = overview.value.summary.goalHit
+  const goalFail = overview.value.summary.goalFail
+  const hitRate = overview.value.summary.goalHitRate
+  const failRate = overview.value.summary.goalFailRate
 
   return [
     {
@@ -45,52 +78,71 @@ const overviewCards = computed(() => {
       title: 'Total Tasks',
       value: total.toLocaleString(),
       icon: 'i-lucide-clipboard-list',
-      trend: `${Math.max(total, 0)}`,
-      tone: 'success' as const
+      trend: `${formatDelta(overview.value.weekly.volumeChangePercent)} WoW`,
+      tone: 'success',
+      titleColor: 'secondary',
+      subTitle: 'Todo',
+      subTitleColor: 'neutral',
+      subValue: todo.toLocaleString(),
+      valueTooltip: '',
+      subValueTooltip: ''
     },
     {
       key: 'progress',
       title: 'In Progress',
       value: String(inProgress),
       icon: 'i-lucide-git-branch',
-      trend: 'In Flow',
-      tone: 'primary' as const
+      trend: `${overview.value.weekly.total} new this week`,
+      tone: 'primary',
+      titleColor: 'primary',
+      subTitle: 'In Review',
+      subTitleColor: 'warning',
+      subValue: inReview.toLocaleString(),
+      valueTooltip: '',
+      subValueTooltip: ''
     },
     {
       key: 'done',
       title: 'Completed',
       value: String(completed),
       icon: 'i-lucide-circle-check-big',
-      trend: `${hitRate}%`,
-      tone: 'success' as const
+      trend: `${formatDelta(overview.value.trends.completedWeekOverWeek)} WoW`,
+      tone: 'success',
+      titleColor: 'success',
+      subTitle: 'Failed',
+      subTitleColor: 'error',
+      subValue: failed.toLocaleString(),
+      valueTooltip: '',
+      subValueTooltip: ''
     },
     {
       key: 'rate',
       title: 'Goal Hit Rate',
       value: `${hitRate}%`,
       icon: 'i-lucide-trophy',
-      trend: 'Target Hit',
-      tone: 'warning' as const
+      trend: `${formatDelta(overview.value.monthly.changePercent)} MoM`,
+      tone: 'warning',
+      titleColor: 'success',
+      subTitle: 'Goal Fail Rate',
+      subTitleColor: 'error',
+      subValue: `${failRate}%`,
+      valueTooltip: `${goalHit.toLocaleString()} of ${goalEligible.toLocaleString()} tasks completed on/before due date`,
+      subValueTooltip: `${goalFail.toLocaleString()} of ${goalEligible.toLocaleString()} tasks are overdue and not completed`
     }
   ]
 })
 
 const sprintProgress = computed(() => {
-  const total = overviewTasks.value.length
-  const done = overviewTasks.value.filter(task => task.status === TaskStatus.COMPLETED).length
-  const percent = total ? Math.round((done / total) * 100) : 0
-  return { done, total, percent }
+  return overview.value.weekly
 })
 
 const monthlyAlignment = computed(() => {
-  const target = overviewTasks.value.length * 100
-  const completed =
-    overviewTasks.value.filter(task => task.status === TaskStatus.COMPLETED).length * 100
-  const percent = target ? Math.round((completed / target) * 100) : 0
-  return { completed, target, percent }
+  return overview.value.monthly
 })
 
+const formOpen = ref(false)
 const getUsersCell = useUsersCell()
+
 const columns = computed<TColumn<TTask>[]>(() => [
   {
     id: 'select',
@@ -119,7 +171,7 @@ const columns = computed<TColumn<TTask>[]>(() => [
     sortBy: 'status',
     cell: ({ row }) =>
       h(TaskStatusBadge, {
-        status: row.original.status
+        task: row.original
       })
   },
   {
@@ -128,14 +180,15 @@ const columns = computed<TColumn<TTask>[]>(() => [
     sortBy: 'priority',
     cell: ({ row }) =>
       h(TaskPriorityBadge, {
+        status: row.original.status,
         priority: row.original.priority
       })
   },
   // {
-  //   accessorKey: 'reviewer',
-  //   header: 'Reviewer',
-  //   sortBy: 'reviewerId',
-  //   cell: ({ row }) => row.original.reviewer?.name || '—'
+  //   accessorKey: 'statusUpdater',
+  //   header: 'Status updater',
+  //   sortBy: 'statusUpdaterId',
+  //   cell: ({ row }) => row.original.statusUpdater?.name || '—'
   // },
   // {
   //   accessorKey: 'creator',
@@ -149,7 +202,8 @@ const columns = computed<TColumn<TTask>[]>(() => [
     sortBy: 'dueAt',
     cell: ({ row }) =>
       h(TaskDueDateBadge, {
-        dueAt: row.original.dueAt
+        dueAt: row.original.dueAt,
+        status: row.original.status
       })
   },
   {
@@ -226,20 +280,24 @@ const filters: TFilter[] = [
   },
   {
     name: 'status',
-    type: 'input',
+    type: 'checkbox-api',
     props: {
       label: 'Status',
-      placeholder: 'Filter by status',
-      modeable: true
+      api: '/api/tasks/statuses',
+      query: {
+        options: true
+      }
     }
   },
   {
     name: 'priority',
-    type: 'input',
+    type: 'checkbox-api',
     props: {
       label: 'Priority',
-      placeholder: 'Filter by priority',
-      modeable: true
+      api: '/api/tasks/priorities',
+      query: {
+        options: true
+      }
     }
   },
   {
@@ -273,8 +331,6 @@ const filters: TFilter[] = [
   }
 ]
 
-const formOpen = ref(false)
-
 const getActions: TGetActions<TTask> = (item, v) => [
   [
     {
@@ -291,7 +347,7 @@ const getActions: TGetActions<TTask> = (item, v) => [
       onSelect() {
         crudRef.value?.onDelete(item)
         setTimeout(() => {
-          loadOverview()
+          refetch()
         }, 300)
       }
     }
@@ -314,26 +370,37 @@ const getActions: TGetActions<TTask> = (item, v) => [
   >
     <template #actions>
       <UButton
+        trailing-icon="i-lucide-chevron-right"
+        label="Manage"
+        color="neutral"
+        variant="subtle"
+        to="/tasks/0"
+      />
+      <UButton
         icon="i-lucide-plus"
+        label="Create Task"
         @click="formOpen = true"
-      >
-        Create Task
-      </UButton>
+      />
     </template>
     <template #top>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <UCard
           v-for="card in overviewCards"
           :key="card.key"
-          class="border-primary/20"
         >
           <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <div class="rounded-md bg-primary/10 p-2">
-                <UIcon
-                  :name="card.icon"
-                  class="size-5 text-primary"
-                />
+            <div class="flex items-start justify-between">
+              <div>
+                <div
+                  class="rounded-md flex items-center justify-center size-10"
+                  :class="`bg-${card.titleColor}/10`"
+                >
+                  <UIcon
+                    :name="card.icon"
+                    class="size-5"
+                    :class="`text-${card.titleColor}`"
+                  />
+                </div>
               </div>
               <UBadge
                 :color="card.tone"
@@ -342,8 +409,40 @@ const getActions: TGetActions<TTask> = (item, v) => [
                 {{ card.trend }}
               </UBadge>
             </div>
-            <div class="text-xs uppercase tracking-wide text-muted">{{ card.title }}</div>
-            <div class="text-3xl font-bold">{{ card.value }}</div>
+            <div class="flex items-end gap-1">
+              <div class="flex-1">
+                <div
+                  class="text-xs uppercase tracking-wide"
+                  :class="`text-${card.titleColor}`"
+                >
+                  {{ card.title }}
+                </div>
+                <UTooltip :text="card.valueTooltip">
+                  <div
+                    class="text-3xl font-bold"
+                    :class="`text-${card.titleColor}`"
+                  >
+                    {{ card.value }}
+                  </div>
+                </UTooltip>
+              </div>
+              <div class="flex-1">
+                <div
+                  class="text-xs uppercase tracking-wide opacity-60"
+                  :class="`text-${card.subTitleColor}`"
+                >
+                  {{ card.subTitle }}
+                </div>
+                <UTooltip :text="card.subValueTooltip">
+                  <div
+                    class="text-2xl font-semibold opacity-60"
+                    :class="`text-${card.subTitleColor}`"
+                  >
+                    {{ card.subValue }}
+                  </div>
+                </UTooltip>
+              </div>
+            </div>
           </div>
         </UCard>
       </div>

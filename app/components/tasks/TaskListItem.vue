@@ -27,16 +27,18 @@ const emit = defineEmits<{
     </p>
     <div class="flex gap-1">
       <TaskStatusBadge
-        :size="'sm'"
-        :status="task.status"
+        size="sm"
+        :task="task"
       />
       <TaskPriorityBadge
         :size="'sm'"
+        :status="task.status"
         :priority="task.priority"
       />
       <TaskDueDateBadge
         :size="'sm'"
         :due-at="task.dueAt"
+        :status="task.status"
       />
     </div>
   </div>

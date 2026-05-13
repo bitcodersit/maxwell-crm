@@ -33,8 +33,10 @@ const newForm = (v?: Partial<TTask>): TTask => {
     updatedAt: v?.updatedAt ?? new Date(),
     deletedAt: v?.deletedAt ?? null,
     creatorId: v?.creatorId ?? null,
-    completedAt: v?.completedAt ?? null,
-    reviewerId: v?.reviewerId ?? null
+    reviewedAt: v?.reviewedAt ?? null,
+    reviewerId: v?.reviewerId ?? null,
+    submittedAt: v?.submittedAt ?? null,
+    submitterId: v?.submitterId ?? null
   }
 }
 

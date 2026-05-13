@@ -27,6 +27,7 @@ export type TTaskTeam = TaskTeam & {
 export type TTask = Task & {
   creator?: TMaybe<TUser>
   reviewer?: TMaybe<TUser>
+  submitter?: TMaybe<TUser>
   items?: TTaskItem[]
   users?: TTaskUser[]
   teams?: TTaskTeam[]

@@ -18,10 +18,11 @@ export const ColorsMap: Record<string, TColor> = {
   [TaskStatus.TODO]: 'neutral',
   [TaskStatus.IN_PROGRESS]: 'primary',
   [TaskStatus.IN_REVIEW]: 'warning',
+  [TaskStatus.FAILED]: 'error',
   [TaskStatus.COMPLETED]: 'success',
   [TaskStatus.CANCELLED]: 'error',
   [TaskPriority.URGENT]: 'error',
   [TaskPriority.HIGH]: 'warning',
-  [TaskPriority.MEDIUM]: 'neutral',
+  [TaskPriority.MEDIUM]: 'secondary',
   [TaskPriority.LOW]: 'neutral'
 }

@@ -7,6 +7,7 @@ const getOwnScope = (userId: number) =>
     OR: [
       { creatorId: userId },
       { reviewerId: userId },
+      { submitterId: userId },
       { users: { some: { userId } } },
       {
         teams: {
@@ -50,8 +51,11 @@ export default defineEventHandler(async event => {
       dueAt: true,
       status: true,
       priority: true,
+      reviewedAt: true,
+      submittedAt: true,
       description: true,
-      reviewerId: true
+      reviewerId: true,
+      submitterId: true
     }
   })
   if (!existing) throw err.notFound()
@@ -82,16 +86,14 @@ export default defineEventHandler(async event => {
       : {}),
     ...(canUpdateAnyTasks && input.dueAt !== undefined ? { dueAt: input.dueAt } : {}),
     ...(input.status ? { status: input.status } : {}),
+    ...(input.status && input.status !== existing.status && canUpdateAnyTasks
+      ? { reviewedAt: new Date(), reviewerId: user.id }
+      : {}),
+    ...(input.status && input.status !== existing.status && !canUpdateAnyTasks
+      ? { submittedAt: new Date(), submitterId: user.id }
+      : {}),
     ...(canUpdateAnyTasks && input.priority ? { priority: input.priority } : {}),
     ...(canUpdateAnyTasks && input.description ? { description: input.description } : {}),
-    ...(canUpdateAnyTasks &&
-    input.status &&
-    input.status !== existing.status &&
-    input.status === TaskStatus.COMPLETED
-      ? {
-          reviewerId: user.id
-        }
-      : {}),
     ...(canUpdateAnyTasks && input.items?.length
       ? {
           items: {

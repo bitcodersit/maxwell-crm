@@ -11,6 +11,7 @@ const getTaskScopedWhere = (user: UserSessionRequired['user'], where: Prisma.Tas
         OR: [
           { creatorId: user.id },
           { reviewerId: user.id },
+          { submitterId: user.id },
           { users: { some: { userId: user.id } } },
           {
             teams: {
@@ -47,6 +48,7 @@ export const getTasks = async (event: H3Event, query = getQuery(event)) => {
     .array('priority')
     .id('creatorId')
     .id('reviewerId')
+    .id('submitterId')
     .date('dueAt')
     .date('createdAt')
     .date('updatedAt')

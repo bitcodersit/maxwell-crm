@@ -45,6 +45,9 @@ export const TaskInclude = {
   reviewer: {
     select: UserSelectForOptions
   },
+  submitter: {
+    select: UserSelectForOptions
+  },
   users: {
     select: {
       id: true,

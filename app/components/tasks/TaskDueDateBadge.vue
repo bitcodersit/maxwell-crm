@@ -4,6 +4,7 @@ import { differenceInCalendarDays, isToday } from 'date-fns'
 
 const props = defineProps<{
   dueAt: TTask['dueAt']
+  status: TTaskStatus
   size?: BadgeProps['size']
 }>()
 
@@ -48,11 +49,15 @@ const daysLeft = computed(() => {
   >
     <UBadge
       :size="size"
-      :color="dueAt ? daysLeft.color : 'neutral'"
+      :color="dueAt && status !== TaskStatus.COMPLETED ? daysLeft.color : 'neutral'"
+      :class="{ 'text-muted': status === TaskStatus.COMPLETED }"
       variant="soft"
     >
       <UIcon name="i-lucide-calendar" />
-      <template v-if="dueAt"> {{ $dfc(dueAt, 'dd MMM yyyy') }} • {{ daysLeft.text }} </template>
+      <template v-if="dueAt">
+        {{ $dfc(dueAt, 'dd MMM yyyy') }}
+        <template v-if="status !== TaskStatus.COMPLETED"> • {{ daysLeft.text }} </template>
+      </template>
       <span
         v-else
         class="italic"

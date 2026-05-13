@@ -1,4 +1,4 @@
-import { TaskItemStatus, TaskStatus } from '~~/prisma/client/enums'
+import { TaskItemStatus } from '~~/prisma/client/enums'
 
 export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
@@ -18,7 +18,8 @@ export default defineEventHandler(async event => {
       priority: input.priority,
       dueAt: input.dueAt ?? null,
       creatorId: user.id,
-      reviewerId: input.status === TaskStatus.COMPLETED ? user.id : null,
+      reviewerId: user.id,
+      reviewedAt: new Date(),
       items: {
         createMany: {
           data: (input.items || []).map((item, sortOrder) => ({

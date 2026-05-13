@@ -3,15 +3,17 @@ import type { BadgeProps } from '@nuxt/ui'
 import { capitalize } from 'vue'
 
 defineProps<{
-  size?: BadgeProps['size']
+  status: TTaskStatus
   priority: TTaskPriority
+  size?: BadgeProps['size']
 }>()
 </script>
 
 <template>
   <UBadge
     :size="size"
-    :color="ColorsMap[priority]"
+    :color="status !== TaskStatus.COMPLETED ? ColorsMap[priority] : 'neutral'"
+    :class="{ 'text-muted': status === TaskStatus.COMPLETED }"
     variant="soft"
     class="cursor-pointer"
   >

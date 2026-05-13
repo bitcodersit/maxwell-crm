@@ -11,7 +11,7 @@ const task = useState<TTask>(keys.task(id.value).toString())
 
 const { user } = useUserSession()
 const { mutate, isPending } = useTaskPatchMutation(id)
-const { data, status } = useTaskQuery(id, v => {
+const { data, isFetching } = useTaskQuery(id, v => {
   task.value = { ...v }
 })
 
@@ -120,8 +120,8 @@ const attachments = computed<TAttachment[]>({
         <div class="flex flex-wrap items-center gap-2">
           <UDropdownMenu :items="statusItems">
             <TaskStatusBadge
-              :size="'lg'"
-              :status="task.status"
+              size="lg"
+              :task="task"
             />
           </UDropdownMenu>
           <UDropdownMenu
@@ -130,6 +130,7 @@ const attachments = computed<TAttachment[]>({
           >
             <TaskPriorityBadge
               :size="'lg'"
+              :status="task.status"
               :priority="task.priority"
             />
           </UDropdownMenu>
@@ -137,13 +138,14 @@ const attachments = computed<TAttachment[]>({
             v-model="task.dueAt"
             :show-mode="false"
             :disabled="!user?.can?.updateAnyTasks"
-            :min-value="todayDateValue()"
             @update:model-value="onChangeDueAt"
           >
+            <!-- :min-value="todayDateValue()" -->
             <template #trigger>
               <TaskDueDateBadge
                 :size="'lg'"
                 :due-at="task.dueAt"
+                :status="task.status"
               />
             </template>
           </FormDate>
@@ -198,7 +200,16 @@ const attachments = computed<TAttachment[]>({
     </div>
   </div>
   <div
-    v-else-if="status === 'pending'"
+    v-else-if="isNaN(id) || id <= 0"
+    class="flex-1 flex items-center justify-center p-8"
+  >
+    <div class="max-w-md w-full text-center gap-2">
+      <h1 class="text-xl font-semibold text-muted">Task will appear here</h1>
+      <div class="text-dimmed">Please select a task to get started</div>
+    </div>
+  </div>
+  <div
+    v-else-if="isFetching"
     class="flex-1 flex justify-center p-8"
   >
     <UIcon

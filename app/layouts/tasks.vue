@@ -2,7 +2,7 @@
 const router = useRouter()
 const query = ref<Record<string, any>>({
   perPage: 10,
-  status: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW],
+  status: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.FAILED],
   orderBy: {
     dueAt: 'asc'
   }
