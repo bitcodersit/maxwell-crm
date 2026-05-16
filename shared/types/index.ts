@@ -9,6 +9,7 @@ export * from './Attachment'
 export * from './Task'
 export * from './Lead'
 export * from './Property'
+export * from './Kanban'
 
 export type TMaybe<T> = T | null | undefined
 

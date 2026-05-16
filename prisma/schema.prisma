@@ -219,6 +219,82 @@ model Attachable {
 
 // END ATTACHMENT
 // ================================================================
+// START BOARD
+enum BoardModule {
+    LEADS
+    TASKS
+}
+
+model Board {
+    id Int @id @default(autoincrement())
+
+    module BoardModule
+    name   String
+    slug   String
+
+    columns BoardColumn[]
+    items   BoardItem[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@unique([module, slug])
+    @@index([module])
+    @@map("boards")
+}
+
+model BoardColumn {
+    id Int @id @default(autoincrement())
+
+    boardId Int
+    name    String
+    color   String? @db.VarChar(32)
+
+    sortOrder String  @db.VarChar(64)
+    pinned    Boolean @default(false)
+
+    board Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+    items BoardItem[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([boardId, sortOrder])
+    @@map("board_columns")
+}
+
+// Morph-like, as prisma doesn't support polymorphic relations natively
+// we will use nullable module ids to attach board cards with their entities
+model BoardItem {
+    id Int @id @default(autoincrement())
+
+    boardId  Int
+    columnId Int
+
+    sortOrder String @db.VarChar(64)
+
+    leadId Int?
+    taskId Int?
+
+    board  Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+    column BoardColumn @relation(fields: [columnId], references: [id], onDelete: Restrict)
+    task   Task?       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@unique([boardId, leadId])
+    @@unique([boardId, taskId])
+    @@index([columnId, sortOrder])
+    @@index([boardId, leadId])
+    @@index([boardId, taskId])
+    @@map("board_items")
+}
+
+// END BOARD
+// ================================================================
 // START TASK
 enum TaskStatus {
     TODO
@@ -265,6 +341,7 @@ model Task {
     items       TaskItem[]
     users       TaskUser[]
     teams       TaskTeam[]
+    boardItems  BoardItem[]
     attachables Attachable[]
 
     createdAt DateTime  @default(now())
