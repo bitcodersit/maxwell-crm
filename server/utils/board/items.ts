@@ -1,7 +1,7 @@
 import { BoardModule } from '~~/prisma/client/enums'
 import type { TBoardItemMorph } from './morph'
 import { assertEntityExists, assertFkMatchesModule, assertSingleFk } from './morph'
-import { computeSortOrder } from './sortOrder'
+import { computeSortOrder, computeSortOrderForMove } from './sortOrder'
 
 const getItemSortNeighbors = async (
   boardId: number,
@@ -34,19 +34,14 @@ const getItemSortNeighbors = async (
       })
     : null
 
-  if (payload.afterItemId && !prev) throw err.notFound('afterItemId not found')
-  if (payload.beforeItemId && !next) throw err.notFound('beforeItemId not found')
-  if (excludeItemId && (prev?.id === excludeItemId || next?.id === excludeItemId)) {
-    throw err.unprocessable({
-      item: {
-        errors: ['Cannot reorder an item relative to itself']
-      }
-    })
-  }
+  // In cross-column drag or rapid reorders, client neighbor ids can become stale.
+  // Ignore self-references and fall back to open boundaries instead of failing.
+  const safePrev = excludeItemId && prev?.id === excludeItemId ? null : prev
+  const safeNext = excludeItemId && next?.id === excludeItemId ? null : next
 
   return {
-    previousSortOrder: prev?.sortOrder ?? null,
-    nextSortOrder: next?.sortOrder ?? null
+    previousSortOrder: safePrev?.sortOrder ?? null,
+    nextSortOrder: safeNext?.sortOrder ?? null
   }
 }
 
@@ -139,6 +134,11 @@ export const moveBoardItem = async (
       where: {
         id: itemId,
         boardId
+      },
+      select: {
+        id: true,
+        columnId: true,
+        sortOrder: true
       }
     }),
     prisma.boardColumn.findFirst({
@@ -165,7 +165,7 @@ export const moveBoardItem = async (
     where: { id: item.id },
     data: {
       columnId: targetColumn.id,
-      sortOrder: computeSortOrder(previousSortOrder, nextSortOrder)
+      sortOrder: computeSortOrderForMove(item.sortOrder, previousSortOrder, nextSortOrder)
     }
   })
 }
@@ -185,7 +185,8 @@ export const reorderBoardItem = async (
     },
     select: {
       id: true,
-      columnId: true
+      columnId: true,
+      sortOrder: true
     }
   })
   if (!item) throw err.notFound()
@@ -200,7 +201,7 @@ export const reorderBoardItem = async (
   return prisma.boardItem.update({
     where: { id: item.id },
     data: {
-      sortOrder: computeSortOrder(previousSortOrder, nextSortOrder)
+      sortOrder: computeSortOrderForMove(item.sortOrder, previousSortOrder, nextSortOrder)
     }
   })
 }

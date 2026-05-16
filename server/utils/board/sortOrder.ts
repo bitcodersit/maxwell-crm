@@ -13,6 +13,23 @@ export const computeSortOrder = (previous: TMaybeString, next: TMaybeString) => 
   return key
 }
 
+/** When the naive between-key equals current, nudge so reorder actually moves in key space. */
+export const computeSortOrderForMove = (
+  current: TMaybeString,
+  previous: TMaybeString,
+  next: TMaybeString
+) => {
+  let key = computeSortOrder(previous, next)
+  if (current && key === current) {
+    if (next) {
+      key = computeSortOrder(current, next)
+    } else if (previous) {
+      key = computeSortOrder(previous, current)
+    }
+  }
+  return key
+}
+
 export const computeSortOrderBatch = (count: number): string[] => {
   if (!count) return []
   const keys = generateNKeysBetween(null, null, count)

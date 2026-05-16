@@ -1,50 +1,65 @@
-import { computeSortOrder } from './sortOrder'
+import { computeSortOrder, computeSortOrderForMove } from './sortOrder'
 
 type TColumnReorderPayload = {
   beforeColumnId?: number | null
   afterColumnId?: number | null
 }
 
-const getColumnSortNeighbors = async (
+const resolveColumnInsertBounds = async (
   boardId: number,
-  payload: TColumnReorderPayload,
-  excludeColumnId?: number
+  columnId: number,
+  payload: TColumnReorderPayload
 ) => {
-  const prev = payload.afterColumnId
-    ? await prisma.boardColumn.findFirst({
-        where: {
-          id: payload.afterColumnId,
-          boardId,
-          deletedAt: null
-        },
-        select: { id: true, sortOrder: true }
-      })
-    : null
+  const columns = await prisma.boardColumn.findMany({
+    where: {
+      boardId,
+      deletedAt: null
+    },
+    orderBy: [{ pinned: 'desc' }, { sortOrder: 'asc' }, { id: 'asc' }],
+    select: {
+      id: true,
+      sortOrder: true,
+      pinned: true
+    }
+  })
 
-  const next = payload.beforeColumnId
-    ? await prisma.boardColumn.findFirst({
-        where: {
-          id: payload.beforeColumnId,
-          boardId,
-          deletedAt: null
-        },
-        select: { id: true, sortOrder: true }
-      })
-    : null
+  const moving = columns.find(column => column.id === columnId)
+  if (!moving) return null
 
-  if (payload.afterColumnId && !prev) throw err.notFound('afterColumnId not found')
-  if (payload.beforeColumnId && !next) throw err.notFound('beforeColumnId not found')
-  if (excludeColumnId && (prev?.id === excludeColumnId || next?.id === excludeColumnId)) {
-    throw err.unprocessable({
-      column: {
-        errors: ['Cannot reorder a column relative to itself']
-      }
-    })
+  const pinned = columns.filter(column => column.pinned)
+  const unpinnedOthers = columns.filter(column => !column.pinned && column.id !== columnId)
+
+  let insertAt = unpinnedOthers.length
+
+  if (payload.beforeColumnId) {
+    const beforeIdx = unpinnedOthers.findIndex(column => column.id === payload.beforeColumnId)
+    if (beforeIdx >= 0) insertAt = beforeIdx
   }
 
+  if (payload.afterColumnId) {
+    const afterIdx = unpinnedOthers.findIndex(column => column.id === payload.afterColumnId)
+    if (afterIdx >= 0) insertAt = afterIdx + 1
+  }
+
+  if (payload.afterColumnId && payload.beforeColumnId) {
+    const afterIdx = unpinnedOthers.findIndex(column => column.id === payload.afterColumnId)
+    const beforeIdx = unpinnedOthers.findIndex(column => column.id === payload.beforeColumnId)
+    if (afterIdx >= 0 && beforeIdx === afterIdx + 1) {
+      insertAt = beforeIdx
+    }
+  }
+
+  const previousSortOrder =
+    insertAt > 0
+      ? (unpinnedOthers[insertAt - 1]?.sortOrder ?? pinned.at(-1)?.sortOrder ?? null)
+      : (pinned.at(-1)?.sortOrder ?? null)
+
+  const nextSortOrder = insertAt < unpinnedOthers.length ? unpinnedOthers[insertAt]?.sortOrder ?? null : null
+
   return {
-    previousSortOrder: prev?.sortOrder ?? null,
-    nextSortOrder: next?.sortOrder ?? null
+    moving,
+    previousSortOrder,
+    nextSortOrder
   }
 }
 
@@ -136,26 +151,20 @@ export const updateBoardColumn = async (
 }
 
 export const reorderBoardColumn = async (boardId: number, columnId: number, payload: TColumnReorderPayload) => {
-  const existing = await prisma.boardColumn.findFirst({
-    where: {
-      id: columnId,
-      boardId,
-      deletedAt: null
-    },
-    select: {
-      id: true,
-      pinned: true
-    }
-  })
-  if (!existing) throw err.notFound()
-  assertColumnReorderAllowed(existing)
+  const bounds = await resolveColumnInsertBounds(boardId, columnId, payload)
+  if (!bounds) throw err.notFound()
 
-  const { previousSortOrder, nextSortOrder } = await getColumnSortNeighbors(boardId, payload, existing.id)
+  assertColumnReorderAllowed(bounds.moving)
+
+  const sortOrder = computeSortOrderForMove(
+    bounds.moving.sortOrder,
+    bounds.previousSortOrder,
+    bounds.nextSortOrder
+  )
+
   return prisma.boardColumn.update({
-    where: { id: existing.id },
-    data: {
-      sortOrder: computeSortOrder(previousSortOrder, nextSortOrder)
-    }
+    where: { id: bounds.moving.id },
+    data: { sortOrder }
   })
 }
 
