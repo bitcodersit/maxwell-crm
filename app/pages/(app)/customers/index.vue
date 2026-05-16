@@ -126,15 +126,15 @@ const filters: TFilter[] = [
       placeholder: 'eg 1 or 1,2,3 or 1-10'
     }
   },
-  {
-    name: 'name',
-    type: 'input',
-    props: {
-      label: 'Name',
-      placeholder: 'Search by name',
-      modeable: true
-    }
-  },
+  // {
+  //   name: 'name',
+  //   type: 'input',
+  //   props: {
+  //     label: 'Name',
+  //     placeholder: 'Search by name',
+  //     modeable: true
+  //   }
+  // },
   // {
   //   name: 'email',
   //   type: 'input',

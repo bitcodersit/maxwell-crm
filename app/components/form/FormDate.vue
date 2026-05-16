@@ -5,41 +5,36 @@ import { format as df } from 'date-fns'
 
 type TValue = CalendarProps['modelValue']
 type TMode = 'single' | 'range' | 'multiple'
-type TTrigger = 'input' | 'button'
 type TModelValue = TValue | string | Date | null
 
-export type TFormDateProps = Omit<CalendarProps, 'modelValue'> & {
-  mode?: TMode
-  showMode?: boolean
-  trigger?: TTrigger
-  triggerLabel?: string
-  triggerPlaceholder?: string
-  triggerProps?: Partial<InputProps>
-  closeOnSelect?: boolean
-  displayFormat?: string
-  outputFormat?: string
-}
+export type TFormDateProps = Omit<CalendarProps, 'modelValue' | 'placeholder'> &
+  Pick<InputProps, 'size' | 'placeholder'> & {
+    showMode?: boolean
+    outputFormat?: string
+    displayFormat?: string
+    closeOnSelect?: boolean
+  }
 
 const props = withDefaults(defineProps<TFormDateProps>(), {
-  mode: 'single',
   showMode: false,
-  trigger: 'input',
-  triggerPlaceholder: 'Pick a date',
-  closeOnSelect: true,
+  placeholder: 'Pick a date',
+  outputFormat: 'yyyy-MM-dd',
   displayFormat: 'MMM dd yyyy',
-  outputFormat: 'yyyy-MM-dd'
+  closeOnSelect: true
 })
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value?: TModelValue): void
-  (e: 'update:mode', mode?: TMode): void
+  'update:mode': [mode?: TMode]
+  'update:modelValue': [value?: TModelValue]
 }>()
 
 const model = defineModel<TModelValue>()
-const modeModel = defineModel<TMode>('mode')
+const modeModel = defineModel<TMode>('mode', {
+  default: 'single'
+})
 
 const open = ref(false)
-const mode = ref<TMode>(modeModel.value ?? props.mode)
+const mode = ref<TMode>(modeModel.value)
 const value = ref<any>()
 
 const getIsoDate = (input?: TModelValue | any) => {
@@ -91,12 +86,6 @@ const displayValue = computed<string | undefined>(() => {
   return date ? df(date, props.displayFormat) : undefined
 })
 
-const inputTriggerProps = computed(() => {
-  const raw = (props.triggerProps || {}) as Record<string, unknown>
-  const { modelValue: _modelValue, ...rest } = raw
-  return rest
-})
-
 const setValue = (next?: any) => {
   value.value = next
   model.value = toOutputValue(next)
@@ -112,6 +101,10 @@ const onPick = (next?: any) => {
   if (props.closeOnSelect && mode.value === 'single' && next) {
     open.value = false
   }
+}
+
+const onSelect = () => {
+  open.value = false
 }
 
 watch(model, v => {
@@ -139,41 +132,29 @@ watch(mode, v => {
     :content="{ align: 'start', side: 'bottom' }"
     @update:open="open = $event"
   >
-    <slot
-      name="trigger"
-      :open="open"
-      :display-value="displayValue"
-    >
-      <UInput
-        v-if="trigger === 'input'"
-        :model-value="displayValue || ''"
-        readonly
-        :placeholder="triggerPlaceholder"
-        v-bind="inputTriggerProps"
-        class="w-full cursor-pointer"
-        @click="open = true"
-      />
-      <UButton
-        v-else
-        icon="i-lucide-calendar"
-        variant="soft"
-        color="neutral"
-        @click="open = true"
-      >
-        {{ triggerLabel || displayValue || triggerPlaceholder }}
-      </UButton>
+    <slot name="trigger">
+      <span>
+        <UInput
+          :readonly="true"
+          :model-value="displayValue || ''"
+          :ui="{ base: 'text-left' }"
+          :size="size"
+          :placeholder="placeholder"
+          class="w-full cursor-pointer"
+        />
+      </span>
     </slot>
     <template #content>
       <URadioGroup
         v-if="showMode"
         v-model="mode"
         orientation="horizontal"
-        @change="value = undefined"
         :items="[
           { label: 'Single', value: 'single' },
           { label: 'Range', value: 'range' },
           { label: 'Multiple', value: 'multiple' }
         ]"
+        @change="value = undefined"
       />
       <UCalendar
         :model-value="value"
@@ -192,6 +173,15 @@ watch(mode, v => {
           @click="onClear"
         >
           Clear
+        </UButton>
+        <UButton
+          v-if="!closeOnSelect"
+          :disabled="!value"
+          icon="i-lucide-check"
+          size="sm"
+          @click="onSelect"
+        >
+          Select
         </UButton>
       </div>
     </template>

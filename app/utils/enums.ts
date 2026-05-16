@@ -1,3 +1,4 @@
+import { capitalize } from 'vue'
 import { TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
 const allowedStatuses: TaskStatus[] = [
@@ -14,7 +15,7 @@ export const useTaskStatusItems = (onSelect?: (value: TaskStatus) => void) => {
       user.value?.can?.updateAnyTasks ? values : values.filter(v => allowedStatuses.includes(v))
     ).map(value => ({
       value,
-      label: value,
+      label: capitalize(value.split('_').join(' ').toLowerCase()),
       onSelect() {
         onSelect?.(value)
       }
@@ -31,7 +32,7 @@ export const useTaskPriorityItems = (onSelect?: (value: TaskPriority) => void) =
       user.value?.can?.updateAnyTasks ? values : values.filter(v => allowedPriorities.includes(v))
     ).map(value => ({
       value,
-      label: value,
+      label: capitalize(value.split('_').join(' ').toLowerCase()),
       onSelect() {
         onSelect?.(value)
       }

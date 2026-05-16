@@ -65,9 +65,9 @@ export type TBaseCrudModal = {
 }
 
 type TQuery = {
-  page: number
-  perPage: number
-  orderBy: Record<string, 'asc' | 'desc' | undefined>
+  page?: number
+  perPage?: number
+  orderBy?: Record<string, 'asc' | 'desc' | undefined>
   [key: string]: any
 }
 
@@ -86,18 +86,19 @@ const props = withDefaults(
     formItem?: Record<string, unknown>
     exportUrl?: string
     formClass?: string
-    staleTime?: number
-    dateFields?: string[]
     gridClass?: string
     leftClass?: string
-    perPageOptions?: number[]
     deleteUrl?: string | ((item: T | T[]) => string)
+    dateFields?: string[]
+    perPageOptions?: number[]
+    initialQuery?: TQuery
     getActions?: TGetActions<T>
     getPostBody?: (state: TFormState) => object | FormData
     getFormState?: (item?: T) => TFormState
+    showAddButton?: boolean
   }>(),
   {
-    staleTime: 30 * 1000,
+    showAddButton: true,
     leftClass: 'col-span-1',
     gridClass: 'grid grid-cols-1',
     fields: () => [],
@@ -115,26 +116,24 @@ const props = withDefaults(
   }
 )
 
-const {
-  getUrl,
-  columns,
-  postUrl,
-  exportUrl,
-  deleteUrl,
-  staleTime,
-  dateFields,
-  getPostBody,
-  getFormState
-} = toRefs(props)
+const { getUrl, columns, postUrl, exportUrl, deleteUrl, dateFields, getPostBody, getFormState } =
+  toRefs(props)
 
 const def = toPaginated<T>()
 const table = useTemplateRef('table')
 
-const initialQuery = {
+const fallbackQuery = {
   page: def.page,
   perPage: def.perPage,
   orderBy: {}
 }
+
+const initialQuery = computed(() => {
+  return {
+    ...fallbackQuery,
+    ...props.initialQuery
+  }
+})
 
 const getPersisted = <T,>(
   key: string,
@@ -147,7 +146,12 @@ const getPersisted = <T,>(
         ...parsed,
         ...calendarFormatDates(parsed, dateFields.value, {
           returnType: 'dateValue'
-        })
+        }),
+        ...initial,
+        orderBy: {
+          ...parsed?.orderBy,
+          ...(initial as any)?.orderBy
+        }
       }
     } catch {
       return { ...initial }
@@ -162,7 +166,7 @@ const getPersisted = <T,>(
 
 const query = ref(
   getPersisted<TQuery>('query', (v, parse) => {
-    return v ? parse(v, initialQuery) : { ...initialQuery }
+    return v ? parse(v, initialQuery.value) : { ...initialQuery.value }
   })
 )
 
@@ -172,32 +176,19 @@ const selected = ref(
   })
 )
 
-const nuxtApp = useNuxtApp()
-const refreshKey = ref(0)
-const key = computed(() => `${getUrl.value}:${refreshKey.value}:${JSON.stringify(query.value)}`)
-
 const fetchQuery = computed(() => {
   return calendarFormatDates(query.value, dateFields.value, {
     formatStr: 'yyyy-MM-dd'
   })
 })
 
-const { data, status } = useFetch<TPaginated<T>>(getUrl, {
-  key,
-  lazy: true,
-  server: false,
-  query: fetchQuery,
-  default: () => def,
-  getCachedData(key) {
-    const data = nuxtApp.payload.data[key]
-    if (!data || Date.now() - data.fetchedAt > staleTime.value) return
-    return data
-  },
-  transform(data) {
-    return {
-      ...data,
-      fetchedAt: Date.now()
-    }
+const { data, isFetching, refetch } = useQuerySSR<TPaginated<T>>({
+  initialData: () => def,
+  queryKey: [getUrl, fetchQuery],
+  queryFn: () => {
+    return $fetch<TPaginated<T>>(getUrl.value, {
+      query: fetchQuery.value
+    })
   }
 })
 
@@ -280,7 +271,7 @@ const mColumns = computed<TableColumn<T>[]>(() => {
           return header({ column, ...rest })
         }
         if (sortBy) {
-          const v = query.value.orderBy[sortBy]
+          const v = query.value.orderBy?.[sortBy]
           return h(UButton, {
             color: 'neutral',
             variant: 'ghost',
@@ -295,6 +286,9 @@ const mColumns = computed<TableColumn<T>[]>(() => {
               leadingIcon: 'size-4'
             },
             onClick() {
+              if (!query.value.orderBy) {
+                query.value.orderBy = {}
+              }
               if (!v) {
                 query.value.orderBy[sortBy] = 'asc'
               } else if (v === 'asc') {
@@ -311,23 +305,29 @@ const mColumns = computed<TableColumn<T>[]>(() => {
   })
 })
 
-const initialKeys = Object.keys(initialQuery)
+// Filter
 const isClearable = computed(() => {
-  return Object.keys(query.value)
-    .filter(k => !initialKeys.includes(k))
-    .some(k => !!query.value[k])
+  return Object.keys(getDeepDiff(query.value, initialQuery.value)).length > 0
 })
 
 const onClearFilters = () => {
   query.value = {
-    ...initialQuery
+    ...initialQuery.value
   }
 }
 
+// Order By
+const isOrdered = computed(() => {
+  return (
+    Object.keys(getDeepDiff(initialQuery.value.orderBy || {}, query.value.orderBy || {})).length > 0
+  )
+})
 const onClearOrderBy = () => {
   query.value = {
     ...query.value,
-    orderBy: {}
+    orderBy: {
+      ...initialQuery.value.orderBy
+    }
   }
 }
 
@@ -367,7 +367,7 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
       })
       formOpen.value = false
       selected.value = {}
-      refresh()
+      refetch()
       if (viewModal.value && viewItem.value) {
         onView(item as T)
       }
@@ -401,7 +401,7 @@ const onDelete = async (item: T | T[]) => {
           title: 'Success! 🎉',
           description: 'Item deleted successfully'
         })
-        refresh()
+        refetch()
         viewModal.value = false
       })
       .catch(e => {
@@ -488,16 +488,12 @@ const onView = (item: T, props = viewProps.value) => {
   viewModal.value = true
 }
 
-const refresh = () => {
-  refreshKey.value++
-}
-
 defineExpose({
-  refresh,
   onView,
   onUpdate,
   onDelete,
-  onDeleteSelected
+  onDeleteSelected,
+  refetch
 })
 
 // Export
@@ -572,7 +568,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             icon="i-lucide-refresh-cw"
             color="primary"
             variant="subtle"
-            @click="refresh"
+            @click="() => refetch()"
           />
         </UTooltip>
         <UTooltip text="Clear filters">
@@ -588,7 +584,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
         </UTooltip>
         <UTooltip text="Clear Sorting">
           <UButton
-            v-if="Object.keys(query.orderBy).length"
+            v-if="isOrdered"
             icon="i-lucide-arrow-up-down"
             color="error"
             variant="subtle"
@@ -696,7 +692,10 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             </UForm>
           </template>
         </UPopover>
-        <slot name="actions">
+        <slot
+          v-if="showAddButton"
+          name="actions"
+        >
           <UTooltip text="Add new item">
             <UButton
               icon="i-lucide-plus"
@@ -720,7 +719,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
           :sticky="true"
           :data="data.data"
           :columns="mColumns"
-          :loading="status === 'pending'"
+          :loading="isFetching"
           :ui="{
             base: 'table-fixed border-separate border-spacing-0',
             thead: '[&>tr]:after:content-none',
@@ -839,63 +838,65 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
       v-bind="modal?.form?.({ mode: formMode })"
     >
       <template #body>
-        <UForm
-          ref="formRef"
-          :state="formState"
-          @submit="onSubmit"
-        >
-          <div
-            :class="formClass"
-            class="grid grid-cols-1 gap-4"
+        <div class="min-h-0 max-h-[min(70vh,560px)] overflow-y-auto pr-1 -mr-1">
+          <UForm
+            ref="formRef"
+            :state="formState"
+            @submit="onSubmit"
           >
-            <UFormField
-              v-for="row in fields"
-              :key="row.name"
-              :name="row.name"
-              :label="row.label"
-              :class="row.col"
+            <div
+              :class="formClass"
+              class="grid grid-cols-1 gap-4"
             >
-              <UInput
-                v-if="row.type === 'input'"
-                v-model="formState[row.name]"
-                v-bind="{ ...formItem, ...row.props }"
-              />
-              <UTextarea
-                v-else-if="row.type === 'textarea'"
-                v-model="formState[row.name]"
-                v-bind="{ ...formItem, ...row.props }"
-              />
-              <FormAutocomplete
-                v-else-if="row.type === 'autocomplete'"
-                v-model="formState[row.name]"
-                v-bind="{ ...formItem, ...row.props }"
-              />
-              <FormUsersPivot
-                v-else-if="row.type === 'team-members'"
-                v-model="formState[row.name]"
-                v-bind="{ ...formItem, ...row.props }"
-              />
-            </UFormField>
-          </div>
-          <div class="flex justify-end gap-2 mt-4">
-            <UButton
-              icon="i-lucide-x"
-              type="button"
-              color="error"
-              variant="subtle"
-              @click="formOpen = false"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              type="submit"
-              :loading="isSubmitting"
-              icon="i-lucide-send"
-            >
-              Submit
-            </UButton>
-          </div>
-        </UForm>
+              <UFormField
+                v-for="row in fields"
+                :key="row.name"
+                :name="row.name"
+                :label="row.label"
+                :class="row.col"
+              >
+                <UInput
+                  v-if="row.type === 'input'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+                <UTextarea
+                  v-else-if="row.type === 'textarea'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+                <FormAutocomplete
+                  v-else-if="row.type === 'autocomplete'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+                <FormUsersPivot
+                  v-else-if="row.type === 'team-members'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+              </UFormField>
+            </div>
+            <div class="flex justify-end gap-2 mt-4">
+              <UButton
+                icon="i-lucide-x"
+                type="button"
+                color="error"
+                variant="subtle"
+                @click="formOpen = false"
+              >
+                Cancel
+              </UButton>
+              <UButton
+                type="submit"
+                :loading="isSubmitting"
+                icon="i-lucide-send"
+              >
+                Submit
+              </UButton>
+            </div>
+          </UForm>
+        </div>
       </template>
     </UModal>
   </ClientOnly>

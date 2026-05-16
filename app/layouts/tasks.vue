@@ -1,84 +1,124 @@
 <script setup lang="ts">
-import { TaskStatus } from '~~/prisma/client/enums'
-import { format, isToday } from 'date-fns'
-
-const router = useRouter()
+const formOpen = ref(false)
 const query = ref<Record<string, any>>({
-  page: 1,
-  perPage: 10
+  perPage: 10,
+  status: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.FAILED],
+  orderBy: {
+    dueAt: 'asc'
+  }
 })
 
-const { data } = useTasksQuery(query)
+const queryFormatted = computed(() => {
+  return calendarFormatDates(query.value, ['dueAt'], {
+    formatStr: 'yyyy-MM-dd'
+  })
+})
+
+const { data, isFetching, isFetchingNextPage, fetchNextPage } = useTasksQuery(queryFormatted)
+
+const tasks = computed(() => data.value?.pages.flatMap(page => page.data) || [])
+
 const { item, onRef } = useArrows(
-  computed(() => data.value.data),
+  computed(() => tasks.value),
   task => task?.id,
   task => {
-    router.push(`/tasks/${task.id}`)
+    navigateTo(`/tasks/${task.id}`)
   }
 )
+
+const onScroll = (event: Event) => {
+  const target = event.target as HTMLElement
+  if (target.scrollTop + target.clientHeight >= target.scrollHeight) {
+    fetchNextPage()
+  }
+}
 </script>
 
 <template>
+  <TaskFormModal v-model:open="formOpen" />
   <NuxtLayout
     :name="'default'"
     :padding="false"
     :scrollable="false"
   >
     <div class="flex overflow-hidden h-full">
-      <div class="w-96 border-r h-full flex flex-col flex-none border-default">
-        <div class="p-4"></div>
-        <div class="overflow-y-auto scrollbar divide-y divide-default flex-1">
+      <div class="w-96 border-r h-full flex flex-col flex-none border-default relative">
+        <ClientOnly>
+          <UProgress
+            v-if="isFetching"
+            size="sm"
+            class="absolute top-0 left-0 w-full"
+            :ui="{ base: 'rounded-none' }"
+          />
+        </ClientOnly>
+        <div class="px-3 py-3 flex flex-wrap gap-1 border-b border-default">
+          <div class="flex-1 flex items-center flex-wrap gap-1">
+            <FilterCheckbox
+              v-model="query.status"
+              api="/api/tasks/statuses"
+              dense
+              label="Status"
+            />
+            <FilterCheckbox
+              v-model="query.priority"
+              api="/api/tasks/priorities"
+              dense
+              label="Priority"
+            />
+            <FilterDate
+              v-model="query.dueAt"
+              dense
+              label="Due"
+            />
+          </div>
+          <div class="flex-1 flex items-center justify-end gap-1">
+            <UButton
+              size="xs"
+              variant="subtle"
+              class="rounded-full"
+            >
+              <BaseOrderByDropdown
+                v-model="query.orderBy"
+                :items="[
+                  { label: 'Status', value: 'status' },
+                  { label: 'Priority', value: 'priority' },
+                  { label: 'Due', value: 'dueAt' }
+                ]"
+              />
+            </UButton>
+            <UButton
+              size="xs"
+              variant="subtle"
+              class="rounded-full"
+              icon="i-lucide-plus"
+              @click="formOpen = true"
+            />
+          </div>
+        </div>
+        <!-- on scroll bottom, fetch next page -->
+        <div
+          class="overflow-y-auto scrollbar divide-y divide-default flex-1"
+          @scroll="onScroll"
+        >
           <div
-            v-for="(task, index) in data.data"
+            v-for="(task, index) in tasks"
             :key="index"
             :ref="el => onRef(el, task)"
           >
-            <div
-              class="p-4 sm:px-6 text-sm cursor-pointer border-l-2 transition-colors relative gap-1 flex flex-col"
-              :class="[
-                task.status === TaskStatus.TODO ? 'text-highlighted' : 'text-toned',
-                task.id === Number($route.params.id)
-                  ? 'border-primary bg-primary/10'
-                  : 'border-bg hover:border-primary hover:bg-primary/5'
-              ]"
+            <TaskListItem
+              :task="task"
               @click="item = task"
-            >
-              <div class="flex gap-4 justify-between items-center">
-                <div class="truncate">{{ task.name }}</div>
-                <div
-                  class="text-xs text-dimmed flex-none"
-                  :class="[task.status === TaskStatus.TODO && 'font-semibold']"
-                >
-                  {{
-                    task.dueAt
-                      ? isToday(new Date(task.dueAt))
-                        ? format(new Date(task.dueAt), 'HH:mm')
-                        : format(new Date(task.dueAt), 'dd MMM')
-                      : ''
-                  }}
-                </div>
-              </div>
-              <p class="text-dimmed line-clamp-2">
-                {{ task.description }}
-              </p>
-              <div class="flex gap-2">
-                <UBadge
-                  :color="ColorsMap[task.status]"
-                  size="sm"
-                  variant="soft"
-                >
-                  {{ task.status }}
-                </UBadge>
-                <UBadge
-                  :color="ColorsMap[task.priority]"
-                  size="sm"
-                  variant="soft"
-                >
-                  {{ task.priority }}
-                </UBadge>
-              </div>
-            </div>
+            />
           </div>
+        </div>
+        <div
+          v-if="isFetchingNextPage"
+          class="flex justify-center"
+        >
+          <UButton
+            loading
+            variant="link"
+          />
         </div>
       </div>
       <slot />

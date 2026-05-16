@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const id = Number(getRouterParam(event, 'id'))
     if (!Number.isInteger(id) || id < 1) {

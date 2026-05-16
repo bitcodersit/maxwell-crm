@@ -5,6 +5,7 @@ const getOwnScope = (userId: number) =>
     OR: [
       { creatorId: userId },
       { reviewerId: userId },
+      { submitterId: userId },
       { users: { some: { userId } } },
       {
         teams: {

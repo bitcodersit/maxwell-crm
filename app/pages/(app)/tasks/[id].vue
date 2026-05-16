@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { differenceInCalendarDays, isToday } from 'date-fns'
-
 definePageMeta({
   layout: 'tasks'
 })
@@ -13,8 +11,8 @@ const task = useState<TTask>(keys.task(id.value).toString())
 
 const { user } = useUserSession()
 const { mutate, isPending } = useTaskPatchMutation(id)
-const { data, status } = useTaskQuery(id, v => {
-  task.value = v
+const { data, isFetching } = useTaskQuery(id, v => {
+  task.value = { ...v }
 })
 
 const onMutate = (update: Partial<TTask>) => {
@@ -33,38 +31,6 @@ const statusItems = useTaskStatusItems(status => {
 const priorityItems = useTaskPriorityItems(priority => {
   task.value.priority = priority
   onMutate({ priority })
-})
-
-const daysLeft = computed(() => {
-  if (!task.value?.dueAt) {
-    return {
-      text: 'No due date',
-      color: 'neutral' as const
-    }
-  }
-
-  const dueDate = new Date(task.value.dueAt)
-  const diff = differenceInCalendarDays(dueDate, new Date())
-
-  if (isToday(dueDate)) {
-    return {
-      text: 'Due today',
-      color: 'error' as const
-    }
-  }
-
-  if (diff > 0) {
-    return {
-      text: `${diff} day${diff === 1 ? '' : 's'} left`,
-      color: diff < 7 ? ('warning' as const) : ('success' as const)
-    }
-  }
-
-  const overdue = Math.abs(diff)
-  return {
-    text: `Overdue by ${overdue} day${overdue === 1 ? '' : 's'}`,
-    color: 'error' as const
-  }
 })
 
 const taskUsers = computed<Pick<TUser, 'id'>[]>({
@@ -91,8 +57,8 @@ const taskTeams = computed<Pick<TTeam, 'id'>[]>({
   }
 })
 
-const onChangeDescription = useDebounceFn((value: string) => {
-  task.value.description = value
+const onChangeDescription = useDebounceFn((value: TMaybe<string>) => {
+  task.value.description = value ?? null
   onMutate({ description: value || null })
 }, 1000)
 
@@ -108,6 +74,18 @@ const onChangeUsers = useDebounceFn(() => {
 const onChangeTeams = useDebounceFn(() => {
   onMutate({ teams: task.value.teams })
 }, 1000)
+
+const attachments = computed<TAttachment[]>({
+  get() {
+    return task.value.attachables?.map(v => v.attachment).filter(v => !!v) ?? []
+  },
+  set(value) {
+    task.value.attachables = value.map(attachment => ({
+      ...attachment.attachables?.[0],
+      attachment
+    })) as TAttachable[]
+  }
+})
 </script>
 
 <template>
@@ -141,60 +119,34 @@ const onChangeTeams = useDebounceFn(() => {
         />
         <div class="flex flex-wrap items-center gap-2">
           <UDropdownMenu :items="statusItems">
-            <UBadge
-              :color="ColorsMap[task.status]"
+            <TaskStatusBadge
               size="lg"
-              variant="soft"
-              class="cursor-pointer"
-            >
-              <UIcon name="i-lucide-check-circle" />
-              {{ task.status }}
-            </UBadge>
+              :task="task"
+            />
           </UDropdownMenu>
           <UDropdownMenu
             :items="priorityItems"
             :disabled="!priorityItems.length"
           >
-            <UBadge
-              :color="ColorsMap[task.priority]"
-              size="lg"
-              variant="soft"
-              class="cursor-pointer"
-            >
-              <UIcon name="i-lucide-flag" />
-              {{ task.priority }}
-            </UBadge>
+            <TaskPriorityBadge
+              :size="'lg'"
+              :status="task.status"
+              :priority="task.priority"
+            />
           </UDropdownMenu>
           <FormDate
             v-model="task.dueAt"
-            :mode="'single'"
             :show-mode="false"
             :disabled="!user?.can?.updateAnyTasks"
-            :min-value="todayDateValue()"
             @update:model-value="onChangeDueAt"
           >
+            <!-- :min-value="todayDateValue()" -->
             <template #trigger>
-              <UChip
-                :show="!task.dueAt"
-                class="cursor-pointer"
-              >
-                <UBadge
-                  :color="task.dueAt ? daysLeft.color : 'neutral'"
-                  size="lg"
-                  variant="soft"
-                >
-                  <UIcon name="i-lucide-calendar" />
-                  <template v-if="task.dueAt">
-                    {{ $dfc(task.dueAt, 'dd MMM yyyy') }} • {{ daysLeft.text }}
-                  </template>
-                  <span
-                    v-else
-                    class="italic"
-                  >
-                    No due date
-                  </span>
-                </UBadge>
-              </UChip>
+              <TaskDueDateBadge
+                :size="'lg'"
+                :due-at="task.dueAt"
+                :status="task.status"
+              />
             </template>
           </FormDate>
         </div>
@@ -214,7 +166,7 @@ const onChangeTeams = useDebounceFn(() => {
         @change="onMutate({ items: task.items })"
       />
     </div>
-    <div class="space-y-4 w-96 flex-none border-l border-default p-4">
+    <div class="space-y-4 w-96 flex-none border-l border-default p-4 overflow-auto scrollbar">
       <UFormField label="Assigned users">
         <FormAutocomplete
           v-model="taskUsers"
@@ -237,10 +189,27 @@ const onChangeTeams = useDebounceFn(() => {
           @update:model-value="onChangeTeams"
         />
       </UFormField>
+      <UFormField>
+        <FormAttachments
+          v-model="attachments"
+          :folder="'tasks'"
+          :attachable-id="id"
+          :attachable-field="'taskId'"
+        />
+      </UFormField>
     </div>
   </div>
   <div
-    v-else-if="status === 'pending'"
+    v-else-if="isNaN(id) || id <= 0"
+    class="flex-1 flex items-center justify-center p-8"
+  >
+    <div class="max-w-md w-full text-center gap-2">
+      <h1 class="text-xl font-semibold text-muted">Task will appear here</h1>
+      <div class="text-dimmed">Please select a task to get started</div>
+    </div>
+  </div>
+  <div
+    v-else-if="isFetching"
     class="flex-1 flex justify-center p-8"
   >
     <UIcon

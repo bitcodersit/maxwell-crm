@@ -6,7 +6,7 @@ export const getCurrentUser = async (event: H3Event, cache = true) => {
 
   const user = await prisma.user.findUnique({
     where: {
-      id: session.user.id,
+      id: session.user.id
     },
     include: {
       userRoles: {
@@ -15,14 +15,14 @@ export const getCurrentUser = async (event: H3Event, cache = true) => {
             include: {
               rolePermissions: {
                 include: {
-                  permission: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+                  permission: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   })
 
   if (!user) {
@@ -33,7 +33,7 @@ export const getCurrentUser = async (event: H3Event, cache = true) => {
   return userToSession(user)
 }
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(event => {
   const query = getQuery(event)
   return getCurrentUser(event, query.cache ? isTrue(query.cache) : true)
 })

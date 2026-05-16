@@ -1,6 +1,6 @@
+import type { UserSessionRequired } from '#auth-utils'
 import type { H3Event } from 'h3'
 import type { Prisma } from '~~/prisma/client/client'
-import type { UserSessionRequired } from '#auth-utils'
 
 const getTaskScopedWhere = (user: UserSessionRequired['user'], where: Prisma.TaskWhereInput) => {
   if (can(user, ['read-any-tasks'])) return where
@@ -11,6 +11,7 @@ const getTaskScopedWhere = (user: UserSessionRequired['user'], where: Prisma.Tas
         OR: [
           { creatorId: user.id },
           { reviewerId: user.id },
+          { submitterId: user.id },
           { users: { some: { userId: user.id } } },
           {
             teams: {
@@ -43,25 +44,22 @@ export const getTasks = async (event: H3Event, query = getQuery(event)) => {
     .id('id')
     .text('name')
     .text('description')
-    .text('status', status => ({
-      status: status as any
-    }))
-    .text('priority', priority => ({
-      priority: priority as any
-    }))
+    .array('status')
+    .array('priority')
     .id('creatorId')
     .id('reviewerId')
+    .id('submitterId')
     .date('dueAt')
     .date('createdAt')
     .date('updatedAt')
-    .id('userIds', userId => ({
+    .id('users', userId => ({
       users: {
         some: {
           userId
         }
       }
     }))
-    .id('teamIds', teamId => ({
+    .id('teams', teamId => ({
       teams: {
         some: {
           teamId

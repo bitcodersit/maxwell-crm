@@ -4,5 +4,8 @@ export const keys = {
   },
   tasks(query?: MaybeRefOrGetter<Record<string, any>>) {
     return query ? ['/api/tasks', query] : ['/api/tasks']
+  },
+  tasksOverview() {
+    return ['/api/tasks/overview']
   }
 }

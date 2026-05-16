@@ -9,7 +9,14 @@ export default defineNuxtConfig({
     'nuxt-auth-utils',
     '@nuxt/image',
     'nuxt-cron',
-    '@peterbud/nuxt-query'
+    '@peterbud/nuxt-query',
+    'nuxt-easy-lightbox'
+  ],
+  components: [
+    {
+      path: '~/components',
+      pathPrefix: false
+    }
   ],
   devtools: {
     enabled: true

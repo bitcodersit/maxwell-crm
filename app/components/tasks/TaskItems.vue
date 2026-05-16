@@ -4,19 +4,18 @@ import { TaskItemStatus } from '~~/prisma/client/enums'
 
 type TModel = Pick<
   TTaskItem,
-  'id' | 'name' | 'status' | 'sortOrder' | 'completedAt' | 'completedBy'
+  'id' | 'name' | 'status' | 'sortOrder' | 'completedAt' | 'completedBy' | 'completedById'
 >
 
 const { user } = useUserSession()
 const { getAttachment } = useGetAttachment()
 
-const props = withDefaults(defineProps<{}>(), {})
 const model = defineModel<TModel[]>({
   default: () => []
 })
 
 const emit = defineEmits<{
-  (e: 'change'): void
+  change: []
 }>()
 
 const listRef = ref<HTMLElement | null>(null)
@@ -40,7 +39,8 @@ const onAddItem = () => {
     name: '',
     status: TaskItemStatus.TODO,
     sortOrder: (model.value[0]?.sortOrder ?? 0) - 1,
-    completedAt: null
+    completedAt: null,
+    completedById: null
   })
   nextTick(onFocusInput)
 }
@@ -55,6 +55,7 @@ const onChangeCheckbox = (item: TModel, checked: boolean | 'indeterminate') => {
   item.status = checked ? TaskItemStatus.COMPLETED : TaskItemStatus.TODO
   item.completedAt = checked ? new Date() : null
   item.completedBy = checked ? (user.value as TUser) : null
+  item.completedById = checked ? (user.value as TUser).id : null
   model.value = model.value
     .sort((a, b) => {
       if (a.status === b.status) {

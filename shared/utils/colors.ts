@@ -1,6 +1,8 @@
 import { TaskStatus, TaskPriority } from '~~/prisma/client/enums'
 
-export const ColorsMap = {
+type TColor = 'success' | 'primary' | 'warning' | 'error' | 'neutral' | 'secondary'
+
+export const ColorsMap: Record<string, TColor> = {
   create: 'success',
   read: 'primary',
   update: 'warning',
@@ -16,10 +18,11 @@ export const ColorsMap = {
   [TaskStatus.TODO]: 'neutral',
   [TaskStatus.IN_PROGRESS]: 'primary',
   [TaskStatus.IN_REVIEW]: 'warning',
+  [TaskStatus.FAILED]: 'error',
   [TaskStatus.COMPLETED]: 'success',
   [TaskStatus.CANCELLED]: 'error',
   [TaskPriority.URGENT]: 'error',
   [TaskPriority.HIGH]: 'warning',
-  [TaskPriority.MEDIUM]: 'neutral',
+  [TaskPriority.MEDIUM]: 'secondary',
   [TaskPriority.LOW]: 'neutral'
-} as const
+}

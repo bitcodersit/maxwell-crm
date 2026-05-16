@@ -31,8 +31,9 @@ model User {
 
     taskUsers     TaskUser[]
     taskItems     TaskItem[] @relation("TaskItemCompleter")
-    tasksCreated  Task[]     @relation("TaskCreator")
-    tasksReviewed Task[]     @relation("TaskReviewer")
+    tasksCreated   Task[] @relation("TaskCreator")
+    tasksReviewed  Task[] @relation("TaskReviewer")
+    tasksSubmitted Task[] @relation("TaskSubmitter")
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -185,13 +186,13 @@ model Attachment {
     size Int?
     mime String?
 
-    users User[]
-    teams Team[]
-
-    createdAt   DateTime     @default(now())
-    updatedAt   DateTime     @default(now()) @updatedAt
-    deletedAt   DateTime?
+    users       User[]
+    teams       Team[]
     attachables Attachable[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
 
     @@index([path])
     @@map("attachments")
@@ -223,6 +224,7 @@ enum TaskStatus {
     TODO
     IN_PROGRESS
     IN_REVIEW
+    FAILED
     COMPLETED
     CANCELLED
 }
@@ -242,20 +244,23 @@ enum TaskItemStatus {
 model Task {
     id Int @id @default(autoincrement())
 
-    name        String
+    name        String  @db.Text
     description String? @db.Text
 
     status   TaskStatus   @default(TODO)
     priority TaskPriority @default(MEDIUM)
 
-    creatorId  Int?
-    reviewerId Int?
+    creatorId   Int?
+    reviewerId  Int?
+    submitterId Int?
 
     dueAt       DateTime?
-    completedAt DateTime?
+    reviewedAt  DateTime?
+    submittedAt DateTime?
 
-    creator  User? @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
-    reviewer User? @relation("TaskReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+    creator   User? @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+    reviewer  User? @relation("TaskReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+    submitter User? @relation("TaskSubmitter", fields: [submitterId], references: [id], onDelete: SetNull)
 
     items       TaskItem[]
     users       TaskUser[]
@@ -270,6 +275,7 @@ model Task {
     @@index([dueAt])
     @@index([creatorId])
     @@index([reviewerId])
+    @@index([submitterId])
     @@map("tasks")
 }
 
@@ -277,7 +283,7 @@ model TaskItem {
     id Int @id @default(autoincrement())
 
     taskId    Int
-    name      String
+    name      String @db.Text
     sortOrder Int    @default(0)
 
     status        TaskItemStatus @default(TODO)

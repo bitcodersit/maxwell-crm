@@ -7,6 +7,8 @@ export * from './Team'
 export * from './TeamMember'
 export * from './Attachment'
 export * from './Task'
+export * from './Lead'
+export * from './Property'
 
 export type TMaybe<T> = T | null | undefined
 
@@ -17,8 +19,8 @@ export type TPaginated<T> = {
   totalPages: number
   firstPage: number
   lastPage: number
-  nextPage: number
-  previousPage: number
+  nextPage: TMaybe<number>
+  previousPage: TMaybe<number>
   hasNextPage: boolean
   hasPreviousPage: boolean
   fetchedAt?: number

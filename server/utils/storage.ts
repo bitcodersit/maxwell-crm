@@ -1,13 +1,14 @@
 import type { H3Event } from 'h3'
-import { StorageProvider } from '~~/prisma/client/enums'
 import { mkdir, writeFile, readFile, unlink } from 'node:fs/promises'
 import { dirname, normalize, resolve } from 'node:path'
+import { StorageProvider } from '~~/prisma/client/enums'
 
 export type TStoragePutMeta = {
   mime?: string
 }
 
 export type TStorage = {
+  provider(): StorageProvider
   put(key: string, data: Buffer, meta?: TStoragePutMeta): Promise<void>
   get(key: string): Promise<Buffer>
   delete(key: string): Promise<void>
@@ -19,7 +20,7 @@ function safeResolvedPath(rootDir: string, key: string): string {
   if (!full.startsWith(root)) {
     throw createError({
       statusCode: 400,
-      message: 'Invalid storage key',
+      message: 'Invalid storage key'
     })
   }
   return full
@@ -28,7 +29,11 @@ function safeResolvedPath(rootDir: string, key: string): string {
 export class FileSystem implements TStorage {
   constructor(private readonly rootDir: string) {}
 
-  async put(key: string, data: Buffer, _meta?: TStoragePutMeta): Promise<void> {
+  provider(): StorageProvider {
+    return StorageProvider.FILESYSTEM
+  }
+
+  async put(key: string, data: Buffer): Promise<void> {
     const target = safeResolvedPath(this.rootDir, key)
     await mkdir(dirname(target), { recursive: true })
     await writeFile(target, data)
@@ -66,6 +71,10 @@ export class Storage {
   delete(key: string): Promise<void> {
     return this.storage.delete(key)
   }
+
+  provider(): StorageProvider {
+    return this.storage.provider()
+  }
 }
 
 export function getStorage(event: H3Event, provider: StorageProvider = StorageProvider.FILESYSTEM) {
@@ -75,6 +84,6 @@ export function getStorage(event: H3Event, provider: StorageProvider = StoragePr
   }
   throw createError({
     statusCode: 500,
-    message: 'Unsupported storage provider',
+    message: 'Unsupported storage provider'
   })
 }

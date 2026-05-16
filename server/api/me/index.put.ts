@@ -1,15 +1,14 @@
-import EmailConfirmEmailChange from '@/components/emails/EmailConfirmEmailChange.vue'
 import { render } from '@vue-email/render'
-import { deleteAttachmentById } from '../attachments/[id]/index.delete'
+import EmailConfirmEmailChange from '@/components/emails/EmailConfirmEmailChange.vue'
 import { createEmailChangeConfirmLink } from '~~/server/utils/emailVerification'
 
 const zMeUpdate = z.object({
   name: z.string().min(2).optional(),
   email: z.email().optional(),
-  avatarId: z.number().nullable().optional(),
+  avatarId: z.number().nullable().optional()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user: sessionUser } = await requireUserSession(event)
   if (!can(sessionUser, ['update-own-users'])) {
     throw err.denied()
@@ -21,20 +20,20 @@ export default defineEventHandler(async (event) => {
   if (input.name === undefined && input.email === undefined && input.avatarId === undefined) {
     throw createError({
       statusCode: 400,
-      message: 'No fields to update',
+      message: 'No fields to update'
     })
   }
 
   const existing = await prisma.user.findUnique({
     where: {
-      id: sessionUser.id,
+      id: sessionUser.id
     },
     select: {
       id: true,
       name: true,
       email: true,
-      avatarId: true,
-    },
+      avatarId: true
+    }
   })
   if (!existing) {
     throw err.unauth()
@@ -44,20 +43,20 @@ export default defineEventHandler(async (event) => {
     const att = await prisma.attachment.findFirst({
       where: {
         id: input.avatarId,
-        deletedAt: null,
-      },
+        deletedAt: null
+      }
     })
     if (!att) {
       throw err.unprocessable({
         avatarId: {
-          errors: ['Invalid attachment'],
-        },
+          errors: ['Invalid attachment']
+        }
       })
     }
   }
 
   if (input.avatarId && existing.avatarId && existing.avatarId !== input.avatarId) {
-    await deleteAttachmentById(event, existing.avatarId)
+    await deleteAttachments(event, [existing.avatarId])
   }
 
   const requestedEmail = input.email?.trim().toLowerCase()
@@ -68,26 +67,26 @@ export default defineEventHandler(async (event) => {
         email: requestedEmail,
         deletedAt: null,
         id: {
-          not: existing.id,
-        },
+          not: existing.id
+        }
       },
-      select: { id: true },
+      select: { id: true }
     })
     if (taken) {
       throw createError({
         statusCode: 422,
-        message: 'Email is already taken',
+        message: 'Email is already taken'
       })
     }
   }
 
   const user = await prisma.user.update({
     where: {
-      id: sessionUser.id,
+      id: sessionUser.id
     },
     data: {
       ...(input.name ? { name: input.name } : {}),
-      ...(input.avatarId ? { avatarId: input.avatarId } : {}),
+      ...(input.avatarId ? { avatarId: input.avatarId } : {})
     },
     include: {
       avatar: true,
@@ -97,14 +96,14 @@ export default defineEventHandler(async (event) => {
             include: {
               rolePermissions: {
                 include: {
-                  permission: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+                  permission: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   })
 
   if (isEmailChangeRequested && requestedEmail) {
@@ -112,18 +111,18 @@ export default defineEventHandler(async (event) => {
     const html = await render(EmailConfirmEmailChange, {
       confirmLink,
       name: user.name,
-      newEmail: requestedEmail,
+      newEmail: requestedEmail
     })
 
     await queueEmail({
       to: existing.email,
       subject: 'Confirm your email change request',
-      html,
+      html
     })
   }
 
   await replaceUserSession(event, {
-    user: userToSession(user),
+    user: userToSession(user)
   })
 
   return getUserSession(event)
