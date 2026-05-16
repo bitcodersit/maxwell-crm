@@ -27,4 +27,3 @@ prisma/client
 
 # Local uploads (filesystem storage default)
 storage/uploads
-package-lock.json
