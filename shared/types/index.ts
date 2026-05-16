@@ -7,6 +7,8 @@ export * from './Team'
 export * from './TeamMember'
 export * from './Attachment'
 export * from './Task'
+export * from './Lead'
+export * from './Property'
 
 export type TMaybe<T> = T | null | undefined
 

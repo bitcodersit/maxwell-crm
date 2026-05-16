@@ -95,8 +95,10 @@ const props = withDefaults(
     getActions?: TGetActions<T>
     getPostBody?: (state: TFormState) => object | FormData
     getFormState?: (item?: T) => TFormState
+    showAddButton?: boolean
   }>(),
   {
+    showAddButton: true,
     leftClass: 'col-span-1',
     gridClass: 'grid grid-cols-1',
     fields: () => [],
@@ -490,7 +492,8 @@ defineExpose({
   onView,
   onUpdate,
   onDelete,
-  onDeleteSelected
+  onDeleteSelected,
+  refetch
 })
 
 // Export
@@ -689,7 +692,10 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             </UForm>
           </template>
         </UPopover>
-        <slot name="actions">
+        <slot
+          v-if="showAddButton"
+          name="actions"
+        >
           <UTooltip text="Add new item">
             <UButton
               icon="i-lucide-plus"
@@ -832,63 +838,65 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
       v-bind="modal?.form?.({ mode: formMode })"
     >
       <template #body>
-        <UForm
-          ref="formRef"
-          :state="formState"
-          @submit="onSubmit"
-        >
-          <div
-            :class="formClass"
-            class="grid grid-cols-1 gap-4"
+        <div class="min-h-0 max-h-[min(70vh,560px)] overflow-y-auto pr-1 -mr-1">
+          <UForm
+            ref="formRef"
+            :state="formState"
+            @submit="onSubmit"
           >
-            <UFormField
-              v-for="row in fields"
-              :key="row.name"
-              :name="row.name"
-              :label="row.label"
-              :class="row.col"
+            <div
+              :class="formClass"
+              class="grid grid-cols-1 gap-4"
             >
-              <UInput
-                v-if="row.type === 'input'"
-                v-model="formState[row.name]"
-                v-bind="{ ...formItem, ...row.props }"
-              />
-              <UTextarea
-                v-else-if="row.type === 'textarea'"
-                v-model="formState[row.name]"
-                v-bind="{ ...formItem, ...row.props }"
-              />
-              <FormAutocomplete
-                v-else-if="row.type === 'autocomplete'"
-                v-model="formState[row.name]"
-                v-bind="{ ...formItem, ...row.props }"
-              />
-              <FormUsersPivot
-                v-else-if="row.type === 'team-members'"
-                v-model="formState[row.name]"
-                v-bind="{ ...formItem, ...row.props }"
-              />
-            </UFormField>
-          </div>
-          <div class="flex justify-end gap-2 mt-4">
-            <UButton
-              icon="i-lucide-x"
-              type="button"
-              color="error"
-              variant="subtle"
-              @click="formOpen = false"
-            >
-              Cancel
-            </UButton>
-            <UButton
-              type="submit"
-              :loading="isSubmitting"
-              icon="i-lucide-send"
-            >
-              Submit
-            </UButton>
-          </div>
-        </UForm>
+              <UFormField
+                v-for="row in fields"
+                :key="row.name"
+                :name="row.name"
+                :label="row.label"
+                :class="row.col"
+              >
+                <UInput
+                  v-if="row.type === 'input'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+                <UTextarea
+                  v-else-if="row.type === 'textarea'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+                <FormAutocomplete
+                  v-else-if="row.type === 'autocomplete'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+                <FormUsersPivot
+                  v-else-if="row.type === 'team-members'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+              </UFormField>
+            </div>
+            <div class="flex justify-end gap-2 mt-4">
+              <UButton
+                icon="i-lucide-x"
+                type="button"
+                color="error"
+                variant="subtle"
+                @click="formOpen = false"
+              >
+                Cancel
+              </UButton>
+              <UButton
+                type="submit"
+                :loading="isSubmitting"
+                icon="i-lucide-send"
+              >
+                Submit
+              </UButton>
+            </div>
+          </UForm>
+        </div>
       </template>
     </UModal>
   </ClientOnly>

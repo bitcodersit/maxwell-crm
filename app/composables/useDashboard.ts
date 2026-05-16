@@ -58,6 +58,26 @@ const titlesMap = [
     title: 'Tasks'
   },
   {
+    path: '/leads',
+    title: 'Leads',
+  },
+  {
+    path: '/properties',
+    title: 'Property Inventory',
+  },
+  {
+    path: '/pipeline',
+    title: 'Sales Pipeline',
+  },
+  {
+    path: '/followups',
+    title: 'Follow-ups',
+  },
+  {
+    path: '/tasks',
+    title: 'Tasks',
+  },
+  {
     path: '/users',
     title: 'Users'
   },

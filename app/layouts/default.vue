@@ -51,6 +51,48 @@ const links = computed(() => {
         }
       },
       {
+        label: 'Leads',
+        icon: 'i-lucide-contact',
+        to: '/leads',
+        badge: '12',
+        onSelect: () => {
+          open.value = false
+        },
+      },
+      {
+        label: 'Properties',
+        icon: 'i-lucide-building-2',
+        to: '/properties',
+        onSelect: () => {
+          open.value = false
+        },
+      },
+      {
+        label: 'Pipeline',
+        icon: 'i-lucide-kanban',
+        to: '/pipeline',
+        onSelect: () => {
+          open.value = false
+        },
+      },
+      {
+        label: 'Follow-ups',
+        icon: 'i-lucide-calendar-clock',
+        to: '/followups',
+        badge: '3',
+        onSelect: () => {
+          open.value = false
+        },
+      },
+      {
+        label: 'Tasks',
+        icon: 'i-lucide-check-square',
+        to: '/tasks',
+        onSelect: () => {
+          open.value = false
+        },
+      },
+      {
         label: 'Users',
         icon: 'i-lucide-users',
         to: '/users',
@@ -70,7 +112,7 @@ const links = computed(() => {
       },
       {
         label: 'Roles',
-        icon: 'i-lucide-list-todo',
+        icon: 'i-lucide-shield',
         to: '/roles',
         visible: !!can?.readAnyRoles,
         onSelect: () => {
@@ -79,7 +121,7 @@ const links = computed(() => {
       },
       {
         label: 'Permissions',
-        icon: 'i-lucide-list-todo',
+        icon: 'i-lucide-key',
         to: '/permissions',
         visible: !!can?.readAnyPermissions,
         onSelect: () => {

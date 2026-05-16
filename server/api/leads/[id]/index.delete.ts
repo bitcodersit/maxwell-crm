@@ -1,0 +1,10 @@
+export default defineEventHandler(async event => {
+  await requireUserSession(event)
+  const id = getRouterParam(event, 'id')
+  const ids = (id || '')
+    .split(',')
+    .map(Number)
+    .filter(n => !Number.isNaN(n))
+  if (!ids.length) throw err.notFound()
+  return deleteLeads(ids)
+})
