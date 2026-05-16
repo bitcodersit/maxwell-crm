@@ -32,9 +32,44 @@ const links = computed(() => {
           open.value = false
         }
       },
+
+      {
+        label: 'Leads',
+        icon: 'i-lucide-contact',
+        to: '/leads',
+        badge: '12',
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      {
+        label: 'Properties',
+        icon: 'i-lucide-building-2',
+        to: '/properties',
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      // {
+      //   label: 'Pipeline',
+      //   icon: 'i-lucide-kanban',
+      //   to: '/pipeline',
+      //   onSelect: () => {
+      //     open.value = false
+      //   }
+      // },
+      // {
+      //   label: 'Follow-ups',
+      //   icon: 'i-lucide-calendar-clock',
+      //   to: '/followups',
+      //   badge: '3',
+      //   onSelect: () => {
+      //     open.value = false
+      //   }
+      // },
       {
         label: 'Tasks',
-        icon: 'i-lucide-list-checks',
+        icon: 'i-lucide-check-square',
         to: '/tasks',
         visible: !!(can?.readAnyTasks || can?.readOwnTasks),
         onSelect: () => {
@@ -51,60 +86,18 @@ const links = computed(() => {
         }
       },
       {
-        label: 'Leads',
-        icon: 'i-lucide-contact',
-        to: '/leads',
-        badge: '12',
-        onSelect: () => {
-          open.value = false
-        },
-      },
-      {
-        label: 'Properties',
-        icon: 'i-lucide-building-2',
-        to: '/properties',
-        onSelect: () => {
-          open.value = false
-        },
-      },
-      {
-        label: 'Pipeline',
-        icon: 'i-lucide-kanban',
-        to: '/pipeline',
-        onSelect: () => {
-          open.value = false
-        },
-      },
-      {
-        label: 'Follow-ups',
-        icon: 'i-lucide-calendar-clock',
-        to: '/followups',
-        badge: '3',
-        onSelect: () => {
-          open.value = false
-        },
-      },
-      {
-        label: 'Tasks',
-        icon: 'i-lucide-check-square',
-        to: '/tasks',
-        onSelect: () => {
-          open.value = false
-        },
-      },
-      {
-        label: 'Users',
-        icon: 'i-lucide-users',
-        to: '/users',
+        label: 'Customers',
+        icon: 'i-lucide-user-round-search',
+        to: '/customers',
         visible: !!can?.readAnyUsers,
         onSelect: () => {
           open.value = false
         }
       },
       {
-        label: 'Customers',
-        icon: 'i-lucide-user-round-search',
-        to: '/customers',
+        label: 'Users',
+        icon: 'i-lucide-users',
+        to: '/users',
         visible: !!can?.readAnyUsers,
         onSelect: () => {
           open.value = false
