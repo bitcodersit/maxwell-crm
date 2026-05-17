@@ -10,7 +10,11 @@ export const getBoard = async (id?: string) => {
   const board = await prisma.board.findFirst({
     where,
     include: {
-      columns: true
+      columns: {
+        orderBy: {
+          sortOrder: 'asc'
+        }
+      }
     }
   })
 

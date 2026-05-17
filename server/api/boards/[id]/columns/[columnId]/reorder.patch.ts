@@ -1,9 +1,8 @@
-import { generateKeyBetween } from 'fractional-indexing'
 import { z } from 'zod'
 
 const zSchema = z.object({
-  beforeSortOrder: z.string().nullish(),
-  afterSortOrder: z.string().nullish()
+  a: z.string().nullish(),
+  b: z.string().nullish()
 })
 
 export default defineEventHandler(async event => {
@@ -19,7 +18,7 @@ export default defineEventHandler(async event => {
       id: columnId
     },
     data: {
-      sortOrder: generateKeyBetween(input.beforeSortOrder ?? null, input.afterSortOrder ?? null)
+      sortOrder: getSortOrder(input.a, input.b)
     }
   })
 })

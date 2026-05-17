@@ -25,26 +25,14 @@ const { data, isFetching } = useQuerySSR({
   }
 })
 
+const toast = useToast()
+
+// Columns
 const columns = shallowRef<TBoardColumn[]>([])
 
-watch(
-  data,
-  newVal => {
-    columns.value = [...(newVal?.columns || [])]
-  },
-  { immediate: true }
-)
-
 const { mutate: reorderColumn } = useMutation({
-  mutationFn({
-    columnId,
-    ...body
-  }: {
-    columnId: number
-    beforeSortOrder: TMaybe<string>
-    afterSortOrder: TMaybe<string>
-  }) {
-    return $fetch<TBoardColumn>(`/api/boards/${props.boardName}/columns/${columnId}/reorder`, {
+  mutationFn({ id, ...body }: { id: number; a: TMaybe<string>; b: TMaybe<string> }) {
+    return $fetch<TBoardColumn>(`/api/boards/${props.boardName}/columns/${id}/reorder`, {
       body,
       method: 'PATCH'
     })
@@ -56,11 +44,20 @@ const { mutate: reorderColumn } = useMutation({
       }
       return column
     })
+  },
+  onError(error) {
+    toast.add({
+      title: 'Error',
+      color: 'error',
+      description: error.message
+    })
   }
 })
 
+const columnsSortableReady = ref(false)
 const columnsRef = (el: Element | ComponentPublicInstance | null) => {
-  if (!el) return
+  if (!el || columnsSortableReady.value) return
+  columnsSortableReady.value = true
   useSortable(el as HTMLElement, columns, {
     animation: 150,
     watchElement: true,
@@ -68,6 +65,8 @@ const columnsRef = (el: Element | ComponentPublicInstance | null) => {
     filter: '.base-kanban-pinned',
     direction: 'horizontal',
     onEnd: e => {
+      if (e.oldIndex === e.newIndex) return
+
       const copy = [...columns.value]
       const movedColumn = copy[e.oldIndex!]
 
@@ -77,13 +76,28 @@ const columnsRef = (el: Element | ComponentPublicInstance | null) => {
       const index = copy.indexOf(movedColumn!)
 
       reorderColumn({
-        columnId: movedColumn!.id,
-        beforeSortOrder: copy[index - 1]?.sortOrder,
-        afterSortOrder: copy[index + 1]?.sortOrder
+        id: movedColumn!.id,
+        a: copy[index - 1]?.sortOrder,
+        b: copy[index + 1]?.sortOrder
       })
     }
   })
 }
+
+watch(
+  data,
+  newVal => {
+    console.log('onDataChange', newVal)
+    columns.value = [...(newVal?.columns || [])]
+  },
+  {
+    deep: true,
+    immediate: true
+  }
+)
+
+// Items
+//
 </script>
 
 <template>
@@ -109,12 +123,11 @@ const columnsRef = (el: Element | ComponentPublicInstance | null) => {
         }"
       >
         <div class="flex-none bg-elevated">
-          <div class="flex items-center gap-2 px-3 py-2">
+          <div class="flex">
             <button
               v-if="!column.pinned"
               type="button"
-              class="base-kanban-handle shrink-0 p-0.5 rounded text-muted hover:text-highlighted hover:bg-default cursor-grab active:cursor-grabbing touch-none"
-              aria-label="Drag column"
+              class="base-kanban-handle cursor-grab active:cursor-grabbing flex items-center justify-center px-2"
               @click.stop
             >
               <UIcon
@@ -122,18 +135,18 @@ const columnsRef = (el: Element | ComponentPublicInstance | null) => {
                 class="size-4"
               />
             </button>
-            <span class="text-sm font-semibold text-highlighted truncate"
-              >{{ column.id }}.{{ column.sortOrder }} - {{ column.name }}
-            </span>
-            <UBadge
-              :label="String(data?.items?.length || 0)"
-              color="neutral"
-              variant="soft"
-              size="xs"
-            />
+            <div class="flex items-center gap-2 py-2 pl-1 pr-3">
+              <div class="text-sm font-semibold text-highlighted truncate">{{ column.name }}</div>
+              <UBadge
+                :label="String(data?.items?.length || 0)"
+                size="sm"
+                color="neutral"
+                variant="subtle"
+              />
+            </div>
           </div>
           <div
-            class="h-1"
+            class="h-1 opacity-50"
             :style="{
               backgroundColor: column.color ? column.color : 'var(--color-border)'
             }"

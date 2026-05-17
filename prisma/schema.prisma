@@ -243,7 +243,7 @@ model BoardColumn {
     name    String
     color   String? @db.VarChar(32)
 
-    sortOrder String  @db.VarChar(64)
+    sortOrder String  @db.VarChar(255)
     pinned    Boolean @default(false)
 
     board Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
