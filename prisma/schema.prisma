@@ -265,7 +265,7 @@ model BoardItem {
     boardId  Int
     columnId Int
 
-    sortOrder String @db.VarChar(64)
+    sortOrder String @db.VarChar(255)
 
     leadId Int?
     taskId Int?

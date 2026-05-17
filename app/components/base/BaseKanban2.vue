@@ -17,8 +17,7 @@ const queryKey = computed(() => {
   return [props.boardName]
 })
 
-const $fetch = useRequestFetch()
-const { data, isFetching } = useQuerySSR({
+const { data, isFetching } = useQuery({
   queryKey,
   queryFn: () => {
     return $fetch<TBoard>(`/api/boards/${props.boardName}`)
@@ -60,7 +59,7 @@ const columnsRef = (el: Element | ComponentPublicInstance | null) => {
   columnsSortableReady.value = true
   useSortable(el as HTMLElement, columns, {
     animation: 150,
-    watchElement: true,
+    // watchElement: true,
     handle: '.base-kanban-handle',
     filter: '.base-kanban-pinned',
     direction: 'horizontal',
@@ -101,15 +100,15 @@ watch(
 </script>
 
 <template>
-  <div class="relative">
-    <ClientOnly>
+  <ClientOnly>
+    <div class="relative">
       <UProgress
         v-if="isFetching"
         :ui="{ base: 'rounded-none' }"
         size="sm"
         class="absolute top-0 left-0 w-full"
       />
-    </ClientOnly>
+    </div>
     <div
       :ref="columnsRef"
       class="flex-1 overflow-y-hidden overflow-x-auto scrollbar px-4 py-4 flex gap-4 relative"
@@ -117,10 +116,10 @@ watch(
       <div
         v-for="column in columns"
         :key="column.id"
-        class="flex-none w-96 flex flex-col overflow-hidden border border-default rounded-lg"
         :class="{
           'base-kanban-pinned': column.pinned
         }"
+        class="flex-none w-96 flex flex-col overflow-hidden rounded-lg"
       >
         <div class="flex-none bg-elevated">
           <div class="flex">
@@ -152,12 +151,20 @@ watch(
             }"
           ></div>
         </div>
-
-        <!-- Items -->
-        <div>
-          <div class="text-center py-4 text-xs text-muted italic">No items</div>
-        </div>
+        <BaseKanbanItems
+          v-if="data?.id"
+          :board-id="data?.id"
+          :column-id="column.id"
+          :get-item="getItem"
+        >
+          <template #item="attrs">
+            <slot
+              name="item"
+              v-bind="attrs"
+            />
+          </template>
+        </BaseKanbanItems>
       </div>
     </div>
-  </div>
+  </ClientOnly>
 </template>

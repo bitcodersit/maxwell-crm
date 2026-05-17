@@ -19,6 +19,9 @@ export default defineEventHandler(async event => {
     },
     data: {
       sortOrder: getSortOrder(input.a, input.b)
+    },
+    select: {
+      sortOrder: true
     }
   })
 })
