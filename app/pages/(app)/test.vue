@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import type { TBoardDetail, TPaginated, TTask } from '~~/shared/types'
-
 definePageMeta({
-  title: 'Kanban Test'
+  title: 'Kanban Test',
+  layout: {
+    name: 'default',
+    props: {
+      padding: false
+    }
+  }
 })
 
 const toast = useToast()
@@ -142,12 +146,16 @@ const onColumnReorder = async (payload: {
   await fetchBoard()
 }
 
-onMounted(refresh)
+// onMounted(refresh)
+
+const getItem = (item: TBoardItem) => {
+  return item?.task as TTask
+}
 </script>
 
 <template>
-  <div class="flex flex-col h-full gap-4">
-    <div class="flex items-center gap-2 flex-wrap">
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex items-center gap-2 flex-wrap px-4 py-4">
       <h2 class="text-xl font-semibold text-highlighted">Kanban Test (Tasks)</h2>
       <UBadge
         v-if="board"
@@ -179,15 +187,15 @@ onMounted(refresh)
         />
       </div>
     </div>
-
-    <UAlert
-      color="warning"
-      variant="soft"
-      title="Test Surface"
-      description="This page is temporary for validating BaseKanban behavior with task placements."
-    />
-
-    <BaseKanban
+    <BaseKanban2
+      :api="'/api/boards/tasks-default'"
+      :get-item="getItem"
+    >
+      <template #item="{ item }">
+        <div class="space-y-2"></div>
+      </template>
+    </BaseKanban2>
+    <!-- <BaseKanban
       :columns="columns"
       :items="items"
       :loading="loading"
@@ -242,6 +250,6 @@ onMounted(refresh)
           </div>
         </div>
       </template>
-    </BaseKanban>
+    </BaseKanban> -->
   </div>
 </template>

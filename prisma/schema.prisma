@@ -29,11 +29,11 @@ model User {
     teamMembers         TeamMember[]
     teamMembersAssigned TeamMember[] @relation("TeamMemberAssigner")
 
-    taskUsers     TaskUser[]
-    taskItems     TaskItem[] @relation("TaskItemCompleter")
-    tasksCreated   Task[] @relation("TaskCreator")
-    tasksReviewed  Task[] @relation("TaskReviewer")
-    tasksSubmitted Task[] @relation("TaskSubmitter")
+    taskUsers      TaskUser[]
+    taskItems      TaskItem[] @relation("TaskItemCompleter")
+    tasksCreated   Task[]     @relation("TaskCreator")
+    tasksReviewed  Task[]     @relation("TaskReviewer")
+    tasksSubmitted Task[]     @relation("TaskSubmitter")
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -220,27 +220,19 @@ model Attachable {
 // END ATTACHMENT
 // ================================================================
 // START BOARD
-enum BoardModule {
-    LEADS
-    TASKS
-}
 
 model Board {
     id Int @id @default(autoincrement())
 
-    module BoardModule
-    name   String
-    slug   String
+    name String @unique
 
-    columns BoardColumn[]
     items   BoardItem[]
+    columns BoardColumn[]
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
     deletedAt DateTime?
 
-    @@unique([module, slug])
-    @@index([module])
     @@map("boards")
 }
 

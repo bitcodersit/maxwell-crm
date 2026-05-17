@@ -1,4 +1,4 @@
-import { BoardModule } from '~~/prisma/client/enums'
+// import { BoardModule } from '~~/prisma/client/enums'
 import type { TBoardItemMorph } from './morph'
 import { assertEntityExists, assertFkMatchesModule, assertSingleFk } from './morph'
 import { computeSortOrder, computeSortOrderForMove } from './sortOrder'
@@ -46,7 +46,7 @@ const getItemSortNeighbors = async (
 }
 
 export const createBoardItem = async (
-  board: { id: number; module: BoardModule },
+  board: { id: number; module: string },
   data: TBoardItemMorph & { columnId?: number | null }
 ) => {
   assertSingleFk(data)
@@ -54,7 +54,7 @@ export const createBoardItem = async (
   await assertEntityExists(board.module, data)
 
   const where =
-    board.module === BoardModule.LEADS
+    board.module === 'leads'
       ? {
           boardId: board.id,
           leadId: data.leadId ?? null

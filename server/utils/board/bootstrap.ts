@@ -1,6 +1,6 @@
-import { BoardModule, TaskStatus } from '~~/prisma/client/enums'
-import { getAllLeads } from '~~/server/utils/demo/demoStore'
 import { computeSortOrder, computeSortOrderBatch } from './sortOrder'
+import { TaskStatus } from '~~/prisma/client/enums'
+import { getAllLeads } from '~~/server/utils/demo/demoStore'
 
 const LEAD_STATUS_COLUMNS = [
   { name: 'Hot', color: '#f87171' },
@@ -22,7 +22,7 @@ const TASK_STATUS_COLUMNS = [
 export const bootstrapDefaultLeadsBoard = async () => {
   const existing = await prisma.board.findFirst({
     where: {
-      module: BoardModule.LEADS,
+      // module: BoardModule.LEADS,
       slug: 'default',
       deletedAt: null
     },
@@ -35,7 +35,7 @@ export const bootstrapDefaultLeadsBoard = async () => {
 
   const board = await prisma.board.create({
     data: {
-      module: BoardModule.LEADS,
+      // module: BoardModule.LEADS,
       slug: 'default',
       name: 'Leads',
       columns: {
@@ -143,7 +143,7 @@ const backfillTasksBoardItems = async (boardId: number) => {
 export const bootstrapDefaultTasksBoard = async () => {
   const existing = await prisma.board.findFirst({
     where: {
-      module: BoardModule.TASKS,
+      // module: BoardModule.TASKS,
       slug: 'default',
       deletedAt: null
     },
@@ -158,7 +158,7 @@ export const bootstrapDefaultTasksBoard = async () => {
   const columnKeys = computeSortOrderBatch(TASK_STATUS_COLUMNS.length)
   const board = await prisma.board.create({
     data: {
-      module: BoardModule.TASKS,
+      // module: BoardModule.TASKS,
       slug: 'default',
       name: 'Tasks',
       columns: {
@@ -176,12 +176,12 @@ export const bootstrapDefaultTasksBoard = async () => {
   return board.id
 }
 
-export const bootstrapModuleBoards = async (module: BoardModule) => {
-  if (module === BoardModule.LEADS) {
+export const bootstrapModuleBoards = async (module: string) => {
+  if (module === 'leads') {
     await bootstrapDefaultLeadsBoard()
     return
   }
-  if (module === BoardModule.TASKS) {
+  if (module === 'tasks') {
     await bootstrapDefaultTasksBoard()
   }
 }

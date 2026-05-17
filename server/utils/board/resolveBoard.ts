@@ -1,5 +1,5 @@
 import type { Prisma } from '~~/prisma/client/client'
-import { BoardModule } from '~~/prisma/client/enums'
+// import type { BoardModule } from '~~/prisma/client/enums'
 import { bootstrapModuleBoards } from './bootstrap'
 
 const boardBaseWhere = {

@@ -1,4 +1,4 @@
-import { BoardModule } from '~~/prisma/client/enums'
+// import { BoardModule } from '~~/prisma/client/enums'
 import { getAllLeads } from '~~/server/utils/demo/demoStore'
 
 export type TBoardItemMorph = {
@@ -17,15 +17,15 @@ export const assertSingleFk = (data: TBoardItemMorph) => {
   }
 }
 
-export const assertFkMatchesModule = (module: BoardModule, data: TBoardItemMorph) => {
-  if (module === BoardModule.LEADS && data.taskId != null) {
+export const assertFkMatchesModule = (module: string, data: TBoardItemMorph) => {
+  if (module === 'leads' && data.taskId != null) {
     throw err.unprocessable({
       taskId: {
         errors: ['taskId is not allowed for LEADS boards']
       }
     })
   }
-  if (module === BoardModule.TASKS && data.leadId != null) {
+  if (module === 'tasks' && data.leadId != null) {
     throw err.unprocessable({
       leadId: {
         errors: ['leadId is not allowed for TASKS boards']
@@ -34,21 +34,18 @@ export const assertFkMatchesModule = (module: BoardModule, data: TBoardItemMorph
   }
 }
 
-export const boardItemFk = (module: BoardModule, entityId: number) => {
-  if (module === BoardModule.LEADS) {
+export const boardItemFk = (module: string, entityId: number) => {
+  if (module === 'leads') {
     return {
       leadId: entityId,
       taskId: null
     }
   }
-  return {
-    leadId: null,
-    taskId: entityId
-  }
+  return { leadId: null, taskId: entityId }
 }
 
-export const assertEntityExists = async (module: BoardModule, data: TBoardItemMorph) => {
-  if (module === BoardModule.LEADS && data.leadId) {
+export const assertEntityExists = async (module: string, data: TBoardItemMorph) => {
+  if (module === 'leads' && data.leadId) {
     const leads = await getAllLeads()
     if (!leads.some(v => v.id === data.leadId)) {
       throw err.notFound('Lead not found')
@@ -56,7 +53,7 @@ export const assertEntityExists = async (module: BoardModule, data: TBoardItemMo
     return
   }
 
-  if (module === BoardModule.TASKS && data.taskId) {
+  if (module === 'tasks' && data.taskId) {
     const task = await prisma.task.findFirst({
       where: {
         id: data.taskId,

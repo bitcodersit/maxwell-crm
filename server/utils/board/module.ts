@@ -1,8 +1,8 @@
-import { BoardModule } from '~~/prisma/client/enums'
+// import { BoardModule } from '~~/prisma/client/enums'
 
 export const BoardModuleParam = {
-  leads: BoardModule.LEADS,
-  tasks: BoardModule.TASKS
+  leads: 'leads',
+  tasks: 'tasks'
 } as const
 
 export type TBoardModuleQueryParam = keyof typeof BoardModuleParam
@@ -12,8 +12,8 @@ export const getBoardModuleFromParam = (value: unknown) => {
   return BoardModuleParam[key] || null
 }
 
-export const getBoardModuleParam = (module: BoardModule) => {
-  if (module === BoardModule.LEADS) return 'leads'
-  if (module === BoardModule.TASKS) return 'tasks'
+export const getBoardModuleParam = (module: string) => {
+  if (module === 'leads') return 'leads'
+  if (module === 'tasks') return 'tasks'
   return null
 }

@@ -291,90 +291,86 @@ watch(
 
   <div
     v-else
-    class="flex-1 overflow-x-auto pb-4"
+    :ref="(el: any) => ensureColumnSortable(el)"
+    class="flex-1 overflow-y-hidden overflow-x-auto scrollbar px-4 py-4 flex gap-4 relative"
   >
     <div
-      :ref="(el: any) => ensureColumnSortable(el)"
-      class="flex gap-4 min-w-max h-full items-start"
+      v-for="column in columnModels"
+      :key="getColumnId(column)"
+      :data-kanban-column-id="getColumnId(column)"
+      class="flex-none w-96 flex flex-col overflow-hidden"
+      :class="{
+        'kanban-column--pinned': isColumnPinned(column)
+      }"
     >
       <div
-        v-for="column in columnModels"
-        :key="getColumnId(column)"
-        :data-kanban-column-id="getColumnId(column)"
-        class="w-96 flex flex-col flex-none"
-        :class="{
-          'kanban-column--pinned': isColumnPinned(column)
+        class="flex-none flex items-center gap-2 px-3 py-2 rounded-t-lg border-t-4 bg-elevated"
+        :style="{
+          borderTopColor: getColumnColor(column) || 'var(--ui-border)'
         }"
       >
-        <div
-          class="flex items-center gap-2 px-3 py-2 rounded-t-lg border-t-4 bg-elevated"
-          :style="{
-            borderTopColor: getColumnColor(column) || 'var(--ui-border)'
-          }"
+        <button
+          v-if="sortColumns && !isColumnPinned(column)"
+          type="button"
+          class="kanban-column-handle shrink-0 p-0.5 rounded text-muted hover:text-highlighted hover:bg-default cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Drag column"
+          @click.stop
         >
-          <button
-            v-if="sortColumns && !isColumnPinned(column)"
-            type="button"
-            class="kanban-column-handle shrink-0 p-0.5 rounded text-muted hover:text-highlighted hover:bg-default cursor-grab active:cursor-grabbing touch-none"
-            aria-label="Drag column"
-            @click.stop
+          <UIcon
+            name="i-lucide-grip-vertical"
+            class="size-4"
+          />
+        </button>
+        <div class="flex-1 min-w-0">
+          <slot
+            name="column-header"
+            :column="column"
+            :count="listModels[getColumnId(column)]?.length || 0"
+            :pinned="isColumnPinned(column)"
           >
-            <UIcon
-              name="i-lucide-grip-vertical"
-              class="size-4"
-            />
-          </button>
-          <div class="flex-1 min-w-0">
-            <slot
-              name="column-header"
-              :column="column"
-              :count="listModels[getColumnId(column)]?.length || 0"
-              :pinned="isColumnPinned(column)"
-            >
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-sm font-semibold text-highlighted truncate">
-                  #{{ getItemColumnId(column) }} - {{ getColumnTitle(column) }}
-                </span>
-                <UBadge
-                  :label="String(listModels[getColumnId(column)]?.length || 0)"
-                  color="neutral"
-                  variant="soft"
-                  size="xs"
-                />
-              </div>
-            </slot>
-          </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-semibold text-highlighted truncate">
+                #{{ getItemColumnId(column) }} - {{ getColumnTitle(column) }}
+              </span>
+              <UBadge
+                :label="String(listModels[getColumnId(column)]?.length || 0)"
+                color="neutral"
+                variant="soft"
+                size="xs"
+              />
+            </div>
+          </slot>
+        </div>
+      </div>
+
+      <div
+        :ref="(el: any) => ensureItemSortable(getColumnId(column), el)"
+        :data-column-id="getColumnId(column)"
+        class="flex flex-col gap-2 p-2 bg-elevated/40 rounded-b-lg border border-default border-t-0 min-h-32 overflow-y-auto scrollbar"
+      >
+        <div
+          v-for="item in listModels[getColumnId(column)] || []"
+          :key="getItemId(item)"
+          :data-item-id="getItemId(item)"
+          class="kanban-card-handle bg-default rounded-lg border border-default p-3 shadow-xs hover:shadow-sm cursor-grab active:cursor-grabbing transition-shadow"
+          @click="emit('itemClick', item)"
+        >
+          <slot
+            name="item"
+            :item="item"
+            :column="column"
+          >
+            <p class="text-sm text-highlighted font-medium">
+              {{ item.name || item.title || `Item #${getItemId(item)}` }}
+            </p>
+          </slot>
         </div>
 
         <div
-          :ref="(el: any) => ensureItemSortable(getColumnId(column), el)"
-          :data-column-id="getColumnId(column)"
-          class="flex flex-col gap-2 p-2 bg-elevated/40 rounded-b-lg border border-default border-t-0 min-h-32"
+          v-if="!(listModels[getColumnId(column)] || []).length"
+          class="text-center py-4 text-xs text-muted italic"
         >
-          <div
-            v-for="item in listModels[getColumnId(column)] || []"
-            :key="getItemId(item)"
-            :data-item-id="getItemId(item)"
-            class="kanban-card-handle bg-default rounded-lg border border-default p-3 shadow-xs hover:shadow-sm cursor-grab active:cursor-grabbing transition-shadow"
-            @click="emit('itemClick', item)"
-          >
-            <slot
-              name="item"
-              :item="item"
-              :column="column"
-            >
-              <p class="text-sm text-highlighted font-medium">
-                {{ item.name || item.title || `Item #${getItemId(item)}` }}
-              </p>
-            </slot>
-          </div>
-
-          <div
-            v-if="!(listModels[getColumnId(column)] || []).length"
-            class="text-center py-4 text-xs text-muted italic"
-          >
-            No items
-          </div>
+          No items
         </div>
       </div>
     </div>
