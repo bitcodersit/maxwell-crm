@@ -54,7 +54,8 @@ const resolveColumnInsertBounds = async (
       ? (unpinnedOthers[insertAt - 1]?.sortOrder ?? pinned.at(-1)?.sortOrder ?? null)
       : (pinned.at(-1)?.sortOrder ?? null)
 
-  const nextSortOrder = insertAt < unpinnedOthers.length ? unpinnedOthers[insertAt]?.sortOrder ?? null : null
+  const nextSortOrder =
+    insertAt < unpinnedOthers.length ? (unpinnedOthers[insertAt]?.sortOrder ?? null) : null
 
   return {
     moving,
@@ -73,7 +74,10 @@ export const assertColumnReorderAllowed = (column: { pinned: boolean }) => {
   }
 }
 
-export const createBoardColumn = async (boardId: number, data: { name: string; color?: string | null }) => {
+export const createBoardColumn = async (
+  boardId: number,
+  data: { name: string; color?: string | null }
+) => {
   const lastColumn = await prisma.boardColumn.findFirst({
     where: {
       boardId,
@@ -150,7 +154,11 @@ export const updateBoardColumn = async (
   })
 }
 
-export const reorderBoardColumn = async (boardId: number, columnId: number, payload: TColumnReorderPayload) => {
+export const reorderBoardColumn = async (
+  boardId: number,
+  columnId: number,
+  payload: TColumnReorderPayload
+) => {
   const bounds = await resolveColumnInsertBounds(boardId, columnId, payload)
   if (!bounds) throw err.notFound()
 

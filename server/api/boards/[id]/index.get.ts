@@ -1,22 +1,7 @@
 export default defineEventHandler(async event => {
   await requireUserSession(event)
-
-  const param = getRouterParam(event, 'id')
-  const where: Prisma.BoardWhereInput = {
-    deletedAt: null
-  }
-
-  const id = Number(param)
-  if (!isNaN(id)) where.id = id
-  else where.name = param
-
-  const board = await prisma.board.findFirst({
-    where,
-    include: {
-      columns: true
-    }
-  })
-
-  if (!board) throw err.notFound()
-  return board
+  const id = getRouterParam(event, 'id')
+  const { data, error } = await getBoard(id)
+  if (error) throw error
+  return data
 })

@@ -188,8 +188,8 @@ const getItem = (item: TBoardItem) => {
       </div>
     </div>
     <BaseKanban2
-      :api="'/api/boards/tasks-default'"
       :get-item="getItem"
+      :board-name="'tasks-default'"
     >
       <template #item="{ item }">
         <div class="space-y-2"></div>
