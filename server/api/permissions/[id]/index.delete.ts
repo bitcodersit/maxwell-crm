@@ -1,6 +1,6 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['delete-any-permissions'])) {
+  if (!user.deleteAnyPermissions) {
     throw err.denied()
   }
   const id = getRouterParam(event, 'id')
@@ -9,16 +9,16 @@ export default defineEventHandler(async (event) => {
     const data = await prisma.permission.updateMany({
       where: {
         id: {
-          in: ids,
-        },
+          in: ids
+        }
       },
       data: {
-        deletedAt: new Date(),
-      },
+        deletedAt: new Date()
+      }
     })
     return {
       message: 'Permission deleted successfully',
-      data,
+      data
     }
   } catch (error: any) {
     if (error.message.includes('not found')) throw err.notFound()

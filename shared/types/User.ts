@@ -12,5 +12,4 @@ export type TUser = User & {
   userRoles?: TUserRole[]
   roles?: string[]
   permissions?: string[]
-  can?: Record<`${TOperation}${TSubject}${TModule}`, boolean>
-}
+} & Record<`${TOperation}${TSubject}${TModule}`, TMaybe<boolean>>

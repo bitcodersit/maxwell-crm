@@ -1,28 +1,28 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['delete-any-roles'])) {
+  if (!user.deleteAnyRoles) {
     throw err.denied()
   }
   const id = getRouterParam(event, 'id')
   const ids = (id || '')
     .split(',')
     .map(Number)
-    .filter((n) => !Number.isNaN(n))
+    .filter(n => !Number.isNaN(n))
   if (!ids.length) throw err.notFound()
   try {
     const data = await prisma.role.updateMany({
       where: {
         id: {
-          in: ids,
-        },
+          in: ids
+        }
       },
       data: {
-        deletedAt: new Date(),
-      },
+        deletedAt: new Date()
+      }
     })
     return {
       message: 'Role deleted successfully',
-      data,
+      data
     }
   } catch (error: any) {
     if (error.message?.includes('not found')) throw err.notFound()

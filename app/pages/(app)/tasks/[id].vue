@@ -112,7 +112,7 @@ const attachments = computed<TAttachment[]>({
         <!-- disabled -->
         <FormContentEditable
           v-model="task.name"
-          :disabled="!user?.can?.updateAnyTasks"
+          :disabled="!user?.updateAnyTasks"
           tag="h1"
           class="text-xl font-semibold outline-none focus:ring-1 focus:ring-primary rounded-lg focus:px-4 focus:py-2 transition-all"
           @blur="onMutate({ name: task.name })"
@@ -137,7 +137,7 @@ const attachments = computed<TAttachment[]>({
           <FormDate
             v-model="task.dueAt"
             :show-mode="false"
-            :disabled="!user?.can?.updateAnyTasks"
+            :disabled="!user?.updateAnyTasks"
             @update:model-value="onChangeDueAt"
           >
             <!-- :min-value="todayDateValue()" -->
@@ -153,9 +153,9 @@ const attachments = computed<TAttachment[]>({
       </div>
       <FormEditor
         :model-value="task.description || ''"
-        :editable="!!user?.can?.updateAnyTasks"
-        :border-class="!user?.can?.updateAnyTasks ? 'border-none' : 'border-default'"
-        :content-class="!user?.can?.updateAnyTasks ? '[&>div]:px-0 [&>div]:py-0' : ''"
+        :editable="!!user?.updateAnyTasks"
+        :border-class="!user?.updateAnyTasks ? 'border-none' : 'border-default'"
+        :content-class="!user?.updateAnyTasks ? '[&>div]:px-0 [&>div]:py-0' : ''"
         placeholder="Add short task details..."
         content-type="markdown"
         min-height-class="min-h-32"

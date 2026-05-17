@@ -1,6 +1,6 @@
 export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
-  if (!user.can?.createAnyTasks) {
+  if (!user.createAnyTasks) {
     throw err.denied()
   }
 

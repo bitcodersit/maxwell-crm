@@ -3,8 +3,8 @@ import type { H3Event } from 'h3'
 export const deleteAttachments = async (event: H3Event, ids: number[]) => {
   const user = await getCurrentUser(event, { cache: false })
 
-  const canDeleteAny = can(user, ['delete-any-attachments'])
-  const canDeleteOwn = can(user, ['delete-own-attachments'])
+  const canDeleteAny = !!user.deleteAnyAttachments
+  const canDeleteOwn = !!user.deleteOwnAttachments
 
   if (!canDeleteAny && !canDeleteOwn) throw err.denied()
   const where = { id: { in: ids } }

@@ -28,7 +28,7 @@ const getOwnScope = (userId: number) =>
 export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
 
-  if (!user.can?.updateAnyTasks && !user.can?.updateOwnTasks) {
+  if (!user.updateAnyTasks && !user.updateOwnTasks) {
     throw err.denied()
   }
 
@@ -40,7 +40,7 @@ export default defineEventHandler(async event => {
   const where = {
     id,
     deletedAt: null,
-    ...(!user.can?.updateAnyTasks ? getOwnScope(user.id) : {})
+    ...(!user.updateAnyTasks ? getOwnScope(user.id) : {})
   }
 
   const existing = await prisma.task.findFirst({
@@ -62,7 +62,7 @@ export default defineEventHandler(async event => {
 
   const input = await validate(await readBody(event), zTaskPatch)
 
-  if (!user.can?.updateAnyTasks && input.status && input.status !== existing.status) {
+  if (!user.updateAnyTasks && input.status && input.status !== existing.status) {
     const statuses: TaskStatus[] = [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW]
     if (!statuses.includes(input.status)) {
       throw err.unprocessable({
@@ -79,7 +79,7 @@ export default defineEventHandler(async event => {
     completedById: item.status === TaskItemStatus.COMPLETED ? item.completedById || user.id : null
   })
 
-  const canUpdateAnyTasks = !!user.can?.updateAnyTasks
+  const canUpdateAnyTasks = !!user.updateAnyTasks
   const data: Prisma.TaskUpdateInput = {
     ...(canUpdateAnyTasks && input.name !== undefined
       ? { name: input.name.trim() || existing.name }

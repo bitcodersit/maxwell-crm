@@ -4,7 +4,7 @@ import { CUSTOMER_ROLE_NAME } from '~~/server/utils/customerRole'
 
 export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['read-any-users'])) {
+  if (!user.readAnyUsers) {
     return {
       error: err.denied()
     }

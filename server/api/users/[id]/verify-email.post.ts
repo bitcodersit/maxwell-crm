@@ -1,12 +1,11 @@
-/* eslint-disable sort-imports */
-import EmailVerifyEmail from '@/components/emails/EmailVerifyEmail.vue'
 import { render } from '@vue-email/render'
-import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
+import EmailVerifyEmail from '@/components/emails/EmailVerifyEmail.vue'
 import { isCustomerRoleName } from '~~/server/utils/customerRole'
+import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user: sessionUser } = await requireUserSession(event)
-  if (!can(sessionUser, ['update-any-users'])) {
+  if (!sessionUser.updateAnyUsers) {
     throw err.denied()
   }
 

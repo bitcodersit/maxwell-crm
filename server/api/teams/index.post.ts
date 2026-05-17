@@ -8,8 +8,8 @@ export default defineEventHandler(async event => {
     const input = await validate(body, zTeam)
 
     if (input.id) {
-      const canUpdateAnyTeam = can(user, ['update-any-teams'])
-      const canUpdateOwnTeam = can(user, ['update-own-teams'])
+      const canUpdateAnyTeam = !!user.updateAnyTeams
+      const canUpdateOwnTeam = !!user.updateOwnTeams
       const shouldFindLeader = !!input.members?.length || (!canUpdateAnyTeam && canUpdateOwnTeam)
 
       const leader = shouldFindLeader
@@ -90,7 +90,7 @@ export default defineEventHandler(async event => {
       return team
     }
 
-    if (!can(user, ['create-any-teams'])) {
+    if (!user.createAnyTeams) {
       throw err.denied()
     }
 

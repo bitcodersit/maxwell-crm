@@ -35,7 +35,7 @@ export default defineEventHandler(async event => {
     cache: false
   })
 
-  if (!user.can?.createAnyAttachments || !user.can?.createOwnAttachments) {
+  if (!user.createAnyAttachments || !user.createOwnAttachments) {
     throw err.denied()
   }
 

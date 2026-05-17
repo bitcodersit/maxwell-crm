@@ -1,8 +1,7 @@
 declare module '#auth-utils' {
-  interface User extends Pick<
-    TUser,
-    'id' | 'name' | 'email' | 'phone' | 'avatarId' | 'roles' | 'permissions' | 'can'
-  > {}
+  interface User extends TUser {
+    //
+  }
 
   interface UserSession {
     // Add your own fields

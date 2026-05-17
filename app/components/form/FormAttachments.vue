@@ -162,7 +162,7 @@ const onDeleteSelected = async () => {
   <div class="flex items-center justify-between">
     <div class="flex-1">Attachments</div>
     <div class="flex-none flex items-center gap-1">
-      <template v-if="selected.length && !!user?.can?.deleteAnyAttachments">
+      <template v-if="selected.length && !!user?.deleteAnyAttachments">
         <UTooltip text="Clear selection">
           <UButton
             size="xs"
@@ -190,7 +190,7 @@ const onDeleteSelected = async () => {
         </UButton>
       </template>
       <UButton
-        v-if="!!user?.can?.createAnyAttachments"
+        v-if="!!user?.createAnyAttachments"
         :loading="isPending"
         icon="i-lucide-plus"
         size="xs"
@@ -219,7 +219,7 @@ const onDeleteSelected = async () => {
             :src="getAttachment(item.id)"
           />
           <div
-            v-if="!!user?.can?.deleteAnyAttachments"
+            v-if="!!user?.deleteAnyAttachments"
             :class="{ 'visible opacity-100': selected.includes(item.id) }"
             class="absolute inset-0 flex invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300 items-center justify-center z-10 bg-elevated rounded-lg"
             @click.stop.prevent="onSelect(item.id)"

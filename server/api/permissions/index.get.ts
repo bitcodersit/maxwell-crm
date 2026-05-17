@@ -1,11 +1,11 @@
 import type { H3Event } from 'h3'
-import { Prisma } from '~~/prisma/client/client'
+import type { Prisma } from '~~/prisma/client/client'
 
 export const getPermissions = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['read-any-permissions'])) {
+  if (!user.readAnyPermissions) {
     return {
-      error: err.denied(),
+      error: err.denied()
     }
   }
 
@@ -18,33 +18,33 @@ export const getPermissions = async (event: H3Event, query = getQuery(event)) =>
     .text('description')
     .date('createdAt')
     .date('updatedAt')
-    .text('q', (text) => ({
+    .text('q', text => ({
       OR: [
         {
           name: {
-            contains: text,
-          },
+            contains: text
+          }
         },
         {
           description: {
-            contains: text,
-          },
-        },
-      ],
+            contains: text
+          }
+        }
+      ]
     }))
-    .id('roleIds', (roleId) => ({
+    .id('roleIds', roleId => ({
       rolePermissions: {
         some: {
-          roleId,
-        },
-      },
+          roleId
+        }
+      }
     }))
-    .id('idsNotIn', (ids) => {
+    .id('idsNotIn', ids => {
       if ('in' in ids) {
         return {
           id: {
-            notIn: ids.in,
-          },
+            notIn: ids.in
+          }
         }
       }
       return {}
@@ -58,8 +58,8 @@ export const getPermissions = async (event: H3Event, query = getQuery(event)) =>
     ? {
         select: {
           id: true,
-          name: true,
-        },
+          name: true
+        }
       }
     : {
         include: {
@@ -69,12 +69,12 @@ export const getPermissions = async (event: H3Event, query = getQuery(event)) =>
               role: {
                 select: {
                   id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
+                  name: true
+                }
+              }
+            }
+          }
+        }
       }
 
   const [total, permissions] = await prisma.$transaction([
@@ -84,16 +84,16 @@ export const getPermissions = async (event: H3Event, query = getQuery(event)) =>
       take,
       where,
       orderBy,
-      ...selectInclude,
-    }),
+      ...selectInclude
+    })
   ])
 
   return {
-    data: paginate(permissions, total),
+    data: paginate(permissions, total)
   }
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { error, data } = await getPermissions(event)
   if (error) throw error
   return data

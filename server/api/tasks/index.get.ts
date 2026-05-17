@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import type { Prisma } from '~~/prisma/client/client'
 
 const getTaskScopedWhere = (user: UserSessionRequired['user'], where: Prisma.TaskWhereInput) => {
-  if (can(user, ['read-any-tasks'])) return where
+  if (user.readAnyTasks) return where
   return {
     AND: [
       where,
@@ -34,7 +34,7 @@ const getTaskScopedWhere = (user: UserSessionRequired['user'], where: Prisma.Tas
 
 export const getTasks = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['read-any-tasks', 'read-own-tasks'])) {
+  if (!user.readAnyTasks || !user.readOwnTasks) {
     return {
       error: err.denied()
     }

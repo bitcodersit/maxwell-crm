@@ -1,10 +1,10 @@
 import type { H3Event } from 'h3'
-import { Prisma } from '~~/prisma/client/client'
+import type { Prisma } from '~~/prisma/client/client'
 
 export const getTeams = async (event: H3Event, query = getQuery(event)) => {
   const { user } = await requireUserSession(event)
 
-  if (!can(user, ['read-any-teams', 'read-own-teams'])) {
+  if (!user.readAnyTeams || !user.readOwnTeams) {
     return {
       error: err.denied()
     }
@@ -32,7 +32,7 @@ export const getTeams = async (event: H3Event, query = getQuery(event)) => {
     }))
     .get()
 
-  const scopedWhere: Prisma.TeamWhereInput = can(user, ['read-any-teams'])
+  const scopedWhere: Prisma.TeamWhereInput = user.readAnyTeams
     ? where
     : {
         AND: [where, { members: { some: { userId: user.id } } }]

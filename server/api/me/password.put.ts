@@ -6,9 +6,9 @@ const zPasswordChange = z.object({
   new: z.string().min(8)
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const sessionUser = await getCurrentUser(event)
-  if (!can(sessionUser, ['update-own-users'])) {
+  if (!sessionUser.updateOwnUsers) {
     throw err.denied()
   }
   if (sessionUser.roles.some(role => isCustomerRoleName(role))) {

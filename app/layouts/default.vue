@@ -21,7 +21,6 @@ const { user } = useUserSession()
 const { title, links: panelLinks, isSearchOpen, isNotificationsOpen } = useDashboard()
 
 const links = computed(() => {
-  const can = user.value?.can
   return [
     [
       {
@@ -71,7 +70,7 @@ const links = computed(() => {
         label: 'Tasks',
         icon: 'i-lucide-check-square',
         to: '/tasks',
-        visible: !!(can?.readAnyTasks || can?.readOwnTasks),
+        visible: !!(user.value?.readAnyTasks || user.value?.readOwnTasks),
         onSelect: () => {
           open.value = false
         }
@@ -80,7 +79,7 @@ const links = computed(() => {
         label: 'Teams',
         icon: 'i-lucide-users-round',
         to: '/teams',
-        visible: !!(can?.readAnyTeams || can?.readOwnTeams),
+        visible: !!(user.value?.readAnyTeams || user.value?.readOwnTeams),
         onSelect: () => {
           open.value = false
         }
@@ -89,7 +88,7 @@ const links = computed(() => {
         label: 'Customers',
         icon: 'i-lucide-user-round-search',
         to: '/customers',
-        visible: !!can?.readAnyUsers,
+        visible: !!user.value?.readAnyUsers,
         onSelect: () => {
           open.value = false
         }
@@ -98,7 +97,7 @@ const links = computed(() => {
         label: 'Users',
         icon: 'i-lucide-users',
         to: '/users',
-        visible: !!can?.readAnyUsers,
+        visible: !!user.value?.readAnyUsers,
         onSelect: () => {
           open.value = false
         }
@@ -107,7 +106,7 @@ const links = computed(() => {
         label: 'Roles',
         icon: 'i-lucide-shield',
         to: '/roles',
-        visible: !!can?.readAnyRoles,
+        visible: !!user.value?.readAnyRoles,
         onSelect: () => {
           open.value = false
         }
@@ -116,7 +115,7 @@ const links = computed(() => {
         label: 'Permissions',
         icon: 'i-lucide-key',
         to: '/permissions',
-        visible: !!can?.readAnyPermissions,
+        visible: !!user.value?.readAnyPermissions,
         onSelect: () => {
           open.value = false
         }

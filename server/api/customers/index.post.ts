@@ -22,7 +22,7 @@ export default defineEventHandler(async event => {
 
   try {
     if (input.id) {
-      if (!can(sessionUser, ['update-any-users'])) {
+      if (!sessionUser.updateAnyUsers) {
         throw err.denied()
       }
 
@@ -94,7 +94,7 @@ export default defineEventHandler(async event => {
       return customer
     }
 
-    if (!can(sessionUser, ['create-any-users'])) {
+    if (!sessionUser.createAnyUsers) {
       throw err.denied()
     }
 

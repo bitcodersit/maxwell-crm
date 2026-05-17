@@ -12,7 +12,7 @@ export const useTaskStatusItems = (onSelect?: (value: TaskStatus) => void) => {
   return computed(() => {
     const values = Object.values(TaskStatus)
     return (
-      user.value?.can?.updateAnyTasks ? values : values.filter(v => allowedStatuses.includes(v))
+      user.value?.updateAnyTasks ? values : values.filter(v => allowedStatuses.includes(v))
     ).map(value => ({
       value,
       label: capitalize(value.split('_').join(' ').toLowerCase()),
@@ -29,7 +29,7 @@ export const useTaskPriorityItems = (onSelect?: (value: TaskPriority) => void) =
   return computed(() => {
     const values = Object.values(TaskPriority)
     return (
-      user.value?.can?.updateAnyTasks ? values : values.filter(v => allowedPriorities.includes(v))
+      user.value?.updateAnyTasks ? values : values.filter(v => allowedPriorities.includes(v))
     ).map(value => ({
       value,
       label: capitalize(value.split('_').join(' ').toLowerCase()),

@@ -49,7 +49,7 @@ export default defineEventHandler(async event => {
   const input = await validate(body, zUser)
   await validateNonCustomerRoles(input.roleIds)
   if (input.id) {
-    if (!can(sessionUser, ['update-any-users'])) {
+    if (!sessionUser.updateAnyUsers) {
       throw err.denied()
     }
     const existing = await prisma.user.findUnique({
@@ -170,7 +170,7 @@ export default defineEventHandler(async event => {
     return user
   }
 
-  if (!can(sessionUser, ['create-any-users'])) {
+  if (!sessionUser.createAnyUsers) {
     throw err.denied()
   }
 

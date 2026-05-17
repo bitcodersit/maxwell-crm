@@ -25,7 +25,7 @@ const getOwnScope = (userId: number) =>
 
 export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['read-any-tasks', 'read-own-tasks'])) {
+  if (!user.readAnyTasks || !user.readOwnTasks) {
     throw err.denied()
   }
 
@@ -37,7 +37,7 @@ export default defineEventHandler(async event => {
   const where: Prisma.TaskWhereInput = {
     id,
     deletedAt: null,
-    ...(can(user, ['read-any-tasks']) ? {} : getOwnScope(user.id))
+    ...(user.readAnyTasks ? {} : getOwnScope(user.id))
   }
 
   const task = await prisma.task.findFirst({

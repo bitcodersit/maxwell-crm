@@ -1,20 +1,20 @@
 import { getEmailChangeTokenMeta } from '~~/server/utils/emailVerification'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user: sessionUser } = await requireUserSession(event)
-  if (!can(sessionUser, ['read-own-users'])) {
+  if (!sessionUser.readOwnUsers) {
     throw err.denied()
   }
 
   const me = await prisma.user.findFirst({
     where: {
       id: sessionUser.id,
-      deletedAt: null,
+      deletedAt: null
     },
     select: {
       email: true,
-      emailVerifiedAt: true,
-    },
+      emailVerifiedAt: true
+    }
   })
   if (!me) {
     throw err.unauth()
@@ -27,15 +27,15 @@ export default defineEventHandler(async (event) => {
       type: 'VERIFY',
       token: { startsWith: 'change-old.' },
       usedAt: null,
-      AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }],
+      AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }]
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: 'desc'
     },
     select: {
       token: true,
-      expiresAt: true,
-    },
+      expiresAt: true
+    }
   })
 
   const meta = token ? getEmailChangeTokenMeta(token.token) : undefined
@@ -44,19 +44,19 @@ export default defineEventHandler(async (event) => {
       return {
         pendingEmail: me.email,
         stage: 'new-verify',
-        expiresAt: null,
+        expiresAt: null
       }
     }
     return {
       pendingEmail: null,
       stage: null,
-      expiresAt: null,
+      expiresAt: null
     }
   }
 
   return {
     pendingEmail: meta.email,
     stage: meta.stage,
-    expiresAt: token?.expiresAt ?? null,
+    expiresAt: token?.expiresAt ?? null
   }
 })

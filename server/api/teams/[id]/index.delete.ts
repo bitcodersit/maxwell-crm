@@ -1,21 +1,21 @@
 import { TeamMemberRole } from '~~/prisma/client/enums'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const { user } = await requireUserSession(event)
 
     const idParam = getRouterParam(event, 'id')
     const ids = (idParam || '')
       .split(',')
-      .map((s) => Number(s.trim()))
-      .filter((n) => Number.isInteger(n) && n > 0)
+      .map(s => Number(s.trim()))
+      .filter(n => Number.isInteger(n) && n > 0)
 
     if (ids.length === 0) {
       throw err.notFound()
     }
 
-    const canDeleteAny = can(user, ['delete-any-teams'])
-    const canDeleteOwn = can(user, ['delete-own-teams'])
+    const canDeleteAny = !!user.deleteAnyTeams
+    const canDeleteOwn = !!user.deleteOwnTeams
 
     if (!canDeleteAny && !canDeleteOwn) {
       throw err.denied()
@@ -25,16 +25,16 @@ export default defineEventHandler(async (event) => {
       const data = await prisma.team.updateMany({
         where: {
           id: {
-            in: ids,
-          },
+            in: ids
+          }
         },
         data: {
-          deletedAt: new Date(),
-        },
+          deletedAt: new Date()
+        }
       })
       return {
         message: 'Team deleted successfully',
-        data,
+        data
       }
     }
 
@@ -43,13 +43,13 @@ export default defineEventHandler(async (event) => {
       where: {
         userId: user.id,
         role: TeamMemberRole.LEADER,
-        teamId: { in: uniqueIds },
+        teamId: { in: uniqueIds }
       },
       select: {
-        teamId: true,
-      },
+        teamId: true
+      }
     })
-    const leaderTeamIds = new Set(leaderMemberships.map((m) => m.teamId))
+    const leaderTeamIds = new Set(leaderMemberships.map(m => m.teamId))
 
     const success: number[] = []
     const skipped: { id: number; error: string }[] = []
@@ -62,18 +62,18 @@ export default defineEventHandler(async (event) => {
       const { count } = await prisma.team.updateMany({
         where: {
           id: teamId,
-          deletedAt: null,
+          deletedAt: null
         },
         data: {
-          deletedAt: new Date(),
-        },
+          deletedAt: new Date()
+        }
       })
       if (count > 0) {
         success.push(teamId)
       } else {
         skipped.push({
           id: teamId,
-          error: 'team not found or already deleted',
+          error: 'team not found or already deleted'
         })
       }
     }
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
     return {
       message: 'Team delete completed',
       success,
-      skipped,
+      skipped
     }
   } catch (error: any) {
     if (error.message.includes('not found')) throw err.notFound()

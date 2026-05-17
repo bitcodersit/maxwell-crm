@@ -11,15 +11,15 @@ const fields: AuthFormField[] = [
     type: 'email',
     label: 'Email',
     placeholder: 'Enter your email',
-    required: true,
+    required: true
   },
   {
     name: 'password',
     label: 'Password',
     type: 'password',
     placeholder: 'Enter your password',
-    required: true,
-  },
+    required: true
+  }
 ]
 
 const loading = ref(false)
@@ -27,27 +27,27 @@ const onSubmit = async (event: FormSubmitEvent<any>) => {
   loading.value = true
   $fetch('/api/login', {
     method: 'POST',
-    body: JSON.stringify(event.data),
+    body: JSON.stringify(event.data)
   })
     .then(() => {
       location.href = '/'
     })
-    .catch((error) => {
+    .catch(error => {
       const properties: any = error.data?.data?.properties || {}
       const entries = Object.entries(properties)
       if (!entries.length) {
         auth.value.formRef.setErrors([
           {
             name: 'email',
-            message: error.data?.message || error.message || 'Error while logging in',
-          },
+            message: error.data?.message || error.message || 'Error while logging in'
+          }
         ])
       } else {
         auth.value.formRef.setErrors(
           Object.entries(properties).map(([name, value]: any) => {
             return {
               name,
-              message: value?.errors?.[0],
+              message: value?.errors?.[0]
             }
           })
         )
@@ -70,7 +70,10 @@ const onSubmit = async (event: FormSubmitEvent<any>) => {
       @submit="onSubmit"
     />
     <div class="text-sm text-center">
-      <NuxtLink to="/forgot-password" class="text-primary hover:underline">
+      <NuxtLink
+        to="/forgot-password"
+        class="text-primary hover:underline"
+      >
         Forgot your password?
       </NuxtLink>
     </div>

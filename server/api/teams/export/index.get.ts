@@ -12,9 +12,9 @@ type TTeamExportRow = {
   }[]
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['export-any-teams'])) {
+  if (!user.exportAnyTeams) {
     throw err.denied()
   }
 
@@ -35,10 +35,14 @@ export default defineEventHandler(async (event) => {
       id: true,
       name: true,
       description: true,
-      creator: (v) => v.creator?.name ?? '',
-      members: (v) => v.members?.map((m) => m.user?.name).filter(Boolean).join(',') ?? '',
+      creator: v => v.creator?.name ?? '',
+      members: v =>
+        v.members
+          ?.map(m => m.user?.name)
+          .filter(Boolean)
+          .join(',') ?? '',
       createdAt: true,
-      updatedAt: true,
-    },
+      updatedAt: true
+    }
   })
 })

@@ -12,7 +12,7 @@ import {
 import { TaskStatus } from '~~/prisma/client/client'
 
 const getTaskScopedWhere = (user, where) => {
-  if (can(user, ['read-any-tasks'])) return where
+  if (user.readAnyTasks) return where
   return {
     AND: [
       where,
@@ -69,7 +69,7 @@ const isInRange = (value, start, endExclusive) => {
 
 export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['read-any-tasks', 'read-own-tasks'])) {
+  if (!user.readAnyTasks || !user.readOwnTasks) {
     throw err.denied()
   }
 
@@ -126,7 +126,7 @@ export default defineEventHandler(async event => {
 
       const isGoalHit =
         task.status === TaskStatus.COMPLETED &&
-        (user.can?.readAnyTasks
+        (user.readAnyTasks
           ? task.reviewedAt && isBeforeOrEqual(task.reviewedAt, task.dueAt)
           : !!task.submittedAt)
       if (isGoalHit) goalHit++

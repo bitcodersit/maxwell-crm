@@ -2,10 +2,10 @@ const zPermission = z.object({
   id: z.number().optional(),
   name: z.string().min(1, 'Name is required!'),
   description: z.string().nullish(),
-  roleIds: z.array(z.number()).nullish(),
+  roleIds: z.array(z.number()).nullish()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
 
   const body = await readBody(event)
@@ -13,12 +13,12 @@ export default defineEventHandler(async (event) => {
 
   try {
     if (input.id) {
-      if (!can(user, ['update-any-permissions'])) {
+      if (!user.updateAnyPermissions) {
         throw err.denied()
       }
       return await prisma.permission.update({
         where: {
-          id: input.id,
+          id: input.id
         },
         data: {
           name: input.name,
@@ -26,27 +26,27 @@ export default defineEventHandler(async (event) => {
           rolePermissions: input.roleIds
             ? {
                 createMany: {
-                  data: input.roleIds.map((roleId) => ({ roleId })),
-                  skipDuplicates: true,
+                  data: input.roleIds.map(roleId => ({ roleId })),
+                  skipDuplicates: true
                 },
                 deleteMany: {
                   roleId: {
-                    notIn: input.roleIds,
-                  },
-                },
+                    notIn: input.roleIds
+                  }
+                }
               }
-            : undefined,
+            : undefined
         },
         include: {
           rolePermissions: {
             include: {
-              role: true,
-            },
-          },
-        },
+              role: true
+            }
+          }
+        }
       })
     }
-    if (!can(user, ['create-any-permissions'])) {
+    if (!user.createAnyPermissions) {
       throw err.denied()
     }
     return await prisma.permission.create({
@@ -55,17 +55,17 @@ export default defineEventHandler(async (event) => {
         description: input.description,
         rolePermissions: {
           createMany: {
-            data: (input.roleIds || []).map((roleId) => ({ roleId })),
-          },
-        },
+            data: (input.roleIds || []).map(roleId => ({ roleId }))
+          }
+        }
       },
       include: {
         rolePermissions: {
           include: {
-            role: true,
-          },
-        },
-      },
+            role: true
+          }
+        }
+      }
     })
   } catch (error: any) {
     const message = error.message
@@ -73,8 +73,8 @@ export default defineEventHandler(async (event) => {
     if (message.includes('permissions_name_key')) {
       throw err.unprocessable({
         name: {
-          errors: ['Name is already taken, please try a different name'],
-        },
+          errors: ['Name is already taken, please try a different name']
+        }
       })
     }
     throw error

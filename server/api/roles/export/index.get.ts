@@ -1,9 +1,9 @@
 import { getRoles } from '../index.get'
 import { exportData } from '~~/server/utils/export'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
-  if (!can(user, ['export-any-roles'])) {
+  if (!user.exportAnyRoles) {
     throw err.denied()
   }
 
@@ -26,8 +26,11 @@ export default defineEventHandler(async (event) => {
       description: true,
       createdAt: true,
       updatedAt: true,
-      permissions: (v) =>
-        v.rolePermissions?.map((rp) => rp.permission?.name).filter(Boolean).join(',') ?? '',
-    },
+      permissions: v =>
+        v.rolePermissions
+          ?.map(rp => rp.permission?.name)
+          .filter(Boolean)
+          .join(',') ?? ''
+    }
   })
 })

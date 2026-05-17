@@ -25,8 +25,8 @@ const getOwnScope = (userId: number) =>
 
 export default defineEventHandler(async event => {
   const { user } = await requireUserSession(event)
-  const canDeleteAny = can(user, ['delete-any-tasks'])
-  const canDeleteOwn = can(user, ['delete-own-tasks'])
+  const canDeleteAny = !!user.deleteAnyTasks
+  const canDeleteOwn = !!user.deleteOwnTasks
   if (!canDeleteAny && !canDeleteOwn) {
     throw err.denied()
   }
