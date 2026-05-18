@@ -253,6 +253,7 @@ model BoardColumn {
     updatedAt DateTime  @default(now()) @updatedAt
     deletedAt DateTime?
 
+    @@unique([boardId, name])
     @@index([boardId, sortOrder])
     @@map("board_columns")
 }

@@ -24,7 +24,6 @@ export default defineEventHandler(async event => {
 
   const body = await readBody(event)
   const input = await validate(body, zSchema)
-  console.log(input, 'id' in input, 'id' in input && input.id)
 
   if ('id' in input && input.id) {
     const { id, ...rest } = input as TZPatchSchema
