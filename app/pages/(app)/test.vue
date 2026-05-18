@@ -19,7 +19,7 @@ const getItem = (item: TBoardItem) => {
     <div class="flex items-center gap-2 flex-wrap px-4 pt-4">
       <h2 class="text-xl font-semibold text-highlighted">Kanban</h2>
     </div>
-    <BaseKanban2
+    <BaseKanban
       :get-item="getItem"
       :board-name="'tasks-default'"
     >
@@ -46,6 +46,6 @@ const getItem = (item: TBoardItem) => {
           </div>
         </div>
       </template>
-    </BaseKanban2>
+    </BaseKanban>
   </div>
 </template>
