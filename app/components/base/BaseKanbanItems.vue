@@ -1,18 +1,14 @@
 <script lang="ts">
+import type { SortableEvent } from 'sortablejs'
 import { useSortable } from '@vueuse/integrations/useSortable'
 </script>
 
 <script setup lang="ts" generic="Item extends Record<string, any>">
-const props = withDefaults(
-  defineProps<{
-    boardId: number
-    columnId: number
-    getItem: (v: TBoardItem) => Item
-  }>(),
-  {
-    //
-  }
-)
+const props = defineProps<{
+  boardId: number
+  columnId: number
+  getItem: (v: TBoardItem) => Item
+}>()
 
 const queryKey = computed(() => {
   return [
@@ -52,6 +48,16 @@ const emit = defineEmits<{
   refetch: []
 }>()
 
+const parseSortableEvent = (e: SortableEvent) => {
+  return {
+    id: Number(e.target.children[e.newIndex!]?.getAttribute('data-item-id')),
+    sortOrder: [
+      e.target.children[e.newIndex! - 1]?.getAttribute('data-item-sort-order') ?? null,
+      e.target.children[e.newIndex! + 1]?.getAttribute('data-item-sort-order') ?? null
+    ]
+  }
+}
+
 const itemsSortableReady = ref(false)
 const itemsRef = (el: Element | ComponentPublicInstance | null) => {
   if (!el || itemsSortableReady.value) return
@@ -60,10 +66,11 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
     animation: 150,
     group: 'base-kanban-items',
     onAdd(e) {
-      const id = Number(e.item.getAttribute('data-item-id'))
+      const { id, sortOrder } = parseSortableEvent(e)
       $fetch<TBoardItem>(`/api/board-items/${id}`, {
         method: 'PATCH',
         body: {
+          sortOrder,
           columnId: props.columnId
         }
       }).then(() => {
@@ -72,20 +79,10 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
     },
     onUpdate: e => {
       if (e.oldIndex === e.newIndex) return
-
-      const copy = [...items.value]
-      const movedItem = copy[e.oldIndex!]
-
-      copy.splice(e.oldIndex!, 1)
-      copy.splice(e.newIndex!, 0, movedItem!)
-
-      const index = copy.indexOf(movedItem!)
-
-      $fetch<TBoardItem>(`/api/board-items/${movedItem!.id}`, {
+      const { id, sortOrder } = parseSortableEvent(e)
+      $fetch<TBoardItem>(`/api/board-items/${id}`, {
         method: 'PATCH',
-        body: {
-          sortOrder: [copy[index - 1]?.sortOrder ?? null, copy[index + 1]?.sortOrder ?? null]
-        }
+        body: { sortOrder }
       })
     }
   })
@@ -105,9 +102,10 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
         class="absolute top-px left-0 w-full"
       />
       <div
-        v-for="(item, index) in data.data || []"
+        v-for="(item, index) in items"
         :key="item.id"
         :data-item-id="item.id"
+        :data-item-sort-order="item.sortOrder"
       >
         <slot
           name="item"
