@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { TBaseFormField } from './BaseForm.vue'
 import { useSortable } from '@vueuse/integrations/useSortable'
 </script>
 
@@ -13,11 +14,12 @@ const props = withDefaults(
   }
 )
 
+const client = useQueryClient()
 const queryKey = computed(() => {
   return [props.boardName]
 })
 
-const { data, isFetching } = useQuery({
+const { data, isFetching, refetch } = useQuery({
   queryKey,
   queryFn: () => {
     return $fetch<TBoard>(`/api/boards/${props.boardName}`)
@@ -59,7 +61,6 @@ const columnsRef = (el: Element | ComponentPublicInstance | null) => {
   columnsSortableReady.value = true
   useSortable(el as HTMLElement, columns, {
     animation: 150,
-    // watchElement: true,
     handle: '.base-kanban-handle',
     filter: '.base-kanban-pinned',
     direction: 'horizontal',
@@ -79,6 +80,12 @@ const columnsRef = (el: Element | ComponentPublicInstance | null) => {
         a: copy[index - 1]?.sortOrder,
         b: copy[index + 1]?.sortOrder
       })
+    },
+    onMove(evt) {
+      // evt.related is the element we are hovering over
+      if (evt.related.classList.contains('base-kanban-pinned')) {
+        return false // Cancel the move
+      }
     }
   })
 }
@@ -86,7 +93,6 @@ const columnsRef = (el: Element | ComponentPublicInstance | null) => {
 watch(
   data,
   newVal => {
-    console.log('onDataChange', newVal)
     columns.value = [...(newVal?.columns || [])]
   },
   {
@@ -95,8 +101,41 @@ watch(
   }
 )
 
-// Items
-//
+// Column Form
+const columnFormOpen = ref(false)
+const columnFormState = ref<Partial<TBoardColumn>>({
+  name: '',
+  color: ''
+})
+
+const columnFields: TBaseFormField[] = [
+  {
+    name: 'name',
+    label: 'Column Name',
+    type: 'input'
+  },
+  {
+    name: 'color',
+    label: 'Column Color',
+    type: 'color'
+  }
+]
+
+const onColumnFormOpen = (item?: TBoardColumn) => {
+  columnFormState.value = {
+    id: item?.id,
+    name: item?.name ?? '',
+    color: item?.color,
+    boardId: item?.boardId ?? data.value?.id
+  }
+  columnFormOpen.value = true
+}
+
+const onColumnFormSuccess = () => {
+  client.invalidateQueries({
+    queryKey: queryKey.value
+  })
+}
 </script>
 
 <template>
@@ -109,62 +148,57 @@ watch(
         class="absolute top-0 left-0 w-full"
       />
     </div>
-    <div
-      :ref="columnsRef"
-      class="flex-1 overflow-y-hidden overflow-x-auto scrollbar px-4 py-4 flex gap-4 relative"
-    >
+    <div class="flex-1 overflow-y-hidden overflow-x-auto scrollbar px-4 py-4 flex gap-4 relative">
       <div
-        v-for="column in columns"
-        :key="column.id"
-        :class="{
-          'base-kanban-pinned': column.pinned
-        }"
-        class="flex-none w-96 flex flex-col overflow-hidden rounded-lg"
+        :ref="columnsRef"
+        class="flex-1 flex gap-4"
       >
-        <div class="flex-none bg-elevated">
-          <div class="flex">
-            <button
-              v-if="!column.pinned"
-              type="button"
-              class="base-kanban-handle cursor-grab active:cursor-grabbing flex items-center justify-center px-2"
-              @click.stop
-            >
-              <UIcon
-                name="i-lucide-grip-vertical"
-                class="size-4"
-              />
-            </button>
-            <div class="flex items-center gap-2 py-2 pl-1 pr-3">
-              <div class="text-sm font-semibold text-highlighted truncate">{{ column.name }}</div>
-              <UBadge
-                :label="String(data?.items?.length || 0)"
-                size="sm"
-                color="neutral"
-                variant="subtle"
-              />
-            </div>
-          </div>
-          <div
-            class="h-1 opacity-50"
-            :style="{
-              backgroundColor: column.color ? column.color : 'var(--color-border)'
-            }"
-          ></div>
-        </div>
-        <BaseKanbanItems
-          v-if="data?.id"
-          :board-id="data?.id"
-          :column-id="column.id"
-          :get-item="getItem"
+        <BaseKanbanColumn
+          v-for="column in columns"
+          :key="column.id"
+          :column="column"
+          @refetch="refetch"
+          @update="onColumnFormOpen"
         >
-          <template #item="attrs">
-            <slot
-              name="item"
-              v-bind="attrs"
-            />
-          </template>
-        </BaseKanbanItems>
+          <BaseKanbanItems
+            v-if="data?.id"
+            :board-id="data?.id"
+            :column-id="column.id"
+            :get-item="getItem"
+            @refetch="refetch"
+          >
+            <template #item="attrs">
+              <slot
+                name="item"
+                v-bind="attrs"
+              />
+            </template>
+          </BaseKanbanItems>
+        </BaseKanbanColumn>
+      </div>
+      <div class="flex-none">
+        <UButton
+          icon="i-lucide-plus"
+          size="sm"
+          color="neutral"
+          variant="soft"
+          @click="onColumnFormOpen()"
+        >
+          Add Column
+        </UButton>
       </div>
     </div>
+    <BaseFormModal
+      v-model="columnFormState"
+      v-model:open="columnFormOpen"
+      :api="`/api/board-columns`"
+      :fields="columnFields"
+      :field-props="{ size: 'xl', class: 'w-full' }"
+      :title="columnFormState.id ? 'Edit Column' : 'Add Column'"
+      :description="
+        columnFormState.id ? 'Edit the column information' : 'Add a new column to the board'
+      "
+      :on-success="onColumnFormSuccess"
+    />
   </ClientOnly>
 </template>

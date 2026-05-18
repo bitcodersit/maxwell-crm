@@ -1,10 +1,21 @@
 import { isValidPhoneNumber, parsePhoneNumberWithError } from 'libphonenumber-js'
 import { z } from 'zod'
 
-export const zName = (message = 'Name is required!', length = 3) => z.string().min(length, message)
+export const zId = (message = 'Invalid ID') => {
+  return z.number(message).int(message).positive(message)
+}
+
+export const zName = (message = 'Name is required!', length = 3) =>
+  z.string().trim().min(length, message)
 export const zEmail = (message = 'Invalid email address') => z.email(message)
 export const zPassword = (message = 'Password must be at least 8 characters long', length = 8) =>
-  z.string().min(length, message)
+  z.string().trim().min(length, message)
+
+export const zColor = (message = 'Invalid color') =>
+  z
+    .string()
+    .regex(/^#([0-9a-fA-F]{6})$/, message)
+    .trim()
 
 export const zPhone = (props?: string | { nullish?: boolean; message?: string }) => {
   const { nullish = false, message = 'Invalid phone number' } =

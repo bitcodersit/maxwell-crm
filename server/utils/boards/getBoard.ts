@@ -11,8 +11,23 @@ export const getBoard = async (id?: string) => {
     where,
     include: {
       columns: {
-        orderBy: {
-          sortOrder: 'asc'
+        where: {
+          deletedAt: null
+        },
+        orderBy: [
+          {
+            pinned: 'desc'
+          },
+          {
+            sortOrder: 'asc'
+          }
+        ],
+        include: {
+          _count: {
+            select: {
+              items: true
+            }
+          }
         }
       }
     }

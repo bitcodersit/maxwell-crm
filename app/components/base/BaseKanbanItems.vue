@@ -48,6 +48,10 @@ watch(
   }
 )
 
+const emit = defineEmits<{
+  refetch: []
+}>()
+
 const itemsSortableReady = ref(false)
 const itemsRef = (el: Element | ComponentPublicInstance | null) => {
   if (!el || itemsSortableReady.value) return
@@ -62,6 +66,8 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
         body: {
           columnId: props.columnId
         }
+      }).then(() => {
+        emit('refetch')
       })
     },
     onUpdate: e => {

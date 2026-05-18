@@ -7,6 +7,9 @@ export type TBoardItem = BoardItem & {
 
 export type TBoardColumn = BoardColumn & {
   board: TMaybe<TBoard>
+  _count: TMaybe<{
+    items: TMaybe<number>
+  }>
 }
 
 export type TBoard = Board & {
