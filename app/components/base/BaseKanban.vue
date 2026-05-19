@@ -6,7 +6,7 @@ import { useSortable } from '@vueuse/integrations/useSortable'
 <script setup lang="ts" generic="Item extends Record<string, any>">
 const props = withDefaults(
   defineProps<{
-    boardName: string
+    initialQuery: Record<string, any>
     getItem: (v: TBoardItem) => Item
   }>(),
   {
@@ -16,13 +16,15 @@ const props = withDefaults(
 
 const client = useQueryClient()
 const queryKey = computed(() => {
-  return [props.boardName]
+  return ['/api/boards/find', props.initialQuery] as const
 })
 
 const { data, isFetching, refetch } = useQuery({
   queryKey,
-  queryFn: () => {
-    return $fetch<TBoard>(`/api/boards/${props.boardName}`)
+  queryFn: ({ queryKey: [api, query] }) => {
+    return $fetch<TBoard>(api, {
+      query
+    })
   }
 })
 
@@ -182,7 +184,7 @@ const onColumnFormSuccess = () => {
       :description="
         columnFormState.id ? 'Edit the column information' : 'Add a new column to the board'
       "
-      :on-success="onColumnFormSuccess"
+      @success="onColumnFormSuccess"
     />
   </ClientOnly>
 </template>

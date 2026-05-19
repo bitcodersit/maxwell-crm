@@ -1,1 +1,3 @@
-export * from './getBoard'
+export * from './findBoard'
+export * from './findBoardToAssign'
+export * from './assignLeadToTheBoard'

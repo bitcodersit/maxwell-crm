@@ -1,7 +1,6 @@
 import type { SortableEvent } from 'sortablejs'
 
 export const parseSortableEvent = (e: SortableEvent, type: 'column' | 'item') => {
-  console.log(e.target, e.newIndex)
   return {
     id: Number(e.target.children[e.newIndex!]?.getAttribute(`data-${type}-id`)),
     sortOrder: [

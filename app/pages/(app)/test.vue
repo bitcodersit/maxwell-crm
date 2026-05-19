@@ -9,6 +9,11 @@ definePageMeta({
   }
 })
 
+const initialQuery = {
+  module: BoardModule.TASKS,
+  isDefault: true
+}
+
 const getItem = (item: TBoardItem) => {
   return item?.task as TTask
 }
@@ -21,7 +26,7 @@ const getItem = (item: TBoardItem) => {
     </div>
     <BaseKanban
       :get-item="getItem"
-      :board-name="'tasks-default'"
+      :initial-query="initialQuery"
     >
       <template #item="{ item }">
         <UCard

@@ -13,6 +13,17 @@ const views = [
     icon: 'i-lucide-table'
   }
 ]
+
+const leadFormOpen = ref(false)
+const leadFormModel = ref<Partial<TLead>>({})
+
+const onAddLead = (v?: Partial<TLead>) => {
+  leadFormModel.value = {
+    id: v?.id,
+    status: v?.status ?? LeadStatus.New
+  }
+  leadFormOpen.value = true
+}
 </script>
 
 <template>
@@ -21,6 +32,10 @@ const views = [
     :padding="false"
     :scrollable="false"
   >
+    <LeadFormModal
+      v-model="leadFormModel"
+      v-model:open="leadFormOpen"
+    />
     <div class="flex-1 flex flex-col relative overflow-hidden">
       <!-- Header -->
       <div class="p-4 sm:p-6 flex items-center justify-between flex-none">
@@ -38,7 +53,12 @@ const views = [
               variant="subtle"
             />
           </UFieldGroup>
-          <UButton icon="i-lucide-plus"> Add Lead </UButton>
+          <UButton
+            icon="i-lucide-plus"
+            @click="onAddLead()"
+          >
+            Add Lead
+          </UButton>
         </div>
       </div>
       <!-- Content -->

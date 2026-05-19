@@ -1,11 +1,24 @@
-export const getBoard = async (id?: string) => {
+import z from 'zod'
+import { zBoolean } from '../z'
+
+export type TZFindBoardQuery = z.infer<typeof zFindBoardQuery>
+export const zFindBoardQuery = z.object({
+  module: z.enum(BoardModule),
+  name: z.string().trim().optional(),
+  isDefault: zBoolean().optional()
+})
+
+export const findBoard = async (input: TZFindBoardQuery) => {
+  //
   const where: Prisma.BoardWhereInput = {
     deletedAt: null
   }
 
-  const numberId = Number(id)
-  if (!isNaN(numberId)) where.id = numberId
-  else if (typeof id === 'string') where.name = id
+  if (input.module) where.module = input.module
+  if (input.name) where.name = input.name
+  if (typeof input.isDefault === 'boolean') {
+    where.isDefault = input.isDefault
+  }
 
   const board = await prisma.board.findFirst({
     where,

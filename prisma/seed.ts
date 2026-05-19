@@ -1,3 +1,5 @@
+import { BoardModule } from './client/enums'
+
 import 'dotenv/config'
 
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
@@ -15,47 +17,94 @@ const prisma = new PrismaClient({
   })
 })
 
-type TBoardColumn = {
+type BoardColumn = {
   name: string
   color: string
+  isDefault?: boolean
 }
 
-const createBoard = (name: string, columns: TBoardColumn[]) => {
-  return prisma.board.upsert({
+type Board = {
+  name: string
+  module: BoardModule
+  isDefault?: boolean
+  columns: BoardColumn[]
+}
+
+const createBoard = async (input: Board) => {
+  const board = await prisma.board.findFirst({
     where: {
-      name
+      name: input.name,
+      module: input.module
+    }
+  })
+
+  const columns = input.columns.reduce(
+    (acc, column) => {
+      return [
+        ...acc,
+        {
+          name: column.name,
+          color: column.color,
+          isDefault: column.isDefault,
+          sortOrder: generateKeyBetween(acc.at(-1)?.sortOrder, null)
+        }
+      ]
     },
-    update: {},
-    create: {
-      name,
-      columns: {
-        create: columns.reduce((acc, column) => {
-          return [
-            ...acc,
-            {
-              name: column.name,
-              color: column.color,
-              sortOrder: generateKeyBetween(acc.at(-1)?.sortOrder)
-            }
-          ]
-        }, [])
+    [] as {
+      name: string
+      color: string
+      sortOrder: string
+      isDefault?: boolean
+    }[]
+  )
+
+  if (!board) {
+    return prisma.board.create({
+      data: {
+        name: input.name,
+        module: input.module,
+        isDefault: input.isDefault,
+        columns: {
+          create: columns
+        }
       }
-    },
-    include: {
-      columns: true
+    })
+  }
+
+  return prisma.board.update({
+    where: { id: board.id },
+    data: {
+      isDefault: input.isDefault,
+      columns: {
+        upsert: columns.map(column => ({
+          where: {
+            boardId_name: {
+              boardId: board.id,
+              name: column.name
+            }
+          },
+          update: column,
+          create: column
+        }))
+      }
     }
   })
 }
 
 const seedTasksBoard = async () => {
-  const board = await createBoard('tasks-default', [
-    { name: 'Todo', color: '#94a3b8' },
-    { name: 'In Progress', color: '#38bdf8' },
-    { name: 'In Review', color: '#f59e0b' },
-    { name: 'Completed', color: '#10b981' },
-    { name: 'Failed', color: '#ef4444' },
-    { name: 'Cancelled', color: '#64748b' }
-  ])
+  const board = await createBoard({
+    name: 'default',
+    module: BoardModule.TASKS,
+    isDefault: true,
+    columns: [
+      { name: 'Todo', color: '#94a3b8', isDefault: true },
+      { name: 'In Progress', color: '#38bdf8' },
+      { name: 'In Review', color: '#f59e0b' },
+      { name: 'Completed', color: '#10b981' },
+      { name: 'Failed', color: '#ef4444' },
+      { name: 'Cancelled', color: '#64748b' }
+    ]
+  })
 
   // Find all tasks that are not assigned to the board and assign them to the board
   const tasks = await prisma.task.findMany({
@@ -95,18 +144,23 @@ const seedTasksBoard = async () => {
 }
 
 const seedLeadsBoard = async () => {
-  const board = await createBoard('leads-default', [
-    { name: 'New', color: '#94a3b8' }, // slate (neutral)
-    { name: 'Contacted', color: '#38bdf8' }, // sky (info/active)
-    { name: 'Qualified', color: '#f59e0b' }, // amber (attention)
-    { name: 'Prospect', color: '#10b981' }, // emerald (progress)
-    { name: 'Visit Scheduled', color: '#f59e0b' }, // amber (upcoming/action needed)
-    { name: 'Visit Done', color: '#38bdf8' }, // sky (progress)
-    { name: 'Negotiation', color: '#6366f1' }, // indigo (discussion)
-    { name: 'Booking', color: '#06b6d4' }, // cyan (booked)
-    { name: 'Sold', color: '#22c55e' }, // green (sold)
-    { name: 'Closed Lost', color: '#ef4444' } // red (lost)
-  ])
+  const board = await createBoard({
+    name: 'default',
+    module: BoardModule.LEADS,
+    isDefault: true,
+    columns: [
+      { name: 'New', color: '#94a3b8', isDefault: true }, // slate (neutral)
+      { name: 'Contacted', color: '#38bdf8' }, // sky (info/active)
+      { name: 'Qualified', color: '#f59e0b' }, // amber (attention)
+      { name: 'Prospect', color: '#10b981' }, // emerald (progress)
+      { name: 'Visit Scheduled', color: '#f59e0b' }, // amber (upcoming/action needed)
+      { name: 'Visit Done', color: '#38bdf8' }, // sky (progress)
+      { name: 'Negotiation', color: '#6366f1' }, // indigo (discussion)
+      { name: 'Booking', color: '#06b6d4' }, // cyan (booked)
+      { name: 'Sold', color: '#22c55e' }, // green (sold)
+      { name: 'Closed Lost', color: '#ef4444' } // red (lost)
+    ]
+  })
 
   const leads = await prisma.lead.findMany({
     where: {

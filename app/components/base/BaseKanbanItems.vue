@@ -54,6 +54,7 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
   useSortable(el as HTMLElement, items, {
     animation: 150,
     group: 'base-kanban-items',
+    filter: '.base-kanban-item-disabled',
     onAdd(event) {
       const { id, sortOrder } = parseSortableEvent(event, 'item')
       $fetch<TBoardItem>(`/api/board-items/${id}`, {
@@ -104,7 +105,7 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
       </div>
       <div
         v-if="isFetched && !items.length"
-        class="text-center text-muted text-sm italic py-8"
+        class="text-center text-muted text-sm italic py-8 base-kanban-item-disabled"
       >
         No items
       </div>

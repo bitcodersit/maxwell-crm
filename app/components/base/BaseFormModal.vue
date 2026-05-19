@@ -6,16 +6,25 @@ export type TBaseFormModalProps = TBaseFormProps & Pick<ModalProps, 'title' | 'd
 </script>
 
 <script setup lang="ts" generic="State extends TBaseFormState">
-const props = defineProps<TBaseFormModalProps>()
+//
+defineProps<TBaseFormModalProps>()
+
 const open = defineModel<boolean>('open', {
   default: false
 })
+
 const model = defineModel<State>({
   default: () => ({})
 })
+
+const emit = defineEmits<{
+  success: [data: any]
+  error: [error: any]
+}>()
+
 const onSuccess = (data: any) => {
   open.value = false
-  props.onSuccess?.(data)
+  emit('success', data)
 }
 </script>
 
@@ -33,8 +42,8 @@ const onSuccess = (data: any) => {
         :fields="fields"
         :grid-class="gridClass"
         :field-props="fieldProps"
-        :on-success="onSuccess"
-        :on-error="onError"
+        @success="onSuccess"
+        @error="emit('error', $event)"
       />
     </template>
   </UModal>

@@ -2,7 +2,7 @@
 import type { TFormAutocompleteProps } from '../form/FormAutocomplete.vue'
 import type { TFormColorPickerProps } from '../form/FormColorPicker.vue'
 import type { TFormUsersPivotProps } from '../form/FormUsersPivot.vue'
-import type { FormSubmitEvent, InputProps, TextareaProps } from '@nuxt/ui'
+import type { FormSubmitEvent, InputProps, SelectProps, TextareaProps } from '@nuxt/ui'
 
 export type TBaseFormState = Record<string, any>
 
@@ -12,6 +12,7 @@ export type TBaseFormField = { name: string; label: string; col?: string } & (
   | { type: 'autocomplete'; props: TFormAutocompleteProps }
   | { type: 'team-members'; props?: TFormUsersPivotProps }
   | { type: 'color'; props?: TFormColorPickerProps }
+  | { type: 'select'; props?: SelectProps }
 )
 
 export type TBaseFormProps = {
@@ -20,10 +21,6 @@ export type TBaseFormProps = {
   fields?: TBaseFormField[]
   fieldProps?: Record<string, any>
   gridClass?: string
-  // eslint-disable-next-line no-unused-vars
-  onSuccess?: (data: any) => void
-  // eslint-disable-next-line no-unused-vars
-  onError?: (error: any) => void
 }
 </script>
 
@@ -31,7 +28,10 @@ export type TBaseFormProps = {
 const props = withDefaults(defineProps<TBaseFormProps>(), {
   method: 'POST',
   fields: () => [],
-  fieldProps: () => ({})
+  fieldProps: () => ({
+    size: 'lg',
+    class: 'w-full'
+  })
 })
 
 const formRef = useTemplateRef('formRef')
@@ -49,10 +49,15 @@ const { mutate, isPending } = useMutation({
   }
 })
 
+const emit = defineEmits<{
+  success: [data: any]
+  error: [error: any]
+}>()
+
 const onSubmit = async (event: FormSubmitEvent<any>) => {
   mutate(event.data, {
     onSuccess(data) {
-      props.onSuccess?.(data)
+      emit('success', data)
     },
     onError(error) {
       const { message, errors } = parseError(error)
@@ -65,7 +70,7 @@ const onSubmit = async (event: FormSubmitEvent<any>) => {
           }
         ])
       }
-      props.onError?.(error)
+      emit('error', error)
     }
   })
 }
@@ -114,6 +119,11 @@ const onCancel = () => {
         />
         <FormColorPicker
           v-else-if="row.type === 'color'"
+          v-model="model[row.name]"
+          v-bind="{ ...fieldProps, ...row.props }"
+        />
+        <USelect
+          v-else-if="row.type === 'select'"
           v-model="model[row.name]"
           v-bind="{ ...fieldProps, ...row.props }"
         />

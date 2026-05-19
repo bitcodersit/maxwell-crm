@@ -1,4 +1,4 @@
-import type { Board, BoardColumn, BoardItem } from '~~/prisma/client/client'
+import type { Board, BoardColumn, BoardItem, BoardModule } from '~~/prisma/client/client'
 
 export type TBoardItem = BoardItem & {
   lead: TMaybe<TLead>
@@ -16,3 +16,5 @@ export type TBoard = Board & {
   items: TBoardItem[]
   columns: TBoardColumn[]
 }
+
+export type TBoardModule = BoardModule

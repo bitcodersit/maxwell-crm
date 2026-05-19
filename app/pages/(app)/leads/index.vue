@@ -4,6 +4,11 @@ definePageMeta({
   layout: 'leads-layout'
 })
 
+const initialQuery = {
+  isDefault: true,
+  module: BoardModule.LEADS
+}
+
 const getItem = (item: TBoardItem) => {
   return item?.lead as TLead
 }
@@ -11,13 +16,13 @@ const getItem = (item: TBoardItem) => {
 
 <template>
   <BaseKanban
-    :board-name="'leads-default'"
+    :initial-query="initialQuery"
     :get-item="getItem"
   >
     <template #item="{ item }">
-      <div>
-        {{ item.sid }}
-      </div>
+      <UCard :title="`#${item.sid}`">
+        {{ item.createdAt }}
+      </UCard>
     </template>
   </BaseKanban>
 </template>

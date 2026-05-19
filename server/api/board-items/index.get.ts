@@ -31,7 +31,8 @@ export default defineEventHandler(async event => {
         sortOrder: 'asc'
       },
       include: {
-        task: true
+        task: true,
+        lead: true
       }
     })
   ])

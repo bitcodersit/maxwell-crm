@@ -242,10 +242,17 @@ model Attachable {
 // ================================================================
 // START BOARD
 
+enum BoardModule {
+    LEADS
+    TASKS
+}
+
 model Board {
     id Int @id @default(autoincrement())
 
-    name String @unique
+    name      String
+    module    BoardModule
+    isDefault Boolean     @default(false)
 
     items   BoardItem[]
     columns BoardColumn[]
@@ -254,6 +261,9 @@ model Board {
     updatedAt DateTime  @default(now()) @updatedAt
     deletedAt DateTime?
 
+    @@unique([module, name])
+    @@index([module])
+    @@index([name])
     @@map("boards")
 }
 
@@ -261,13 +271,14 @@ model BoardColumn {
     id Int @id @default(autoincrement())
 
     boardId Int
-    name    String
-    color   String? @db.VarChar(32)
+    board   Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
-    sortOrder String  @db.VarChar(255)
+    name      String
     pinned    Boolean @default(false)
+    isDefault Boolean @default(false)
+    sortOrder String  @db.VarChar(255)
+    color     String? @db.VarChar(32)
 
-    board Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
     items BoardItem[]
 
     createdAt DateTime  @default(now())
