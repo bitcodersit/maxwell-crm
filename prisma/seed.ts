@@ -15,6 +15,162 @@ const prisma = new PrismaClient({
   })
 })
 
+type TBoardColumn = {
+  name: string
+  color: string
+}
+
+const createBoard = (name: string, columns: TBoardColumn[]) => {
+  return prisma.board.upsert({
+    where: {
+      name
+    },
+    update: {},
+    create: {
+      name,
+      columns: {
+        create: columns.reduce((acc, column) => {
+          return [
+            ...acc,
+            {
+              name: column.name,
+              color: column.color,
+              sortOrder: generateKeyBetween(acc.at(-1)?.sortOrder)
+            }
+          ]
+        }, [])
+      }
+    },
+    include: {
+      columns: true
+    }
+  })
+}
+
+const seedTasksBoard = async () => {
+  const board = await createBoard('tasks-default', [
+    { name: 'Todo', color: '#94a3b8' },
+    { name: 'In Progress', color: '#38bdf8' },
+    { name: 'In Review', color: '#f59e0b' },
+    { name: 'Completed', color: '#10b981' },
+    { name: 'Failed', color: '#ef4444' },
+    { name: 'Cancelled', color: '#64748b' }
+  ])
+
+  // Find all tasks that are not assigned to the board and assign them to the board
+  const tasks = await prisma.task.findMany({
+    where: {
+      deletedAt: null,
+      boardItems: {
+        none: {
+          boardId: board.id
+        }
+      }
+    }
+  })
+
+  const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
+
+  await prisma.boardItem.createMany({
+    data: tasks.reduce((acc, task) => {
+      return [
+        ...acc,
+        {
+          boardId: board.id,
+          taskId: task.id,
+          columnId: board.columns.find(
+            column =>
+              column.name ===
+              task.status
+                .toLowerCase()
+                .split('_')
+                .map(word => capitalize(word))
+                .join(' ')
+          )?.id,
+          sortOrder: generateKeyBetween(acc.at(-1)?.sortOrder)
+        }
+      ]
+    }, [])
+  })
+}
+
+const seedLeadsBoard = async () => {
+  const board = await createBoard('leads-default', [
+    { name: 'New', color: '#94a3b8' }, // slate (neutral)
+    { name: 'Contacted', color: '#38bdf8' }, // sky (info/active)
+    { name: 'Qualified', color: '#f59e0b' }, // amber (attention)
+    { name: 'Prospect', color: '#10b981' }, // emerald (progress)
+    { name: 'Visit Scheduled', color: '#f59e0b' }, // amber (upcoming/action needed)
+    { name: 'Visit Done', color: '#38bdf8' }, // sky (progress)
+    { name: 'Negotiation', color: '#6366f1' }, // indigo (discussion)
+    { name: 'Booking', color: '#06b6d4' }, // cyan (booked)
+    { name: 'Sold', color: '#22c55e' }, // green (sold)
+    { name: 'Closed Lost', color: '#ef4444' } // red (lost)
+  ])
+
+  const leads = await prisma.lead.findMany({
+    where: {
+      deletedAt: null,
+      boardItems: {
+        none: {
+          boardId: board.id
+        }
+      }
+    }
+  })
+
+  await prisma.boardItem.createMany({
+    data: leads.reduce((acc, lead) => {
+      return [
+        ...acc,
+        {
+          boardId: board.id,
+          leadId: lead.id,
+          columnId: board.columns[0].id,
+          sortOrder: generateKeyBetween(acc.at(-1)?.sortOrder)
+        }
+      ]
+    }, [])
+  })
+}
+
+const seedBoards = async () => {
+  await seedTasksBoard()
+  await seedLeadsBoard()
+}
+
+const seedOptions = async () => {
+  const items = [
+    {
+      type: 'SOURCE',
+      options: ['Facebook', 'Website', 'Phone', 'Referral', 'Walk-in']
+    },
+    {
+      type: 'PROPERTY_TYPE_MAIN',
+      options: ['Land', 'Land Share', 'Commercial Plot']
+    },
+    {
+      type: 'PROPERTY_TYPE_SUB',
+      options: ['Ready', 'Ongoing', 'Installment']
+    },
+    {
+      type: 'SIZE',
+      options: ['Katha', 'Sqft']
+    }
+  ]
+  await Promise.all(
+    items.map(item =>
+      prisma.option.createMany({
+        skipDuplicates: true,
+        data: item.options.map(name => ({
+          name,
+          type: item.type
+        }))
+      })
+    )
+  )
+}
+
 async function main() {
   const roles = ['Super Admin', 'Admin', 'Manager', 'Salesman', 'Accountant', 'Customer']
   for (const role of roles) {
@@ -100,75 +256,8 @@ async function main() {
     })
   }
 
-  const taskStatuses = [
-    { name: 'Todo', color: '#94a3b8' },
-    { name: 'In Progress', color: '#38bdf8' },
-    { name: 'In Review', color: '#f59e0b' },
-    { name: 'Completed', color: '#10b981' },
-    { name: 'Failed', color: '#ef4444' },
-    { name: 'Cancelled', color: '#64748b' }
-  ]
-
-  const board = await prisma.board.upsert({
-    where: {
-      name: 'tasks-default'
-    },
-    update: {},
-    create: {
-      name: 'tasks-default',
-      columns: {
-        create: taskStatuses.reduce((acc, status) => {
-          return [
-            ...acc,
-            {
-              name: status.name,
-              color: status.color,
-              sortOrder: generateKeyBetween(acc.at(-1)?.sortOrder)
-            }
-          ]
-        }, [])
-      }
-    },
-    include: {
-      columns: true
-    }
-  })
-
-  // Find all tasks that are not assigned to the board and assign them to the board
-  const tasks = await prisma.task.findMany({
-    where: {
-      deletedAt: null,
-      boardItems: {
-        none: {
-          boardId: board.id
-        }
-      }
-    }
-  })
-
-  const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
-
-  await prisma.boardItem.createMany({
-    data: tasks.reduce((acc, task) => {
-      return [
-        ...acc,
-        {
-          boardId: board.id,
-          taskId: task.id,
-          columnId: board.columns.find(
-            column =>
-              column.name ===
-              task.status
-                .toLowerCase()
-                .split('_')
-                .map(word => capitalize(word))
-                .join(' ')
-          )?.id,
-          sortOrder: generateKeyBetween(acc.at(-1)?.sortOrder)
-        }
-      ]
-    }, [])
-  })
+  await seedBoards()
+  await seedOptions()
 }
 main()
   .then(async () => {
