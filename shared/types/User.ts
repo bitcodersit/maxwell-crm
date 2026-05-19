@@ -2,7 +2,7 @@ import type { TMaybe } from '.'
 import type { TUserRole } from './UserRole'
 import type { Attachment, User } from '~~/prisma/client/client'
 
-type TModule = 'Users' | 'Roles' | 'Permissions' | 'Teams' | 'Attachments' | 'Tasks'
+type TModule = 'Users' | 'Roles' | 'Permissions' | 'Teams' | 'Attachments' | 'Tasks' | 'Leads'
 type TOperation = 'create' | 'read' | 'update' | 'delete' | 'export'
 type TSubject = 'Any' | 'Own'
 

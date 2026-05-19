@@ -67,6 +67,9 @@ const createBoard = async (input: Board) => {
         columns: {
           create: columns
         }
+      },
+      include: {
+        columns: true
       }
     })
   }
@@ -87,6 +90,9 @@ const createBoard = async (input: Board) => {
           create: column
         }))
       }
+    },
+    include: {
+      columns: true
     }
   })
 }
@@ -212,17 +218,15 @@ const seedOptions = async () => {
       options: ['Katha', 'Sqft']
     }
   ]
-  await Promise.all(
-    items.map(item =>
-      prisma.option.createMany({
-        skipDuplicates: true,
-        data: item.options.map(name => ({
-          name,
-          type: item.type
-        }))
-      })
+  await prisma.option.createMany({
+    skipDuplicates: true,
+    data: items.flatMap(item =>
+      item.options.map(name => ({
+        name,
+        type: item.type
+      }))
     )
-  )
+  })
 }
 
 async function main() {
@@ -240,7 +244,7 @@ async function main() {
   }
 
   const operations = ['create', 'read', 'update', 'delete', 'export']
-  const modules = ['users', 'roles', 'permissions', 'teams', 'attachments', 'tasks']
+  const modules = ['users', 'roles', 'permissions', 'teams', 'attachments', 'tasks', 'leads']
   const subjects = ['any', 'own']
 
   const permissionsData = operations.flatMap(operation =>

@@ -11,15 +11,8 @@ const zUser = z.object({
   name: zName(),
   email: zEmail(),
   password: zPassword().nullish(),
-  // phone: zPhone({ nullish: true }),
   roleIds: z.array(z.number()).min(1, 'At least one role is required')
 })
-// .transform(data => {
-//   return {
-//     ...data,
-//     phone: data.phone ? zPhoneParse(data.phone) : null
-//   }
-// })
 
 const validateNonCustomerRoles = async (roleIds: number[]) => {
   if (!roleIds.length) return

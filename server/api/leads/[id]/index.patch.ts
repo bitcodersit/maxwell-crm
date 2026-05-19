@@ -1,15 +1,18 @@
-const zLeadPatch = z.object({
-  status: z.enum(['Hot', 'Warm', 'Cold', 'Not Interested', 'Closed']).optional(),
-  followUpDate: z.string().nullish(),
-  assignedSalesman: z.string().nullish(),
-  notes: z.string().nullish()
-})
+import { getRouterParamId } from '~~/server/utils/getRouterParamId'
+import { updateLead, zUpdateLead } from '~~/server/utils/leads'
 
 export default defineEventHandler(async event => {
-  await requireUserSession(event)
-  const id = Number(getRouterParam(event, 'id'))
-  if (!id) throw err.notFound()
+  // Check permission
+  const user = await getCurrentUser(event, { cache: false })
+  if (!user.updateAnyLeads || !user.updateOwnLeads) return err.denied()
+
+  // Get id
+  const id = getRouterParamId(event)
+
+  // Parse and validate input
   const body = await readBody(event)
-  const input = await validate(body, zLeadPatch)
-  return upsertLead({ id, ...input })
+  const input = await validate(body, zUpdateLead)
+
+  // Update lead
+  return await updateLead(id, input, user)
 })
