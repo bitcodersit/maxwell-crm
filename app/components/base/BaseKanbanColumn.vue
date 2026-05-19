@@ -18,18 +18,18 @@ const onRemove = async () => {
       body: `Column has items, please remove them first`
     })
   }
-  if (
-    await confirm({
-      title: 'Delete Column',
-      description: `Are you sure you want to delete the column "${props.column.name}"? This action cannot be undone.`
-    })
-  ) {
-    $fetch<TBoardColumn>(`/api/board-columns/${props.column.id}`, {
-      method: 'DELETE'
-    }).then(() => {
-      emit('refetch')
-    })
-  }
+  confirm({
+    title: 'Delete Column',
+    description: `Are you sure you want to delete the column "${props.column.name}"? This action cannot be undone.`,
+    onConfirm: async () => {
+      return $fetch<TBoardColumn>(`/api/board-columns/${props.column.id}`, {
+        method: 'DELETE'
+      }).then(res => {
+        emit('refetch')
+        return res
+      })
+    }
+  })
 }
 
 const onPinUnpin = () => {
@@ -71,6 +71,8 @@ const menuItems = computed(() => {
 
 <template>
   <div
+    :data-column-id="column.id"
+    :data-column-sort-order="column.sortOrder"
     :class="{
       'base-kanban-pinned': column.pinned
     }"
@@ -78,7 +80,7 @@ const menuItems = computed(() => {
   >
     <!-- Header -->
     <div
-      class="flex-none bg-elevated base-kanban-handle cursor-grab active:cursor-grabbing px-4 py-3 flex items-center gap-4 justify-between"
+      class="flex-none bg-elevated base-kanban-handle cursor-grab active:cursor-grabbing px-4 py-3 flex items-center gap-4 justify-between border-x border-t border-default rounded-t-lg"
     >
       <div class="flex items-center gap-2">
         <UIcon
@@ -91,7 +93,9 @@ const menuItems = computed(() => {
             backgroundColor: column.color ? column.color : 'var(--color-border)'
           }"
         ></div>
-        <div class="text-sm font-semibold text-highlighted truncate">{{ column.name }}</div>
+        <div class="text-sm font-semibold text-highlighted truncate">
+          {{ column.name }}
+        </div>
         <UBadge
           :label="String(column._count?.items || 0)"
           size="sm"
@@ -99,7 +103,7 @@ const menuItems = computed(() => {
           variant="subtle"
         />
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center">
         <UButton
           icon="i-lucide-plus"
           size="sm"

@@ -30,32 +30,8 @@ const toast = useToast()
 
 // Columns
 const columns = shallowRef<TBoardColumn[]>([])
-
-const { mutate: reorderColumn } = useMutation({
-  mutationFn({ id, ...body }: { id: number; a: TMaybe<string>; b: TMaybe<string> }) {
-    return $fetch<TBoardColumn>(`/api/boards/${props.boardName}/columns/${id}/reorder`, {
-      body,
-      method: 'PATCH'
-    })
-  },
-  onSuccess(data) {
-    columns.value = columns.value.map(column => {
-      if (column.id === data.id) {
-        return { ...column, ...data }
-      }
-      return column
-    })
-  },
-  onError(error) {
-    toast.add({
-      title: 'Error',
-      color: 'error',
-      description: error.message
-    })
-  }
-})
-
 const columnsSortableReady = ref(false)
+
 const columnsRef = (el: Element | ComponentPublicInstance | null) => {
   if (!el || columnsSortableReady.value) return
   columnsSortableReady.value = true
@@ -64,27 +40,35 @@ const columnsRef = (el: Element | ComponentPublicInstance | null) => {
     handle: '.base-kanban-handle',
     filter: '.base-kanban-pinned',
     direction: 'horizontal',
-    onEnd: e => {
-      if (e.oldIndex === e.newIndex) return
-
-      const copy = [...columns.value]
-      const movedColumn = copy[e.oldIndex!]
-
-      copy.splice(e.oldIndex!, 1)
-      copy.splice(e.newIndex!, 0, movedColumn!)
-
-      const index = copy.indexOf(movedColumn!)
-
-      reorderColumn({
-        id: movedColumn!.id,
-        a: copy[index - 1]?.sortOrder,
-        b: copy[index + 1]?.sortOrder
+    onUpdate: event => {
+      if (event.oldIndex === event.newIndex) return
+      const { id, sortOrder } = parseSortableEvent(event, 'column')
+      $fetch<TBoardColumn>('/api/board-columns', {
+        method: 'POST',
+        body: {
+          id,
+          sortOrder
+        }
       })
+        .then(data => {
+          columns.value = columns.value.map(column => {
+            if (column.id === data.id) {
+              return { ...column, ...data }
+            }
+            return column
+          })
+        })
+        .catch(error => {
+          toast.add({
+            title: 'Error',
+            color: 'error',
+            description: error.message
+          })
+        })
     },
     onMove(evt) {
-      // evt.related is the element we are hovering over
       if (evt.related.classList.contains('base-kanban-pinned')) {
-        return false // Cancel the move
+        return false
       }
     }
   })

@@ -24,27 +24,28 @@ const getItem = (item: TBoardItem) => {
       :board-name="'tasks-default'"
     >
       <template #item="{ item }">
-        <div class="border-default py-4 bg-elevated/50 rounded-lg">
-          <div class="px-4">
-            <div class="truncate">
-              {{ item.name }}
-            </div>
-            <div class="line-clamp-2 text-sm text-muted">
-              {{ item.description }}
-            </div>
-            <div class="flex flex-wrap items-center gap-1 mt-2">
-              <TaskStatusBadge :task="item" />
-              <TaskPriorityBadge
-                :status="item.status"
-                :priority="item.priority"
-              />
-              <TaskDueDateBadge
-                :due-at="item.dueAt"
-                :status="item.status"
-              />
-            </div>
+        <UCard
+          size="sm"
+          class="shadow-sm"
+        >
+          <div class="truncate">
+            {{ item.name }}
           </div>
-        </div>
+          <div class="line-clamp-2 text-sm text-muted">
+            {{ item.description }}
+          </div>
+          <div class="flex flex-wrap items-center gap-1 mt-2">
+            <TaskStatusBadge :task="item" />
+            <TaskPriorityBadge
+              :status="item.status"
+              :priority="item.priority"
+            />
+            <TaskDueDateBadge
+              :due-at="item.dueAt"
+              :status="item.status"
+            />
+          </div>
+        </UCard>
       </template>
     </BaseKanban>
   </div>

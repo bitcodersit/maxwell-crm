@@ -1,5 +1,5 @@
 import z from 'zod'
-import { zId } from '~~/server/utils/z'
+import { zId, zSortOrder } from '~~/server/utils/z'
 
 type TZPatchSchema = z.infer<typeof zPatchSchema>
 const zPatchSchema = z.object({
@@ -7,7 +7,8 @@ const zPatchSchema = z.object({
   name: zName().nullish(),
   color: zColor().nullish(),
   pinned: z.boolean().nullish(),
-  boardId: zId().nullish()
+  boardId: zId().nullish(),
+  sortOrder: zSortOrder().nullish()
 })
 
 type TZPostSchema = z.infer<typeof zPostSchema>
@@ -32,6 +33,12 @@ export default defineEventHandler(async event => {
     if (rest.color) data.color = rest.color
     if (typeof rest.pinned === 'boolean') data.pinned = rest.pinned
     if (rest.boardId) data.board = { connect: { id: rest.boardId } }
+    if (rest.sortOrder) {
+      data.sortOrder = Array.isArray(rest.sortOrder)
+        ? getSortOrder(rest.sortOrder[0], rest.sortOrder[1])
+        : rest.sortOrder
+    }
+    console.log(data)
     return prisma.boardColumn.update({
       data,
       where: {

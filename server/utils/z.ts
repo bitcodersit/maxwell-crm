@@ -43,4 +43,11 @@ export const zDateRequired = (message = 'Date is required!') => {
   )
 }
 
+export const zSortOrder = (message = 'Sort order is required!') => {
+  return z.union([
+    z.string().min(1, message),
+    z.array(z.string().min(1, message).nullable()).length(2, message)
+  ])
+}
+
 export { z }

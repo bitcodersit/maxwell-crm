@@ -1,5 +1,4 @@
 <script lang="ts">
-import type { SortableEvent } from 'sortablejs'
 import { useSortable } from '@vueuse/integrations/useSortable'
 </script>
 
@@ -48,16 +47,6 @@ const emit = defineEmits<{
   refetch: []
 }>()
 
-const parseSortableEvent = (e: SortableEvent) => {
-  return {
-    id: Number(e.target.children[e.newIndex!]?.getAttribute('data-item-id')),
-    sortOrder: [
-      e.target.children[e.newIndex! - 1]?.getAttribute('data-item-sort-order') ?? null,
-      e.target.children[e.newIndex! + 1]?.getAttribute('data-item-sort-order') ?? null
-    ]
-  }
-}
-
 const itemsSortableReady = ref(false)
 const itemsRef = (el: Element | ComponentPublicInstance | null) => {
   if (!el || itemsSortableReady.value) return
@@ -65,8 +54,8 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
   useSortable(el as HTMLElement, items, {
     animation: 150,
     group: 'base-kanban-items',
-    onAdd(e) {
-      const { id, sortOrder } = parseSortableEvent(e)
+    onAdd(event) {
+      const { id, sortOrder } = parseSortableEvent(event, 'item')
       $fetch<TBoardItem>(`/api/board-items/${id}`, {
         method: 'PATCH',
         body: {
@@ -77,9 +66,9 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
         emit('refetch')
       })
     },
-    onUpdate: e => {
-      if (e.oldIndex === e.newIndex) return
-      const { id, sortOrder } = parseSortableEvent(e)
+    onUpdate: event => {
+      if (event.oldIndex === event.newIndex) return
+      const { id, sortOrder } = parseSortableEvent(event, 'item')
       $fetch<TBoardItem>(`/api/board-items/${id}`, {
         method: 'PATCH',
         body: { sortOrder }
@@ -93,7 +82,7 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
   <ClientOnly>
     <div
       :ref="itemsRef"
-      class="overflow-y-auto scrollbar border-x border-b border-default rounded-b-lg bg-default p-2 flex flex-col gap-2 relative"
+      class="overflow-y-auto scrollbar border-x border-b border-default rounded-b-lg bg-elevated/40 p-3 flex flex-col gap-3 relative"
     >
       <UProgress
         v-if="isFetching"
