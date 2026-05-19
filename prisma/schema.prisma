@@ -29,11 +29,20 @@ model User {
     teamMembers         TeamMember[]
     teamMembersAssigned TeamMember[] @relation("TeamMemberAssigner")
 
+    leads          Lead[] @relation("LeadCustomer")
+    leadsAsCreator Lead[] @relation("LeadCreator")
+
     taskUsers      TaskUser[]
     taskItems      TaskItem[] @relation("TaskItemCompleter")
     tasksCreated   Task[]     @relation("TaskCreator")
     tasksReviewed  Task[]     @relation("TaskReviewer")
     tasksSubmitted Task[]     @relation("TaskSubmitter")
+
+    assignableUsers           AssignableUser[] @relation("AssignableUser")
+    assignableUsersAsAssigner AssignableUser[] @relation("AssignableUserAssigner")
+
+    assignableTeams     AssignableTeam[] @relation("AssignableTeamAssigner")
+    propertiesAsCreator Property[]       @relation("PropertyCreator")
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -66,6 +75,8 @@ model Team {
     creator   User?        @relation(fields: [creatorId], references: [id], onDelete: SetNull)
     members   TeamMember[]
     taskTeams TaskTeam[]
+
+    assignableTeams AssignableTeam[] @relation("AssignableTeam")
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -209,11 +220,21 @@ model Attachable {
     taskId Int?
     task   Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
+    leadId Int?
+    lead   Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+    propertyId Int?
+    property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now()) @updatedAt
 
     @@unique([attachmentId, taskId])
+    @@unique([attachmentId, leadId])
+    @@unique([attachmentId, propertyId])
     @@index([taskId])
+    @@index([leadId])
+    @@index([propertyId])
     @@map("attachables")
 }
 
@@ -273,6 +294,7 @@ model BoardItem {
 
     board  Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
     column BoardColumn @relation(fields: [columnId], references: [id], onDelete: Restrict)
+    lead   Lead?       @relation(fields: [leadId], references: [id], onDelete: Cascade)
     task   Task?       @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
     createdAt DateTime @default(now())
@@ -412,6 +434,212 @@ model TaskTeam {
 }
 
 // END TASK
+// ================================================================
+// START CRM
+
+enum OptionType {
+    SOURCE
+    PROPERTY_TYPE_MAIN
+    PROPERTY_TYPE_SUB
+    SIZE
+}
+
+model Option {
+    id Int @id @default(autoincrement())
+
+    name String
+    type OptionType
+
+    leadsAsSource           Lead[]     @relation("LeadSourceOption")
+    leadsAsPropertyTypeMain Lead[]     @relation("LeadPropertyTypeMainOption")
+    leadsAsPropertyTypeSub  Lead[]     @relation("LeadPropertyTypeSubOption")
+    propertiesAsSize        Property[] @relation("PropertySizeOption")
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@unique([name, type])
+    @@index([type])
+    @@index([name])
+    @@map("options")
+}
+
+model Lead {
+    id  Int    @id @default(autoincrement())
+    sid String @unique @db.VarChar(32)
+
+    status String @default("New")
+
+    budgetMin Decimal? @db.Decimal(18, 2)
+    budgetMax Decimal? @db.Decimal(18, 2)
+
+    creatorId Int?
+    creator   User? @relation("LeadCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+
+    assignableId Int?
+    assignable   Assignable? @relation(fields: [assignableId], references: [id], onDelete: SetNull)
+
+    addressId Int?
+    address   Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+
+    sourceId Int?
+    source   Option? @relation("LeadSourceOption", fields: [sourceId], references: [id], onDelete: SetNull)
+
+    customerId Int?
+    customer   User? @relation("LeadCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+
+    propertyTypeMainId Int?
+    propertyTypeMain   Option? @relation("LeadPropertyTypeMainOption", fields: [propertyTypeMainId], references: [id], onDelete: SetNull)
+
+    propertyTypeSubId Int?
+    propertyTypeSub   Option? @relation("LeadPropertyTypeSubOption", fields: [propertyTypeSubId], references: [id], onDelete: SetNull)
+
+    properties  LeadProperty[]
+    boardItems  BoardItem[]
+    attachables Attachable[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([customerId])
+    @@index([creatorId])
+    @@index([assignableId])
+    @@index([addressId])
+    @@index([sourceId])
+    @@index([propertyTypeMainId])
+    @@index([propertyTypeSubId])
+    @@index([status])
+    @@index([createdAt])
+    @@map("leads")
+}
+
+model Property {
+    id  Int    @id @default(autoincrement())
+    sid String @unique @db.VarChar(32)
+
+    name   String
+    status String @default("Available")
+
+    creatorId Int?
+    creator   User? @relation("PropertyCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+
+    assignableId Int?
+    assignable   Assignable? @relation(fields: [assignableId], references: [id], onDelete: SetNull)
+
+    size      Option?  @relation("PropertySizeOption", fields: [sizeId], references: [id], onDelete: SetNull)
+    sizeId    Int?
+    sizeValue Decimal? @db.Decimal(12, 2)
+
+    addressId Int?
+    address   Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+
+    face  String?
+    price Decimal? @db.Decimal(18, 2)
+
+    leads       LeadProperty[]
+    attachables Attachable[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([status])
+    @@index([creatorId])
+    @@index([assignableId])
+    @@index([sizeId])
+    @@index([addressId])
+    @@map("properties")
+}
+
+model LeadProperty {
+    id Int @id @default(autoincrement())
+
+    leadId     Int
+    propertyId Int
+
+    lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+    property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@unique([leadId, propertyId])
+    @@index([leadId])
+    @@index([propertyId])
+    @@map("lead_properties")
+}
+
+model Address {
+    id Int @id @default(autoincrement())
+
+    addressLine1 String
+    road         String?
+    block        String?
+
+    leads      Lead[]
+    properties Property[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([addressLine1])
+    @@map("addresses")
+}
+
+model Assignable {
+    id Int @id @default(autoincrement())
+
+    leads      Lead[]
+    properties Property[]
+
+    assignedUsers AssignableUser[]
+    assignedTeams AssignableTeam[]
+
+    @@map("assignables")
+}
+
+model AssignableUser {
+    id Int @id @default(autoincrement())
+
+    assignableId Int
+    assignable   Assignable @relation(fields: [assignableId], references: [id], onDelete: Cascade)
+
+    userId Int
+    user   User @relation("AssignableUser", fields: [userId], references: [id], onDelete: Cascade)
+
+    assignerId Int?
+    assigner   User? @relation("AssignableUserAssigner", fields: [assignerId], references: [id], onDelete: SetNull)
+
+    @@unique([assignableId, userId])
+    @@index([assignableId])
+    @@index([userId])
+    @@index([assignerId])
+    @@map("assignable_users")
+}
+
+model AssignableTeam {
+    id Int @id @default(autoincrement())
+
+    assignableId Int
+    assignable   Assignable @relation(fields: [assignableId], references: [id], onDelete: Cascade)
+
+    teamId Int
+    team   Team @relation("AssignableTeam", fields: [teamId], references: [id], onDelete: Cascade)
+
+    assignerId Int?
+    assigner   User? @relation("AssignableTeamAssigner", fields: [assignerId], references: [id], onDelete: SetNull)
+
+    @@unique([assignableId, teamId])
+    @@index([assignableId])
+    @@index([teamId])
+    @@index([assignerId])
+    @@map("assignable_teams")
+}
+
+// END CRM
 // ================================================================
 // START UTILITY
 
