@@ -23,7 +23,6 @@ const onSuccess = (lead: TLead) => {
       queryKey: [
         `/api/board-items`,
         {
-          boardId: lead.boardItems[0].boardId,
           columnId: lead.boardItems[0].columnId
         }
       ]

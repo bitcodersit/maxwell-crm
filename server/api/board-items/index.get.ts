@@ -1,12 +1,5 @@
 const zGetBoardItems = z.object({
-  boardId: z
-    .string()
-    .refine(val => Number.isInteger(Number(val)), 'Board ID must be a number')
-    .nullish(),
-  columnId: z
-    .string()
-    .refine(val => Number.isInteger(Number(val)), 'Column ID must be a number')
-    .nullish()
+  columnId: zId().nullish()
 })
 
 export default defineEventHandler(async event => {
@@ -16,7 +9,6 @@ export default defineEventHandler(async event => {
   const input = await validate(query, zGetBoardItems)
 
   const where: Prisma.BoardItemWhereInput = {}
-  if (input.boardId) where.boardId = Number(input.boardId)
   if (input.columnId) where.columnId = Number(input.columnId)
 
   const { skip, take, paginate } = getPagination(query)

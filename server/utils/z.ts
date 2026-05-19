@@ -2,7 +2,10 @@ import { isValidPhoneNumber, parsePhoneNumberWithError } from 'libphonenumber-js
 import { z } from 'zod'
 
 export const zId = (message = 'Invalid ID') => {
-  return z.number(message).int(message).positive(message)
+  return z
+    .union([z.string(), z.number()])
+    .transform(val => Number(val))
+    .refine(val => Number.isInteger(val) && val > 0, message)
 }
 
 export const zName = (message = 'Name is required!', length = 3) =>

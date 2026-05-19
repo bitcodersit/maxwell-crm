@@ -148,7 +148,6 @@ const onColumnFormSuccess = () => {
         >
           <BaseKanbanItems
             v-if="data?.id"
-            :board-id="data?.id"
             :column-id="column.id"
             :get-item="getItem"
             @refetch="refetch"
