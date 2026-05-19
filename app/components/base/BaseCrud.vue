@@ -530,270 +530,280 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
 
 <template>
   <ClientOnly>
-    <div class="flex items-center justify-between gap-2 flex-wrap">
-      <div class="flex items-center gap-2 flex-wrap">
-        <template
-          v-for="row in filters"
-          :key="row.name"
-        >
-          <FilterInputInline
-            v-if="row.type === 'inline-input'"
-            v-bind="row.props"
-            v-model="query[row.name]"
-            @update:model-value="onGotoFirstPage"
-          />
-          <FilterInput
-            v-else-if="row.type === 'input'"
-            v-bind="row.props"
-            v-model="query[row.name]"
-            v-model:mode="query[row.name + 'Mode']"
-            @update:model-value="onGotoFirstPage"
-          />
-          <FilterDate
-            v-else-if="row.type === 'date'"
-            v-bind="row.props"
-            v-model="query[row.name]"
-            v-model:mode="query[row.name + 'Mode']"
-            @update:model-value="onGotoFirstPage"
-          />
-          <FilterCheckbox
-            v-else-if="row.type === 'checkbox-api'"
-            v-bind="row.props"
-            v-model="query[row.name]"
-            @update:model-value="onGotoFirstPage"
-          />
-        </template>
-        <UTooltip text="Refresh data">
-          <UButton
-            icon="i-lucide-refresh-cw"
-            color="primary"
-            variant="subtle"
-            @click="() => refetch()"
-          />
-        </UTooltip>
-        <UTooltip text="Clear filters">
-          <UButton
-            v-if="isClearable"
-            icon="i-lucide-filter"
-            color="error"
-            variant="subtle"
-            @click="onClearFilters"
+    <div class="flex-1 flex flex-col gap-4 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 flex-wrap flex-none">
+        <div class="flex items-center gap-2 flex-wrap">
+          <template
+            v-for="row in filters"
+            :key="row.name"
           >
-            Clear
-          </UButton>
-        </UTooltip>
-        <UTooltip text="Clear Sorting">
-          <UButton
-            v-if="isOrdered"
-            icon="i-lucide-arrow-up-down"
-            color="error"
-            variant="subtle"
-            @click="onClearOrderBy"
-          >
-            Clear
-          </UButton>
-        </UTooltip>
-      </div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <template v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length">
-          <UTooltip text="Clear selection">
+            <FilterInputInline
+              v-if="row.type === 'inline-input'"
+              v-bind="row.props"
+              v-model="query[row.name]"
+              @update:model-value="onGotoFirstPage"
+            />
+            <FilterInput
+              v-else-if="row.type === 'input'"
+              v-bind="row.props"
+              v-model="query[row.name]"
+              v-model:mode="query[row.name + 'Mode']"
+              @update:model-value="onGotoFirstPage"
+            />
+            <FilterDate
+              v-else-if="row.type === 'date'"
+              v-bind="row.props"
+              v-model="query[row.name]"
+              v-model:mode="query[row.name + 'Mode']"
+              @update:model-value="onGotoFirstPage"
+            />
+            <FilterCheckbox
+              v-else-if="row.type === 'checkbox-api'"
+              v-bind="row.props"
+              v-model="query[row.name]"
+              @update:model-value="onGotoFirstPage"
+            />
+          </template>
+          <UTooltip text="Refresh data">
             <UButton
-              icon="i-lucide-list-todo"
+              icon="i-lucide-refresh-cw"
+              color="primary"
+              variant="subtle"
+              @click="() => refetch()"
+            />
+          </UTooltip>
+          <UTooltip text="Clear filters">
+            <UButton
+              v-if="isClearable"
+              icon="i-lucide-filter"
               color="error"
               variant="subtle"
-              :ui="{ leadingIcon: 'size-4' }"
-              @click="selected = {}"
+              @click="onClearFilters"
             >
               Clear
             </UButton>
           </UTooltip>
-          <!-- <slot name="bulk-actions" /> -->
-          <UButton
-            label="Delete"
-            color="error"
-            variant="subtle"
-            icon="i-lucide-trash"
-            :ui="{ leadingIcon: 'size-4' }"
-            @click="onDeleteSelected"
-          >
-            <template #trailing>
-              <UKbd>
-                {{ getSelectedRowItems().length }}
-              </UKbd>
-            </template>
-          </UButton>
-        </template>
-        <UPopover
-          v-if="exportUrl"
-          v-model:open="exportOpen"
-          :ui="{ content: 'p-4 max-w-sm w-full' }"
-          :content="{ align: 'end', side: 'bottom' }"
-        >
-          <UTooltip text="Export">
+          <UTooltip text="Clear Sorting">
             <UButton
-              icon="i-lucide-download"
-              color="primary"
-              variant="solid"
-              label="Export"
-            />
-          </UTooltip>
-          <template #content>
-            <UForm
-              :state="exportState"
-              :loading="exporting"
-              class="flex flex-col gap-4"
-              @submit="onSubmitExport"
+              v-if="isOrdered"
+              icon="i-lucide-arrow-up-down"
+              color="error"
+              variant="subtle"
+              @click="onClearOrderBy"
             >
-              <UFormField label="Selection">
-                <URadioGroup
-                  v-model="exportState.selection"
-                  variant="table"
-                  orientation="horizontal"
-                  :items="[
-                    {
-                      label: 'All',
-                      value: 'all'
-                    },
-                    {
-                      label: 'Selected',
-                      value: 'selected'
-                    },
-                    {
-                      label: 'Current Page',
-                      value: 'current-page'
-                    }
-                  ]"
-                />
-              </UFormField>
-              <UFormField label="Format">
-                <URadioGroup
-                  v-model="exportState.format"
-                  variant="table"
-                  orientation="horizontal"
-                  :items="[
-                    { label: 'Excel', value: 'excel' },
-                    { label: 'CSV', value: 'csv' }
-                  ]"
-                />
-              </UFormField>
-              <div class="flex justify-end">
-                <UButton
-                  type="submit"
-                  icon="i-lucide-download"
-                  :loading="exporting"
-                  :disabled="
-                    exportState.selection === 'selected' &&
-                    !table?.tableApi?.getFilteredSelectedRowModel().rows.length
-                  "
-                >
-                  Export
-                </UButton>
-              </div>
-            </UForm>
-          </template>
-        </UPopover>
-        <slot
-          v-if="showAddButton"
-          name="actions"
-        >
-          <UTooltip text="Add new item">
-            <UButton
-              icon="i-lucide-plus"
-              color="primary"
-              variant="solid"
-              @click="onAddNew"
-            >
-              Add New
+              Clear
             </UButton>
           </UTooltip>
-        </slot>
-      </div>
-    </div>
-    <slot name="top" />
-    <div :class="gridClass">
-      <div :class="leftClass">
-        <UTable
-          ref="table"
-          v-model:row-selection="selected"
-          class="flex-1"
-          :sticky="true"
-          :data="data.data"
-          :columns="mColumns"
-          :loading="isFetching"
-          :ui="{
-            base: 'table-fixed border-separate border-spacing-0',
-            thead: '[&>tr]:after:content-none',
-            tbody: '[&>tr]:last:[&>td]:border-b-0',
-            th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-            td: 'border-b border-default',
-            separator: 'h-0'
-          }"
-        >
-          <template #select-header="{ column, table }">
-            <div class="pr-4">
-              <UCheckbox
-                :model-value="
-                  table.getIsSomePageRowsSelected()
-                    ? 'indeterminate'
-                    : table.getIsAllPageRowsSelected()
-                "
-                aria-label="Select all"
-                @update:model-value="v => table.toggleAllPageRowsSelected(!!v)"
-              />
-            </div>
-            {{ !column.getIsPinned() ? column.pin('left') : '' }}
-          </template>
-          <template #select-cell="{ row }">
-            <UCheckbox
-              :model-value="row.getIsSelected()"
-              aria-label="Select row"
-              @update:model-value="v => row.toggleSelected(!!v)"
-            />
-          </template>
-          <template #action-cell="{ row }">
-            <UDropdownMenu :items="getActions(row.original)">
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <template v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length">
+            <UTooltip text="Clear selection">
               <UButton
-                icon="i-lucide-ellipsis-vertical"
-                color="neutral"
-                variant="ghost"
-                aria-label="Actions"
-              />
-            </UDropdownMenu>
+                icon="i-lucide-list-todo"
+                color="error"
+                variant="subtle"
+                :ui="{ leadingIcon: 'size-4' }"
+                @click="selected = {}"
+              >
+                Clear
+              </UButton>
+            </UTooltip>
+            <!-- <slot name="bulk-actions" /> -->
+            <UButton
+              label="Delete"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-trash"
+              :ui="{ leadingIcon: 'size-4' }"
+              @click="onDeleteSelected"
+            >
+              <template #trailing>
+                <UKbd>
+                  {{ getSelectedRowItems().length }}
+                </UKbd>
+              </template>
+            </UButton>
           </template>
-        </UTable>
-        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
-          <div
-            v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
-            class="text-sm text-muted"
+          <UPopover
+            v-if="exportUrl"
+            v-model:open="exportOpen"
+            :ui="{ content: 'p-4 max-w-sm w-full' }"
+            :content="{ align: 'end', side: 'bottom' }"
           >
-            {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
-            {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} row(s) selected.
-          </div>
-          <div
-            v-else
-            class="text-sm text-muted"
-          >
-            Showing {{ query.perPage }} of {{ data.total }} row(s) total
-          </div>
-
-          <div class="flex items-center gap-3">
-            <UTooltip text="Change items per page">
-              <USelect
-                v-model="query.perPage"
-                :items="perPageOptions"
-                class="min-w-20"
-                @change="onGotoFirstPage"
+            <UTooltip text="Export">
+              <UButton
+                icon="i-lucide-download"
+                color="primary"
+                variant="solid"
+                label="Export"
               />
             </UTooltip>
-            <UPagination
-              v-model:page="query.page"
-              :items-per-page="query.perPage"
-              :total="data.total"
-            />
-          </div>
+            <template #content>
+              <UForm
+                :state="exportState"
+                :loading="exporting"
+                class="flex flex-col gap-4"
+                @submit="onSubmitExport"
+              >
+                <UFormField label="Selection">
+                  <URadioGroup
+                    v-model="exportState.selection"
+                    variant="table"
+                    orientation="horizontal"
+                    :items="[
+                      {
+                        label: 'All',
+                        value: 'all'
+                      },
+                      {
+                        label: 'Selected',
+                        value: 'selected'
+                      },
+                      {
+                        label: 'Current Page',
+                        value: 'current-page'
+                      }
+                    ]"
+                  />
+                </UFormField>
+                <UFormField label="Format">
+                  <URadioGroup
+                    v-model="exportState.format"
+                    variant="table"
+                    orientation="horizontal"
+                    :items="[
+                      { label: 'Excel', value: 'excel' },
+                      { label: 'CSV', value: 'csv' }
+                    ]"
+                  />
+                </UFormField>
+                <div class="flex justify-end">
+                  <UButton
+                    type="submit"
+                    icon="i-lucide-download"
+                    :loading="exporting"
+                    :disabled="
+                      exportState.selection === 'selected' &&
+                      !table?.tableApi?.getFilteredSelectedRowModel().rows.length
+                    "
+                  >
+                    Export
+                  </UButton>
+                </div>
+              </UForm>
+            </template>
+          </UPopover>
+          <slot
+            v-if="showAddButton"
+            name="actions"
+          >
+            <UTooltip text="Add new item">
+              <UButton
+                icon="i-lucide-plus"
+                color="primary"
+                variant="solid"
+                @click="onAddNew"
+              >
+                Add New
+              </UButton>
+            </UTooltip>
+          </slot>
         </div>
       </div>
-      <slot name="right" />
+      <slot name="top" />
+      <div
+        :class="gridClass"
+        class="flex-1 overflow-hidden"
+      >
+        <div
+          :class="leftClass"
+          class="flex flex-col overflow-hidden"
+        >
+          <UTable
+            ref="table"
+            v-model:row-selection="selected"
+            class="flex-1"
+            :sticky="true"
+            :data="data.data"
+            :columns="mColumns"
+            :loading="isFetching"
+            :ui="{
+              base: 'table-fixed border-separate border-spacing-0',
+              thead: '[&>tr]:after:content-none',
+              tbody: '[&>tr]:last:[&>td]:border-b-0',
+              th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
+              td: 'border-b border-default',
+              separator: 'h-0'
+            }"
+          >
+            <template #select-header="{ column, table }">
+              <div class="pr-4">
+                <UCheckbox
+                  :model-value="
+                    table.getIsSomePageRowsSelected()
+                      ? 'indeterminate'
+                      : table.getIsAllPageRowsSelected()
+                  "
+                  aria-label="Select all"
+                  @update:model-value="v => table.toggleAllPageRowsSelected(!!v)"
+                />
+              </div>
+              {{ !column.getIsPinned() ? column.pin('left') : '' }}
+            </template>
+            <template #select-cell="{ row }">
+              <UCheckbox
+                :model-value="row.getIsSelected()"
+                aria-label="Select row"
+                @update:model-value="v => row.toggleSelected(!!v)"
+              />
+            </template>
+            <template #action-cell="{ row }">
+              <UDropdownMenu :items="getActions(row.original)">
+                <UButton
+                  icon="i-lucide-ellipsis-vertical"
+                  color="neutral"
+                  variant="ghost"
+                  aria-label="Actions"
+                />
+              </UDropdownMenu>
+            </template>
+          </UTable>
+          <div
+            class="flex-none flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4"
+          >
+            <div
+              v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
+              class="text-sm text-muted"
+            >
+              {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} of
+              {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} row(s) selected.
+            </div>
+            <div
+              v-else
+              class="text-sm text-muted"
+            >
+              Showing {{ query.perPage }} of {{ data.total }} row(s) total
+            </div>
+
+            <div class="flex items-center gap-3">
+              <UTooltip text="Change items per page">
+                <USelect
+                  v-model="query.perPage"
+                  :items="perPageOptions"
+                  class="min-w-20"
+                  @change="onGotoFirstPage"
+                />
+              </UTooltip>
+              <UPagination
+                v-model:page="query.page"
+                :items-per-page="query.perPage"
+                :total="data.total"
+              />
+            </div>
+          </div>
+        </div>
+        <slot name="right" />
+      </div>
     </div>
     <UModal
       v-model:open="viewModal"

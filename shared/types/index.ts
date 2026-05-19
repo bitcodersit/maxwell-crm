@@ -10,6 +10,9 @@ export * from './Task'
 export * from './Lead'
 export * from './Property'
 export * from './Board'
+export * from './Assignable'
+export * from './Address'
+export * from './Option'
 
 export type TMaybe<T> = T | null | undefined
 

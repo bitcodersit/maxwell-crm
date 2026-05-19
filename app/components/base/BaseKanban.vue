@@ -124,18 +124,18 @@ const onColumnFormSuccess = () => {
 
 <template>
   <ClientOnly>
-    <div class="relative">
-      <UProgress
-        v-if="isFetching"
-        :ui="{ base: 'rounded-none' }"
-        size="sm"
-        class="absolute top-0 left-0 w-full"
-      />
-    </div>
-    <div class="flex-1 overflow-y-hidden overflow-x-auto scrollbar px-4 py-4 flex gap-4 relative">
+    <UProgress
+      v-if="isFetching"
+      :ui="{ base: 'rounded-none' }"
+      size="sm"
+      class="absolute top-0 left-0 w-full"
+    />
+    <div
+      class="flex-1 overflow-y-hidden overflow-x-auto scrollbar px-4 sm:px-6 pb-4 sm:pb-6 flex gap-4 relative"
+    >
       <div
         :ref="columnsRef"
-        class="flex-1 flex gap-4"
+        class="flex-1 flex gap-4 sm:gap-6"
       >
         <BaseKanbanColumn
           v-for="column in columns"
