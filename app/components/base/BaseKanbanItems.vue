@@ -19,15 +19,28 @@ const queryKey = computed(() => {
   ] as const
 })
 
-const { data, isFetched, isFetching } = useQuery({
+const { data, isFetched, isFetching, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
   queryKey,
-  queryFn: ({ queryKey: [api, query] }) => {
+  initialPageParam: 1,
+  queryFn: ({ queryKey: [api, query], pageParam }) => {
     return $fetch<TPaginated<TBoardItem>>(api, {
-      query
+      query: {
+        ...query,
+        page: pageParam
+      }
     })
   },
-  initialData: () => {
-    return toPaginated<TBoardItem>([])
+  getPreviousPageParam(page) {
+    return page.previousPage
+  },
+  getNextPageParam(page) {
+    return page.nextPage
+  },
+  initialData() {
+    return {
+      pageParams: [],
+      pages: []
+    }
   }
 })
 
@@ -35,7 +48,7 @@ const items = shallowRef<TBoardItem[]>([])
 watch(
   data,
   newVal => {
-    items.value = [...(newVal.data || [])]
+    items.value = [...(newVal?.pages.flatMap(page => page.data) || [])]
   },
   {
     deep: true,
@@ -81,34 +94,44 @@ const itemsRef = (el: Element | ComponentPublicInstance | null) => {
 
 <template>
   <ClientOnly>
-    <div
-      :ref="itemsRef"
-      class="overflow-y-auto scrollbar border-x border-b border-default rounded-b-lg bg-elevated/40 p-3 flex flex-col gap-3 relative"
-    >
+    <div class="relative flex-1 flex flex-col overflow-hidden">
       <UProgress
         v-if="isFetching"
         :ui="{ base: 'rounded-none' }"
         size="sm"
-        class="absolute top-px left-0 w-full"
+        class="absolute top-px left-0 w-full z-10"
       />
-      <div
-        v-for="(item, index) in items"
-        :key="item.id"
-        :data-item-id="item.id"
-        :data-item-sort-order="item.sortOrder"
+      <BaseInfiniteScrollable
+        :fetch-next-page="fetchNextPage"
+        :is-fetching-next-page="isFetchingNextPage"
       >
-        <slot
-          name="item"
-          :item="getItem(item)"
-          :index="index"
-        />
-      </div>
-      <div
-        v-if="isFetched && !items.length"
-        class="text-center text-muted text-sm italic py-8 base-kanban-item-disabled"
-      >
-        No items
-      </div>
+        <template #default="{ onScroll }">
+          <div
+            :ref="itemsRef"
+            class="overflow-y-auto scrollbar border-x border-b border-default rounded-b-lg bg-elevated/40 p-3 flex flex-col gap-3 relative"
+            @scroll="onScroll"
+          >
+            <div
+              v-for="(item, index) in items"
+              :key="item.id"
+              :data-item-id="item.id"
+              :data-item-sort-order="item.sortOrder"
+            >
+              <slot
+                name="item"
+                :item="getItem(item)"
+                :index="index"
+              />
+            </div>
+            <div
+              v-if="isFetched && !items.length"
+              class="text-center text-muted text-sm italic py-8 base-kanban-item-disabled"
+            >
+              No items
+            </div>
+          </div>
+        </template>
+      </BaseInfiniteScrollable>
     </div>
   </ClientOnly>
 </template>
