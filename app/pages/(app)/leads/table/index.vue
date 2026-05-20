@@ -18,29 +18,58 @@ function openEditLead(lead: TLead) {
   drawerOpen.value = true
 }
 
+const numberFormatter = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2
+})
+
+const formatStatus = (status?: string | null) => {
+  if (!status) return '—'
+  return status.split('_').join(' ')
+}
+
+const formatBudget = (lead: TLead) => {
+  const min = lead.budgetMin == null ? null : Number(lead.budgetMin)
+  const max = lead.budgetMax == null ? null : Number(lead.budgetMax)
+  if (min == null && max == null) return '—'
+  if (min != null && max != null) {
+    return `${numberFormatter.format(min)} - ${numberFormatter.format(max)}`
+  }
+  if (min != null) return `From ${numberFormatter.format(min)}`
+  return `Up to ${numberFormatter.format(max as number)}`
+}
+
+const getSalesman = (lead: TLead) => {
+  const direct = lead.assignable?.assignedUsers?.[0]?.user?.name
+  if (direct) return direct
+  const teamMember = lead.assignable?.assignedTeams?.[0]?.team?.members?.[0]?.user?.name
+  return teamMember || '—'
+}
+
 const columns = computed<TColumn<TLead>[]>(() => [
   { id: 'select', size: 48 },
   {
-    accessorKey: 'serialCode',
+    accessorKey: 'sid',
     header: 'Lead ID',
     pinned: 'left',
     sortBy: 'serialCode',
     size: 100
   },
   {
-    accessorKey: 'customerName',
+    accessorKey: 'customer',
     header: 'Customer',
-    sortBy: 'customerName'
+    sortBy: 'customerName',
+    cell: ({ row }) => row.original.customer?.name || '—'
   },
   {
-    accessorKey: 'phone',
+    accessorKey: 'customer',
     header: 'Phone',
-    sortBy: 'phone'
+    cell: ({ row }) => row.original.customer?.phone || '—'
   },
   {
     accessorKey: 'source',
     header: 'Source',
-    sortBy: 'source'
+    sortBy: 'source',
+    cell: ({ row }) => row.original.source?.name || '—'
   },
   {
     accessorKey: 'status',
@@ -48,7 +77,7 @@ const columns = computed<TColumn<TLead>[]>(() => [
     sortBy: 'status',
     cell: ({ row }) =>
       h(UBadge, {
-        label: row.original.status,
+        label: formatStatus(row.original.status),
         color: ColorsMap[row.original.status] || 'neutral',
         variant: 'soft',
         size: 'sm'
@@ -57,10 +86,26 @@ const columns = computed<TColumn<TLead>[]>(() => [
   {
     accessorKey: 'propertyTypeMain',
     header: 'Property',
-    cell: ({ row }) => `${row.original.propertyTypeMain} · ${row.original.propertyTypeSub}`
+    sortBy: 'propertyTypeMain',
+    cell: ({ row }) => {
+      const main = row.original.propertyTypeMain?.name
+      const sub = row.original.propertyTypeSub?.name
+      if (!main && !sub) return '—'
+      return [main, sub].filter(Boolean).join(' · ')
+    }
   },
-  { accessorKey: 'budgetRange', header: 'Budget', sortBy: 'budgetRange' },
-  { accessorKey: 'assignedSalesman', header: 'Salesman', sortBy: 'assignedSalesman' },
+  {
+    accessorKey: 'budgetMin',
+    header: 'Budget',
+    sortBy: 'budgetRange',
+    cell: ({ row }) => formatBudget(row.original)
+  },
+  {
+    accessorKey: 'assignable',
+    header: 'Salesman',
+    sortBy: 'assignedSalesman',
+    cell: ({ row }) => getSalesman(row.original)
+  },
   //   {
   //     accessorKey: 'followUpDate',
   //     header: 'Follow-up',
@@ -74,12 +119,12 @@ const filters: TFilter[] = [
   {
     name: 'q',
     type: 'inline-input',
-    props: { placeholder: 'Search name, phone or ID…' }
+    props: { placeholder: 'Search customer, phone or lead ID…' }
   },
   {
     name: 'status',
-    type: 'input',
-    props: { label: 'Status', placeholder: 'Hot, Warm, Cold…' }
+    type: 'inline-input',
+    props: { placeholder: 'Status (e.g. Hot, Warm)…' }
   },
   {
     name: 'source',
