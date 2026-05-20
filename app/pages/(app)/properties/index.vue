@@ -33,13 +33,14 @@ const fields: TField[] = [
     name: 'name',
     type: 'input',
     label: 'Property Name',
-    col: 'col-span-3',
+    col: 'col-span-full',
     props: { placeholder: 'e.g. Block A Plot 12' }
   },
   {
     name: 'status',
     type: 'select',
     label: 'Status',
+    col: 'col-span-6',
     props: {
       items: ['Available', 'Hold', 'Sold'],
       placeholder: 'Select status'
@@ -53,25 +54,28 @@ const fields: TField[] = [
     name: 'addressLine1',
     type: 'input',
     label: 'Address Line 1',
-    col: 'col-span-3',
+    col: 'col-span-12',
     props: { placeholder: 'e.g. Purbachal' }
   },
   {
     name: 'road',
     type: 'input',
     label: 'Road',
+    col: 'col-span-4',
     props: { placeholder: 'Road no' }
   },
   {
     name: 'block',
     type: 'input',
     label: 'Block',
+    col: 'col-span-4',
     props: { placeholder: 'Block' }
   },
   {
     name: 'facing',
     type: 'input',
     label: 'Facing',
+    col: 'col-span-4',
     props: { placeholder: 'e.g. East' }
   },
   {
@@ -82,12 +86,14 @@ const fields: TField[] = [
     name: 'katha',
     type: 'input',
     label: 'Katha',
+    col: 'col-span-4',
     props: { type: 'number', placeholder: 'Size...' }
   },
   {
     name: 'sqft',
     type: 'input',
     label: 'Sqft',
+    col: 'col-span-4',
     props: { type: 'number', placeholder: 'Size...' }
   },
   {
@@ -98,26 +104,29 @@ const fields: TField[] = [
     name: 'price',
     type: 'input',
     label: 'Price (BDT)',
+    col: 'col-span-3',
     props: { type: 'number', placeholder: 'Price...' }
   },
   {
     name: 'previousPrice',
     type: 'input',
     label: 'Previous Price (BDT)',
+    col: 'col-span-3',
     props: { type: 'number', placeholder: 'Price...' }
   },
   {
     name: 'purchaseType',
-    type: 'autocomplete',
+    type: 'select-menu',
     label: 'Purchase Type',
+    col: 'col-span-6',
     props: {
       api: '/api/options',
       query: {
         type: 'PROPERTY_PURCHASE_TYPE'
       },
-      hideOnSelect: true,
-      clearOnSelect: true,
-      placeholder: 'Select purchase type'
+      clear: true,
+      placeholder: 'Select purchase type',
+      searchPlaceholder: 'Search purchase type...'
     }
   }
 ]
@@ -282,7 +291,7 @@ const getFormState = (v?: TPropertyRow) => {
     price: v?.price,
     previousPrice: v?.previousPrice,
     status: v?.status ?? 'Available',
-    purchaseType: v?.purchaseType ? [v.purchaseType] : [],
+    purchaseType: v?.purchaseType ?? null,
     katha: v?.sizes?.find(item => item.size?.name === 'Katha')?.sizeValue,
     sqft: v?.sizes?.find(item => item.size?.name === 'Sqft')?.sizeValue,
     addressId: v?.addressId,
@@ -295,9 +304,7 @@ const getFormState = (v?: TPropertyRow) => {
 }
 
 const toPayload = (v: Record<string, unknown>) => {
-  const purchaseTypeId = Array.isArray(v.purchaseType)
-    ? (v.purchaseType[0] as { id?: number } | undefined)?.id
-    : undefined
+  const purchaseTypeId = (v.purchaseType as { id?: number } | null | undefined)?.id
   const addressLine1 = String(v.addressLine1 ?? '').trim()
   const road = String(v.road ?? '').trim()
   const block = String(v.block ?? '').trim()
@@ -354,7 +361,7 @@ const getPatchBody = (v: Record<string, unknown>) => {
     post-url="/api/properties"
     :patch-url="state => `/api/properties/${state.id}`"
     delete-url="/api/properties/{id}"
-    form-class="grid grid-cols-3 gap-4"
+    form-class="grid grid-cols-12 gap-4"
     :fields="fields"
     :columns="columns"
     :filters="filters"

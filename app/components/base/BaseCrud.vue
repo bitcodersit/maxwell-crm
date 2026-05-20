@@ -4,6 +4,7 @@ import type { TFilterCheckboxProps } from '@/components/filter/FilterCheckbox.vu
 import type { TFilterDateProps } from '@/components/filter/FilterDate.vue'
 import type { TFilterInputProps } from '@/components/filter/FilterInput.vue'
 import type { TFormAutocompleteProps } from '@/components/form/FormAutocomplete.vue'
+import type { TFormSelectMenuProps } from '@/components/form/FormSelectMenu.vue'
 import type {
   TableData,
   InputProps,
@@ -59,6 +60,7 @@ export type TField =
       | { type: 'select'; props?: SelectProps }
       | { type: 'textarea'; props?: TextareaProps }
       | { type: 'autocomplete'; props: TFormAutocompleteProps }
+      | { type: 'select-menu'; props: TFormSelectMenuProps }
       | { type: 'team-members'; props?: Record<string, any> }
     ))
   | {
@@ -920,6 +922,11 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                 />
                 <FormAutocomplete
                   v-else-if="row.type === 'autocomplete'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+                <FormSelectMenu
+                  v-else-if="row.type === 'select-menu'"
                   v-model="formState[row.name]"
                   v-bind="{ ...formItem, ...row.props }"
                 />

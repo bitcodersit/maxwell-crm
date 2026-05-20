@@ -10,7 +10,7 @@ export const getOrderBy = <T extends TOrderBy | TOrderBy[]>(query: TZOrderBy, or
       if (parsed && typeof parsed === 'object') {
         v = parsed as Record<string, 'asc' | 'desc'>
       }
-    } else {
+    } else if (typeof query.orderBy === 'object') {
       v = query.orderBy
     }
   } catch {
