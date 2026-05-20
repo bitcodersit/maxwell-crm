@@ -3,7 +3,7 @@ const zGetBoardItems = z.object({
 })
 
 export default defineEventHandler(async event => {
-  await requireUserSession(event)
+  await getCurrentUser(event)
 
   const query = getQuery(event)
   const input = await validate(query, zGetBoardItems)

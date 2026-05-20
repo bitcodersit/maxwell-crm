@@ -21,7 +21,7 @@ const zPostSchema = z.object({
 const zSchema = z.union([zPatchSchema, zPostSchema])
 
 export default defineEventHandler(async event => {
-  await requireUserSession(event)
+  await getCurrentUser(event)
 
   const body = await readBody(event)
   const input = await validate(body, zSchema)

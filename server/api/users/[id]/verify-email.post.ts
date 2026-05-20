@@ -4,7 +4,7 @@ import { isCustomerRoleName } from '~~/server/utils/customerRole'
 import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
 
 export default defineEventHandler(async event => {
-  const { user: sessionUser } = await requireUserSession(event)
+  const sessionUser = await getCurrentUser(event)
   if (!sessionUser.updateAnyUsers) {
     throw err.denied()
   }

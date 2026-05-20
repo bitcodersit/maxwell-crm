@@ -3,7 +3,7 @@ import type { Prisma } from '~~/prisma/client/client'
 import { CUSTOMER_ROLE_NAME } from '~~/server/utils/customerRole'
 
 export const getCustomers = async (event: H3Event, query = getQuery(event)) => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
   if (!user.readAnyUsers) {
     return {
       error: err.denied()

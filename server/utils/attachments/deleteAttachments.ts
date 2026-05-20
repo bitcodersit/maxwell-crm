@@ -1,8 +1,7 @@
 import type { H3Event } from 'h3'
 
 export const deleteAttachments = async (event: H3Event, ids: number[]) => {
-  const session = await requireUserSession(event)
-  const user = await getCurrentUser(event, session.user.id)
+  const user = await getCurrentUser(event)
 
   const canDeleteAny = !!user.deleteAnyAttachments
   const canDeleteOwn = !!user.deleteOwnAttachments

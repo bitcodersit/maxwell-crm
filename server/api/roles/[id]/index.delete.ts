@@ -1,5 +1,5 @@
 export default defineEventHandler(async event => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
   if (!user.deleteAnyRoles) {
     throw err.denied()
   }

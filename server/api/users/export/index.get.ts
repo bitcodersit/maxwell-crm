@@ -10,7 +10,7 @@ type TUserExportRow = {
 }
 
 export default defineEventHandler(async event => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
   if (!user.exportAnyUsers) {
     throw err.denied()
   }

@@ -268,7 +268,7 @@ const getLeadWhere = (input: TZGetLeads): Prisma.LeadWhereInput => {
 }
 
 export const getLeads = async (event: H3Event, input: TZGetLeads) => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
   if (!user.readAnyLeads && !user.readOwnLeads) {
     return {
       error: err.denied()

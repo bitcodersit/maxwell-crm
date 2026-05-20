@@ -7,18 +7,18 @@ const zCustomer = z.object({
 })
 
 export default defineEventHandler(async event => {
-  const { user: sessionUser } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
 
   const body = await readBody(event)
   const input = await validate(body, zCustomer)
 
   try {
     if (input.id) {
-      if (!sessionUser.updateAnyUsers) {
+      if (!user.updateAnyUsers) {
         throw err.denied()
       }
 
-      const customerRole = await getOrCreateCustomerRole(prisma)
+      const customerRole = await getOrCreateCustomerRole(prisma as any)
       const existing = await prisma.user.findFirst({
         where: {
           id: input.id,
@@ -86,15 +86,15 @@ export default defineEventHandler(async event => {
       return customer
     }
 
-    if (!sessionUser.createAnyUsers) {
+    if (!user.createAnyUsers) {
       throw err.denied()
     }
 
-    const customerRole = await getOrCreateCustomerRole(prisma)
+    const customerRole = await getOrCreateCustomerRole(prisma as any)
     const customer = await prisma.user.create({
       data: {
         name: input.name,
-        creatorId: sessionUser.id,
+        creatorId: user.id,
         // email: input.email || null,
         phone: input.phone,
         userRoles: {

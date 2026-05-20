@@ -1,7 +1,7 @@
 import { getOrCreateCustomerRole } from '~~/server/utils/customerRole'
 
 export default defineEventHandler(async event => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
   if (!user.deleteAnyUsers) {
     throw err.denied()
   }
@@ -13,7 +13,7 @@ export default defineEventHandler(async event => {
     .filter(n => !Number.isNaN(n))
   if (!ids.length) throw err.notFound()
 
-  const customerRole = await getOrCreateCustomerRole(prisma)
+  const customerRole = await getOrCreateCustomerRole(prisma as any)
 
   try {
     const data = await prisma.user.updateMany({

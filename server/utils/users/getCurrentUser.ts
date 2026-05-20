@@ -3,7 +3,7 @@ import { capitalize } from 'vue'
 
 const name = 'getCurrentUser'
 
-export const getCurrentUser = defineCachedFunction(
+export const getCurrentUserCached = defineCachedFunction(
   async (_: H3Event, id: number) => {
     const user = await prisma.user.findUnique({
       where: { id },
@@ -72,3 +72,7 @@ export const getCurrentUser = defineCachedFunction(
     getKey: (_, id) => `${name}(${id})`
   }
 )
+
+export const getCurrentUser = async (event: H3Event) => {
+  return getCurrentUserCached(event, (await requireUserSession(event)).user.id)
+}

@@ -10,9 +10,7 @@ const zMeUpdate = z.object({
 })
 
 export default defineEventHandler(async event => {
-  const session = await requireUserSession(event)
-  const currentUser = await getCurrentUser(event, session.user.id)
-
+  const currentUser = await getCurrentUser(event)
   if (!currentUser.updateOwnUsers) throw err.denied()
 
   const body = await readBody(event)

@@ -6,7 +6,7 @@ const zPatchBoardItem = z.object({
 })
 
 export default defineEventHandler(async event => {
-  await requireUserSession(event)
+  await getCurrentUser(event)
 
   const id = Number(getRouterParam(event, 'id'))
   if (!Number.isInteger(id) || id < 1) throw err.notFound()

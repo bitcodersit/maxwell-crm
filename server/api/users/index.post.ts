@@ -37,7 +37,7 @@ const validateNonCustomerRoles = async (roleIds: number[]) => {
 }
 
 export default defineEventHandler(async event => {
-  const { user: sessionUser } = await requireUserSession(event)
+  const sessionUser = await getCurrentUser(event)
   const body = await readBody(event)
   const input = await validate(body, zUser)
   await validateNonCustomerRoles(input.roleIds)

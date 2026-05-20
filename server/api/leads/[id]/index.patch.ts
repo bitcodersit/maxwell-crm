@@ -3,8 +3,7 @@ import { updateLead, zUpdateLead } from '~~/server/utils/leads'
 
 export default defineEventHandler(async event => {
   // Check permission
-  const session = await requireUserSession(event)
-  const user = await getCurrentUser(event, session.user.id)
+  const user = await getCurrentUser(event)
   if (!user.updateAnyLeads || !user.updateOwnLeads) return err.denied()
 
   // Get id

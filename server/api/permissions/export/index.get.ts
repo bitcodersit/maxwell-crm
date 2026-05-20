@@ -2,7 +2,7 @@ import { getPermissions } from '../index.get'
 import { exportData } from '~~/server/utils/export'
 
 export default defineEventHandler(async event => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
   if (!user.exportAnyPermissions) {
     throw err.denied()
   }

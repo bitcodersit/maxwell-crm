@@ -26,7 +26,7 @@ const getOwnScope = (userId: number) =>
   }) satisfies Prisma.TaskWhereInput
 
 export default defineEventHandler(async event => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
 
   if (!user.updateAnyTasks && !user.updateOwnTasks) {
     throw err.denied()

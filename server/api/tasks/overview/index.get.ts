@@ -68,7 +68,7 @@ const isInRange = (value, start, endExclusive) => {
 }
 
 export default defineEventHandler(async event => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
   if (!user.readAnyTasks || !user.readOwnTasks) {
     throw err.denied()
   }

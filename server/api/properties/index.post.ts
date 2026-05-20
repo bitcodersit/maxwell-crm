@@ -19,7 +19,7 @@ const zProperty = z.object({
 })
 
 export default defineEventHandler(async event => {
-  await requireUserSession(event)
+  await getCurrentUser(event)
   const body = await readBody(event)
   const input = await validate(body, zProperty)
   return upsertProperty({

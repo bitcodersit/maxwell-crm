@@ -1,14 +1,14 @@
 import { getEmailChangeTokenMeta } from '~~/server/utils/emailVerification'
 
 export default defineEventHandler(async event => {
-  const { user: sessionUser } = await requireUserSession(event)
-  if (!sessionUser.readOwnUsers) {
+  const currentUser = await getCurrentUser(event)
+  if (!currentUser.readOwnUsers) {
     throw err.denied()
   }
 
   const me = await prisma.user.findFirst({
     where: {
-      id: sessionUser.id,
+      id: currentUser.id,
       deletedAt: null
     },
     select: {
@@ -22,7 +22,7 @@ export default defineEventHandler(async event => {
 
   const token = await prisma.token.findFirst({
     where: {
-      modelId: sessionUser.id,
+      modelId: currentUser.id,
       modelType: 'USER',
       type: 'VERIFY',
       token: { startsWith: 'change-old.' },

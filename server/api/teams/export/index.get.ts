@@ -13,7 +13,7 @@ type TTeamExportRow = {
 }
 
 export default defineEventHandler(async event => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
   if (!user.exportAnyTeams) {
     throw err.denied()
   }

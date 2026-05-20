@@ -2,7 +2,7 @@ import { TeamMemberRole } from '~~/prisma/client/enums'
 
 export default defineEventHandler(async event => {
   try {
-    const { user } = await requireUserSession(event)
+    const user = await getCurrentUser(event)
 
     const idParam = getRouterParam(event, 'id')
     const ids = (idParam || '')

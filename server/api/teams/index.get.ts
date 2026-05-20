@@ -2,8 +2,7 @@ import type { H3Event } from 'h3'
 import type { Prisma } from '~~/prisma/client/client'
 
 export const getTeams = async (event: H3Event, query = getQuery(event)) => {
-  const { user } = await requireUserSession(event)
-
+  const user = await getCurrentUser(event)
   if (!user.readAnyTeams || !user.readOwnTeams) {
     return {
       error: err.denied()

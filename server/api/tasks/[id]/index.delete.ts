@@ -24,7 +24,7 @@ const getOwnScope = (userId: number) =>
   }) satisfies Prisma.TaskWhereInput
 
 export default defineEventHandler(async event => {
-  const { user } = await requireUserSession(event)
+  const user = await getCurrentUser(event)
   const canDeleteAny = !!user.deleteAnyTasks
   const canDeleteOwn = !!user.deleteOwnTasks
   if (!canDeleteAny && !canDeleteOwn) {

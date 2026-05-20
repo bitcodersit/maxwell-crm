@@ -2,7 +2,7 @@ import { TeamMemberRole } from '~~/prisma/client/enums'
 
 export default defineEventHandler(async event => {
   try {
-    const { user } = await requireUserSession(event)
+    const user = await getCurrentUser(event)
 
     const body = await readBody(event)
     const input = await validate(body, zTeam)
