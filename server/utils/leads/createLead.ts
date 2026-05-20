@@ -1,8 +1,6 @@
 import { z } from 'zod'
-import { createAddress, zAddress } from '../address'
-import { createCustomer, zCreateCustomer } from '../customer'
-import { generateLeadSid } from './generateLeadSid'
-import { selectLeadForDisplay } from './select'
+import { upsertAddress, zUpsertAddress } from '../address'
+import { upsertCustomer, zUpsertCustomer } from '../customer'
 
 export type TZCreateLead = z.infer<typeof zCreateLead>
 export const zCreateLead = z.object({
@@ -23,14 +21,14 @@ export const zCreateLead = z.object({
 
   // Address or address id
   addressId: zId().nullish(),
-  address: zAddress.nullish(),
+  address: zUpsertAddress.nullish(),
 
   // Customer or customer id
   customerId: zId().nullish(),
-  customer: zCreateCustomer.nullish()
+  customer: zUpsertCustomer.nullish()
 })
 
-export const createLead = async (input: TZCreateLead, user: Pick<TUser, 'id'>) => {
+export const createLead = async (input: TZCreateLead, user: TUser) => {
   const assignable = await prisma.assignable.create({
     data: {
       assignedUsers: {
@@ -49,13 +47,13 @@ export const createLead = async (input: TZCreateLead, user: Pick<TUser, 'id'>) =
   })
 
   let addressId: number | undefined
-  if (!input.addressId && input.address?.addressLine1) {
-    addressId = (await createAddress(input.address)).id
+  if (!input.addressId && input.address) {
+    addressId = (await upsertAddress(input.address)).id
   }
 
   let customerId: number | undefined
-  if (!input.customerId && input.customer?.phone) {
-    customerId = (await createCustomer(input.customer)).id
+  if (!input.customerId && input.customer) {
+    customerId = (await upsertCustomer(input.customer)).id
   }
 
   const lead = await prisma.lead.create({
@@ -74,6 +72,10 @@ export const createLead = async (input: TZCreateLead, user: Pick<TUser, 'id'>) =
       propertyTypeSubId: input.propertyTypeSubId
     }
   })
+
+  // Assign lead to the default board
+  const boardItem = await assignLeadToTheBoard(lead.id)
+  if (boardItem) lead.boardItems = [boardItem]
 
   /**
    * @TODO: Notify new assignees

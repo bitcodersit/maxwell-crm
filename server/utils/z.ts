@@ -21,18 +21,31 @@ export const zColor = (message = 'Invalid color') =>
     .regex(/^#([0-9a-fA-F]{6})$/, message)
     .trim()
 
-export const zEmail = (error = 'Invalid email address', error2 = 'Email already in use') => {
-  return z.email(error).refine(async email => {
+type TUniqueOptions = {
+  unique?: boolean
+  message?: string
+  uniqueMessage?: string
+}
+export const zEmail = (options?: TUniqueOptions) => {
+  const {
+    unique = false,
+    message = 'Invalid email address',
+    uniqueMessage = 'Email already in use'
+  } = options ?? {}
+  return z.email(message).refine(async email => {
+    if (!unique) return true
     return !(await prisma.user.findFirst({
       where: { email }
     }))
-  }, error2)
+  }, uniqueMessage)
 }
 
-export const zPhone = (
-  message = 'Please enter a valid phone number',
-  message2 = 'Phone number already in use.'
-) => {
+export const zPhone = (options?: TUniqueOptions) => {
+  const {
+    unique = false,
+    message = 'Invalid phone number',
+    uniqueMessage = 'Phone number already in use'
+  } = options ?? {}
   return z
     .string(message)
     .transform<E164Number>(async (value): Promise<any> => {
@@ -44,13 +57,14 @@ export const zPhone = (
         return [message]
       }
       if (
-        await prisma.user.findFirst({
+        unique &&
+        (await prisma.user.findFirst({
           where: {
             phone: phone.number
           }
-        })
+        }))
       ) {
-        return [message2]
+        return [uniqueMessage]
       }
       return phone.number
     })

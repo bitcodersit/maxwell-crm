@@ -10,12 +10,16 @@ definePageMeta({
 })
 
 const onTest = () => {
-  $fetch(`/api/leads/${31}`, {
-    method: 'PATCH',
+  $fetch(`/api/leads/`, {
+    method: 'post',
     body: {
       userIds: [5],
-      teamIds: [10]
-      // customerId: 19,
+      teamIds: [10],
+      customer: {
+        name: 'Test Customer2',
+        email: 'customer@test.com',
+        phone: '01711-234567'
+      }
       // address: {
       //   addressLine1: '123 Main St',
       //   road: 'Anytown',

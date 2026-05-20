@@ -1,5 +1,3 @@
-import { createLead, zCreateLead } from '~~/server/utils/leads'
-
 export default defineEventHandler(async event => {
   // Check permission
   const user = await getCurrentUser(event, { cache: false })

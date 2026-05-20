@@ -1,9 +1,10 @@
 import { z } from 'zod'
 
-export type TZAddress = z.infer<typeof zAddress>
-export const zAddress = z.object({
+export type TZUpsertAddress = z.infer<typeof zUpsertAddress>
+export const zUpsertAddress = z.object({
+  id: zId().nullish(),
   name: z.string().nullish(),
   addressLine1: z.string().min(1, 'Location is required!'),
-  road: z.string().nullish(),
-  block: z.string().nullish()
+  road: z.string().default(''),
+  block: z.string().default('')
 })

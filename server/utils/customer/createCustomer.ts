@@ -3,8 +3,8 @@ import { z } from 'zod'
 export type TZCreateCustomer = z.infer<typeof zCreateCustomer>
 export const zCreateCustomer = z.object({
   name: zName(),
-  email: zEmail().nullish(),
-  phone: zPhone()
+  email: zEmail({ unique: true }).nullish(),
+  phone: zPhone({ unique: true })
 })
 
 export const createCustomer = async (data: TZCreateCustomer) => {

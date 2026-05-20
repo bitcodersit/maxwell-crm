@@ -9,7 +9,7 @@ import { createResetPasswordLink } from '~~/server/utils/passwordReset'
 const zUser = z.object({
   id: z.number().nullish(),
   name: zName(),
-  email: zEmail(),
+  email: zEmail({ unique: true }),
   password: zPassword().nullish(),
   roleIds: z.array(z.number()).min(1, 'At least one role is required')
 })

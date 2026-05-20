@@ -622,6 +622,7 @@ model Address {
     updatedAt DateTime  @default(now()) @updatedAt
     deletedAt DateTime?
 
+    @@unique([addressLine1, road, block])
     @@index([addressLine1])
     @@index([name])
     @@index([road])
