@@ -1,5 +1,9 @@
+import { getLeads, zGetLeads } from '~~/server/utils/leads'
+
 export default defineEventHandler(async event => {
-  await requireUserSession(event)
   const query = getQuery(event)
-  return queryLeads(query)
+  const input = await validate(query, zGetLeads)
+  const { error, data } = await getLeads(event, input)
+  if (error) throw error
+  return data
 })
