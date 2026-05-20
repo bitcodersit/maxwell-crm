@@ -170,18 +170,18 @@ const links = computed(() => {
     ].filter(v => (typeof v.visible === 'boolean' ? v.visible : true)),
     [
       {
-        label: 'Feedback',
-        icon: 'i-lucide-message-circle',
-        to: 'https://github.com/nuxt-ui-templates/dashboard',
-        target: '_blank'
-      },
-      {
-        label: 'Help & Support',
-        icon: 'i-lucide-info',
-        to: 'https://github.com/nuxt-ui-templates/dashboard',
-        target: '_blank'
+        label: 'API Client',
+        icon: 'i-lucide-code',
+        to: '/api',
+        visible: import.meta.dev
       }
-    ]
+      // {
+      //   label: 'Help & Support',
+      //   icon: 'i-lucide-info',
+      //   to: 'https://github.com/nuxt-ui-templates/dashboard',
+      //   target: '_blank'
+      // }
+    ].filter(v => (typeof v.visible === 'boolean' ? v.visible : true))
   ] satisfies NavigationMenuItem[][]
 })
 
