@@ -8,7 +8,7 @@ export type TAuditRequestContext = {
 const KEY = 'auditRequestContext'
 
 export const setAuditRequestContext = (context: TAuditRequestContext) => {
-  useStorage().setItem<TAuditRequestContext>(KEY, context)
+  return useStorage().setItem<TAuditRequestContext>(KEY, context)
 }
 
 export const getAuditRequestContext = () => {

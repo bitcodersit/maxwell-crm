@@ -1,7 +1,7 @@
 import { setAuditRequestContext } from '~~/server/utils/audit/context'
 
 export default defineEventHandler(async event => {
-  setAuditRequestContext({
+  await setAuditRequestContext({
     userId: (await getUserSession(event)).user?.id,
     ipAddress: getRequestIP(event, { xForwardedFor: true }) ?? undefined,
     userAgent: getHeader(event, 'user-agent') ?? undefined,
