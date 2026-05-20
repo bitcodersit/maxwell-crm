@@ -1,11 +1,9 @@
-<script context="module" lang="ts">
+<script lang="ts">
+import type { TBaseSearchboxProviderProps } from '@/components/base/BaseSearchboxProvider.vue'
+import type { InputTagsProps } from '@nuxt/ui'
+
 type TValue = number | string
 type TItem = Record<string, any>
-</script>
-
-<script setup lang="ts" generic="Item extends TItem = TItem, Value extends TValue = TValue">
-import type { InputTagsProps } from '@nuxt/ui'
-import type { TBaseSearchboxProviderProps } from '@/components/base/BaseSearchboxProvider.vue'
 
 export type TFormAutocompleteProps<
   Item extends TItem = TItem,
@@ -14,7 +12,9 @@ export type TFormAutocompleteProps<
   Pick<InputTagsProps, 'size' | 'placeholder'> & {
     labelClass?: string
   }
+</script>
 
+<script setup lang="ts" generic="Item extends TItem = TItem, Value extends TValue = TValue">
 const props = defineProps<TFormAutocompleteProps<Item, Value>>()
 const model = defineModel<Item[]>({ default: () => [] })
 

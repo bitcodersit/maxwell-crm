@@ -202,7 +202,7 @@ watch(dropdownOpen, async open => {
   <div
     ref="rootRef"
     class="relative"
-    :class="class"
+    :class="props.class"
   >
     <slot v-bind="slotProps" />
   </div>

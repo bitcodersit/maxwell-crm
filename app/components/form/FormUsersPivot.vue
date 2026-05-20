@@ -1,9 +1,7 @@
 <script context="module" lang="ts">
 import type { TFormSearchboxProps } from './FormSearchbox.vue'
 import type { SelectProps, InputProps } from '@nuxt/ui'
-</script>
 
-<script setup lang="ts" generic="ModelValue extends TModelValue">
 type TModelValue = {
   user: TUser
   userId: TUser['id']
@@ -29,7 +27,9 @@ export type TFormUsersPivotProps = Partial<
 > & {
   fields?: TMemberField[]
 }
+</script>
 
+<script setup lang="ts" generic="ModelValue extends TModelValue">
 const props = withDefaults(defineProps<TFormUsersPivotProps>(), {
   fields: () => [],
   placeholder: 'Search user'
@@ -117,7 +117,7 @@ const onRemoveItem = (item: ModelValue) => {
     <FormSearchbox
       v-model="selectedUsers"
       :size="size"
-      :class="class"
+      :class="props.class"
       :api="'/api/users'"
       :query="{ options: true }"
       :get-label="getLabel"

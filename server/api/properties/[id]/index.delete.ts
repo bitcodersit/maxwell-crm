@@ -1,10 +1,8 @@
+import { deleteProperties, zPropertyIdsParam } from '~~/server/utils/properties'
+
 export default defineEventHandler(async event => {
   await getCurrentUser(event)
-  const id = getRouterParam(event, 'id')
-  const ids = (id || '')
-    .split(',')
-    .map(Number)
-    .filter(n => !Number.isNaN(n))
-  if (!ids.length) throw err.notFound()
+  const params = await validate({ id: getRouterParam(event, 'id') }, zPropertyIdsParam)
+  const ids = params.id
   return deleteProperties(ids)
 })

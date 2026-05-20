@@ -216,6 +216,10 @@ const seedOptions = async () => {
     {
       type: 'SIZE',
       options: ['Katha', 'Sqft']
+    },
+    {
+      type: 'PROPERTY_PURCHASE_TYPE',
+      options: ['Contracted for sale', 'Power Registration', 'Sab Kobla', 'Ongoing']
     }
   ]
   await prisma.option.createMany({

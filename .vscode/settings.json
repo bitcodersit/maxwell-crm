@@ -42,5 +42,6 @@
     "treeify",
     "unovis",
     "vueuse"
-  ]
+  ],
+  "files.eol": "\n"
 }

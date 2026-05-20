@@ -6,7 +6,10 @@ import type {
   TFilter,
   TGetActions
 } from '@/components/base/BaseCrud.vue'
-import type { TProperty, TPropertyStatus } from '~~/shared/types/Property'
+import type { TProperty } from '~~/shared/types/Property'
+
+type TPropertyStatus = 'Available' | 'Hold' | 'Sold'
+type TPropertyRow = TProperty & Record<string, any>
 
 definePageMeta({ title: 'Property Inventory' })
 
@@ -27,22 +30,37 @@ function formatPrice(n: number) {
 
 const fields: TField[] = [
   {
-    name: 'title',
+    name: 'name',
     type: 'input',
-    label: 'Property Title',
+    label: 'Property Name',
+    col: 'col-span-3',
     props: { placeholder: 'e.g. Block A Plot 12' }
   },
   {
-    name: 'project',
-    type: 'input',
-    label: 'Project Name',
-    props: { placeholder: 'e.g. Maxwell Garden City' }
+    name: 'status',
+    type: 'select',
+    label: 'Status',
+    props: {
+      items: ['Available', 'Hold', 'Sold'],
+      placeholder: 'Select status'
+    }
   },
   {
-    name: 'area',
+    type: 'separator',
+    label: 'Address'
+  },
+  {
+    name: 'addressLine1',
     type: 'input',
-    label: 'Area',
+    label: 'Address Line 1',
+    col: 'col-span-3',
     props: { placeholder: 'e.g. Purbachal' }
+  },
+  {
+    name: 'road',
+    type: 'input',
+    label: 'Road',
+    props: { placeholder: 'Road no' }
   },
   {
     name: 'block',
@@ -51,109 +69,117 @@ const fields: TField[] = [
     props: { placeholder: 'Block' }
   },
   {
-    name: 'road',
+    name: 'facing',
     type: 'input',
-    label: 'Road',
-    props: { placeholder: 'Road' }
+    label: 'Facing',
+    props: { placeholder: 'e.g. East' }
   },
   {
-    name: 'face',
-    type: 'input',
-    label: 'Face',
-    props: { placeholder: 'e.g. East' }
+    type: 'separator',
+    label: 'Size'
   },
   {
     name: 'katha',
     type: 'input',
     label: 'Katha',
-    props: { type: 'number', placeholder: '0' }
+    props: { type: 'number', placeholder: 'Size...' }
   },
   {
     name: 'sqft',
     type: 'input',
     label: 'Sqft',
-    props: { type: 'number', placeholder: '0' }
+    props: { type: 'number', placeholder: 'Size...' }
   },
   {
-    name: 'currentPrice',
+    type: 'separator',
+    label: 'Pricing'
+  },
+  {
+    name: 'price',
     type: 'input',
-    label: 'Current Price (BDT)',
-    props: { type: 'number', placeholder: '0' }
+    label: 'Price (BDT)',
+    props: { type: 'number', placeholder: 'Price...' }
   },
   {
     name: 'previousPrice',
     type: 'input',
     label: 'Previous Price (BDT)',
-    props: { type: 'number', placeholder: '0' }
-  },
-  {
-    name: 'installment',
-    type: 'input',
-    label: 'Installment (true/false)',
-    props: { placeholder: 'true or false' }
-  },
-  {
-    name: 'status',
-    type: 'input',
-    label: 'Status',
-    props: { placeholder: 'Available | Hold | Sold' }
+    props: { type: 'number', placeholder: 'Price...' }
   },
   {
     name: 'purchaseType',
-    type: 'input',
+    type: 'autocomplete',
     label: 'Purchase Type',
     props: {
-      placeholder: 'Contracted for sale | Power Registration | Sab Kobla | Ongoing'
+      api: '/api/options',
+      query: {
+        type: 'PROPERTY_PURCHASE_TYPE'
+      },
+      hideOnSelect: true,
+      clearOnSelect: true,
+      placeholder: 'Select purchase type'
     }
-  },
-  {
-    name: 'manager',
-    type: 'input',
-    label: 'Assigned Manager',
-    props: { placeholder: 'Manager name' }
   }
 ]
 
-const columns = computed<TColumn<TProperty>[]>(() => [
+const columns = computed<TColumn<TPropertyRow>[]>(() => [
   { id: 'select', size: 48 },
   {
-    accessorKey: 'serialCode',
+    accessorKey: 'sid',
     header: 'Property ID',
     pinned: 'left',
-    sortBy: 'serialCode',
+    sortBy: 'sid',
     size: 110
   },
   {
-    accessorKey: 'title',
-    header: 'Title',
-    sortBy: 'title'
+    accessorKey: 'name',
+    header: 'Name',
+    sortBy: 'name'
   },
   {
-    accessorKey: 'project',
-    header: 'Project',
-    sortBy: 'project'
+    accessorKey: 'facing',
+    header: 'Facing',
+    sortBy: 'facing',
+    cell: ({ row }) => row.original.facing || '—'
   },
   {
-    accessorKey: 'area',
-    header: 'Area',
-    sortBy: 'area'
-  },
-  {
-    accessorKey: 'block',
-    header: 'Block',
-    sortBy: 'block'
+    id: 'purchaseType',
+    header: 'Purchase Type',
+    sortBy: 'purchaseType',
+    cell: ({ row }) => row.original.purchaseType?.name || '—'
   },
   {
     id: 'size',
     header: 'Size',
-    cell: ({ row }) =>
-      `${row.original.katha} Katha / ${row.original.sqft.toLocaleString()} Sqft`
+    cell: ({ row }) => {
+      const katha = Number(row.original.sizes?.find(v => v.size?.name === 'Katha')?.sizeValue || 0)
+      const sqft = Number(row.original.sizes?.find(v => v.size?.name === 'Sqft')?.sizeValue || 0)
+      return `${katha} Katha / ${sqft.toLocaleString()} Sqft`
+    }
   },
   {
-    accessorKey: 'currentPrice',
+    id: 'address',
+    header: 'Address',
+    cell: ({ row }) => {
+      const address = row.original.address
+      if (!address) return '—'
+      return [address.name, address.addressLine1, address.road, address.block]
+        .filter(Boolean)
+        .join(', ')
+    }
+  },
+  {
+    accessorKey: 'price',
     header: 'Price',
-    sortBy: 'currentPrice',
-    cell: ({ row }) => formatPrice(row.original.currentPrice)
+    sortBy: 'price',
+    cell: ({ row }) => formatPrice(Number(row.original.price || 0))
+  },
+  {
+    accessorKey: 'previousPrice',
+    header: 'Previous Price',
+    sortBy: 'previousPrice',
+    cell: ({ row }) =>
+      row.original.previousPrice == null ? '—' : formatPrice(Number(row.original.previousPrice))
   },
   {
     accessorKey: 'status',
@@ -168,9 +194,16 @@ const columns = computed<TColumn<TProperty>[]>(() => [
       })
   },
   {
-    accessorKey: 'manager',
-    header: 'Manager',
-    sortBy: 'manager'
+    accessorKey: 'createdAt',
+    header: 'Created',
+    sortBy: 'createdAt',
+    cell: ({ row }) => $dfc(row.original.createdAt)
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: 'Updated',
+    sortBy: 'updatedAt',
+    cell: ({ row }) => $dfc(row.original.updatedAt)
   },
   { id: 'action', pinned: 'right' }
 ])
@@ -179,7 +212,7 @@ const filters: TFilter[] = [
   {
     name: 'q',
     type: 'inline-input',
-    props: { placeholder: 'Search property, project or area…' }
+    props: { placeholder: 'Search by id, name or facing...' }
   },
   {
     name: 'status',
@@ -187,14 +220,20 @@ const filters: TFilter[] = [
     props: { label: 'Status', placeholder: 'Available, Hold, Sold' }
   },
   {
-    name: 'area',
+    name: 'name',
     type: 'input',
-    props: { label: 'Area', placeholder: 'Location' }
+    props: { label: 'Name', placeholder: 'Search by name', modeable: true }
   },
   {
-    name: 'project',
-    type: 'input',
-    props: { label: 'Project', placeholder: 'Project name' }
+    name: 'purchaseTypeId',
+    type: 'checkbox-api',
+    props: {
+      label: 'Purchase type',
+      api: '/api/options',
+      query: {
+        type: 'PROPERTY_PURCHASE_TYPE'
+      }
+    }
   }
 ]
 
@@ -202,13 +241,14 @@ const modal: TBaseCrudModal = {
   form: ({ mode }) => ({
     title: mode === 'create' ? 'Add New Property' : 'Update Property',
     description:
-      mode === 'create'
-        ? 'Add a property to the inventory'
-        : 'Update property information'
+      mode === 'create' ? 'Add a property to the inventory' : 'Update property information',
+    ui: {
+      content: 'max-w-2xl'
+    }
   })
 }
 
-const getActions: TGetActions<TProperty> = (item, v) => [
+const getActions: TGetActions<TPropertyRow> = (item, v) => [
   [
     {
       ...actions.view,
@@ -223,7 +263,7 @@ const getActions: TGetActions<TProperty> = (item, v) => [
         crudRef.value?.onUpdate(item)
       }
     }
-  ].filter((action: { hidden?: boolean }) => !action.hidden),
+  ].filter((action: any) => !action.hidden),
   [
     {
       ...actions.delete,
@@ -234,41 +274,77 @@ const getActions: TGetActions<TProperty> = (item, v) => [
   ]
 ]
 
-const getFormState = (v?: TProperty) => ({
-  id: v?.id,
-  title: v?.title ?? '',
-  project: v?.project ?? '',
-  area: v?.area ?? '',
-  block: v?.block ?? '',
-  road: v?.road ?? '',
-  face: v?.face ?? '',
-  katha: v?.katha ?? 0,
-  sqft: v?.sqft ?? 0,
-  currentPrice: v?.currentPrice ?? 0,
-  previousPrice: v?.previousPrice ?? '',
-  installment: v?.installment ? 'true' : 'false',
-  status: v?.status ?? 'Available',
-  purchaseType: v?.purchaseType ?? 'Contracted for sale',
-  manager: v?.manager ?? ''
-})
+const getFormState = (v?: TPropertyRow) => {
+  const state = {
+    id: v?.id,
+    name: v?.name ?? '',
+    facing: v?.facing ?? '',
+    price: v?.price,
+    previousPrice: v?.previousPrice,
+    status: v?.status ?? 'Available',
+    purchaseType: v?.purchaseType ? [v.purchaseType] : [],
+    katha: v?.sizes?.find(item => item.size?.name === 'Katha')?.sizeValue,
+    sqft: v?.sizes?.find(item => item.size?.name === 'Sqft')?.sizeValue,
+    addressId: v?.addressId,
+    addressLine1: v?.address?.addressLine1 ?? '',
+    road: v?.address?.road ?? '',
+    block: v?.address?.block ?? ''
+  }
+  const normalized = toPayload(state)
+  return v ? { ...state, _original: normalized } : state
+}
 
-const getPostBody = (v: Record<string, unknown>) => ({
-  id: v.id,
-  title: v.title,
-  project: v.project,
-  area: v.area,
-  block: v.block,
-  road: v.road,
-  face: v.face,
-  katha: v.katha,
-  sqft: v.sqft,
-  currentPrice: v.currentPrice,
-  previousPrice: v.previousPrice === '' || v.previousPrice == null ? null : v.previousPrice,
-  installment: v.installment === true || v.installment === 'true',
-  status: v.status,
-  purchaseType: v.purchaseType,
-  manager: v.manager
-})
+const toPayload = (v: Record<string, unknown>) => {
+  const purchaseTypeId = Array.isArray(v.purchaseType)
+    ? (v.purchaseType[0] as { id?: number } | undefined)?.id
+    : undefined
+  const addressLine1 = String(v.addressLine1 ?? '').trim()
+  const road = String(v.road ?? '').trim()
+  const block = String(v.block ?? '').trim()
+  const addressId = typeof v.addressId === 'number' ? v.addressId : undefined
+
+  return {
+    name: String(v.name ?? ''),
+    facing: (v.facing as string | null | undefined) || undefined,
+    price: Number(v.price ?? 0),
+    previousPrice: Number(v.previousPrice ?? 0),
+    status: String(v.status ?? 'Available'),
+    purchaseTypeId: typeof purchaseTypeId === 'number' ? purchaseTypeId : undefined,
+    katha: Number(v.katha ?? 0),
+    sqft: Number(v.sqft ?? 0),
+    addressId,
+    address: addressLine1
+      ? {
+          id: addressId,
+          addressLine1,
+          road,
+          block
+        }
+      : undefined
+  }
+}
+
+const isSameValue = (a: unknown, b: unknown) => {
+  if (a == null && b == null) return true
+  if (typeof a === 'object' && a !== null && typeof b === 'object' && b !== null) {
+    return JSON.stringify(a) === JSON.stringify(b)
+  }
+  return a === b
+}
+
+const getPostBody = (v: Record<string, unknown>) => toPayload(v)
+
+const getPatchBody = (v: Record<string, unknown>) => {
+  const payload = toPayload(v)
+  const original = (v._original as Record<string, unknown> | undefined) ?? {}
+  const changed: Record<string, unknown> = {}
+  for (const key of Object.keys(payload) as (keyof typeof payload)[]) {
+    if (!isSameValue(payload[key], original[key as string])) {
+      changed[key] = payload[key]
+    }
+  }
+  return changed
+}
 </script>
 
 <template>
@@ -276,13 +352,16 @@ const getPostBody = (v: Record<string, unknown>) => ({
     ref="crudRef"
     get-url="/api/properties"
     post-url="/api/properties"
+    :patch-url="state => `/api/properties/${state.id}`"
     delete-url="/api/properties/{id}"
+    form-class="grid grid-cols-3 gap-4"
     :fields="fields"
     :columns="columns"
     :filters="filters"
     :modal="modal"
     :get-actions="getActions"
     :get-post-body="getPostBody"
+    :get-patch-body="getPatchBody"
     :get-form-state="getFormState"
   />
 </template>

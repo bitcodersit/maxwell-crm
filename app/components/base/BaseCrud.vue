@@ -4,7 +4,6 @@ import type { TFilterCheckboxProps } from '@/components/filter/FilterCheckbox.vu
 import type { TFilterDateProps } from '@/components/filter/FilterDate.vue'
 import type { TFilterInputProps } from '@/components/filter/FilterInput.vue'
 import type { TFormAutocompleteProps } from '@/components/form/FormAutocomplete.vue'
-import type { TFormUsersPivotProps } from '@/components/form/FormUsersPivot.vue'
 import type {
   TableData,
   InputProps,
@@ -38,6 +37,7 @@ type TInfoPopup = {
 type TDisplay = TTextDisplay | TArrayDisplay
 type TFormMode = 'create' | 'update'
 type TFormState = Record<string, any>
+type TFormBodyGetter = (state: TFormState) => object | FormData
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
@@ -53,12 +53,18 @@ export type TFilter = { name: string } & (
   | { type: 'checkbox-api'; props: TFilterCheckboxProps }
 )
 
-export type TField = { name: string; label: string; col?: string } & (
-  | { type: 'input'; props?: InputProps }
-  | { type: 'textarea'; props?: TextareaProps }
-  | { type: 'autocomplete'; props: TFormAutocompleteProps }
-  | { type: 'team-members'; props?: TFormUsersPivotProps }
-)
+export type TField =
+  | ({ name: string; label: string; col?: string } & (
+      | { type: 'input'; props?: InputProps }
+      | { type: 'select'; props?: SelectProps }
+      | { type: 'textarea'; props?: TextareaProps }
+      | { type: 'autocomplete'; props: TFormAutocompleteProps }
+      | { type: 'team-members'; props?: Record<string, any> }
+    ))
+  | {
+      type: 'separator'
+      label?: string
+    }
 
 export type TBaseCrudModal = {
   form?: (v: { mode: TFormMode }) => ModalProps
@@ -83,6 +89,7 @@ const props = withDefaults(
     filters?: TFilter[]
     columns?: TColumn<T>[]
     postUrl?: string
+    patchUrl?: string | ((state: TFormState) => string)
     formItem?: Record<string, unknown>
     exportUrl?: string
     formClass?: string
@@ -93,7 +100,8 @@ const props = withDefaults(
     perPageOptions?: number[]
     initialQuery?: TQuery
     getActions?: TGetActions<T>
-    getPostBody?: (state: TFormState) => object | FormData
+    getPostBody?: TFormBodyGetter
+    getPatchBody?: TFormBodyGetter
     getFormState?: (item?: T) => TFormState
     showAddButton?: boolean
   }>(),
@@ -107,6 +115,7 @@ const props = withDefaults(
     dateFields: () => [],
     getActions: () => [],
     getPostBody: (state: TFormState) => state,
+    getPatchBody: (state: TFormState) => state,
     getFormState: (v?: T) => ({ ...(v ?? {}) }),
     perPageOptions: () => [5, 10, 20, 30, 40, 50, 100],
     formItem: () => ({
@@ -116,8 +125,18 @@ const props = withDefaults(
   }
 )
 
-const { getUrl, columns, postUrl, exportUrl, deleteUrl, dateFields, getPostBody, getFormState } =
-  toRefs(props)
+const {
+  getUrl,
+  columns,
+  postUrl,
+  patchUrl,
+  exportUrl,
+  deleteUrl,
+  dateFields,
+  getPostBody,
+  getPatchBody,
+  getFormState
+} = toRefs(props)
 
 const def = toPaginated<T>()
 const table = useTemplateRef('table')
@@ -352,11 +371,21 @@ const toast = useToast()
 const formRef = useTemplateRef('formRef')
 
 const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
-  if (!postUrl.value) throw new Error('Post URL is not set')
+  const isUpdate = formMode.value === 'update'
+  const submitUrl =
+    isUpdate && patchUrl.value
+      ? typeof patchUrl.value === 'function'
+        ? patchUrl.value(event.data)
+        : patchUrl.value
+      : postUrl.value
+  if (!submitUrl) throw new Error('Submit URL is not set')
+  const method = isUpdate && patchUrl.value ? 'PATCH' : 'POST'
+  const body =
+    isUpdate && patchUrl.value ? getPatchBody.value(event.data) : getPostBody.value(event.data)
   isSubmitting.value = true
-  $fetch(postUrl.value, {
-    method: 'POST',
-    body: getPostBody.value(event.data)
+  $fetch(submitUrl, {
+    method,
+    body
   })
     .then(item => {
       toast.add({
@@ -728,6 +757,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             :columns="mColumns"
             :loading="isFetching"
             :ui="{
+              root: 'scrollbar',
               base: 'table-fixed border-separate border-spacing-0',
               thead: '[&>tr]:after:content-none',
               tbody: '[&>tr]:last:[&>td]:border-b-0',
@@ -848,19 +878,27 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
       v-bind="modal?.form?.({ mode: formMode })"
     >
       <template #body>
-        <div class="min-h-0 max-h-[min(70vh,560px)] overflow-y-auto pr-1 -mr-1">
-          <UForm
-            ref="formRef"
-            :state="formState"
-            @submit="onSubmit"
+        <UForm
+          ref="formRef"
+          :state="formState"
+          @submit="onSubmit"
+        >
+          <div
+            :class="formClass"
+            class="grid grid-cols-1 gap-4"
           >
-            <div
-              :class="formClass"
-              class="grid grid-cols-1 gap-4"
+            <template
+              v-for="(row, index) in fields"
+              :key="`separator-${index}`"
             >
+              <div
+                v-if="row.type === 'separator'"
+                class="col-span-full"
+              >
+                <USeparator :label="row.label" />
+              </div>
               <UFormField
-                v-for="row in fields"
-                :key="row.name"
+                v-else
                 :name="row.name"
                 :label="row.label"
                 :class="row.col"
@@ -875,6 +913,11 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                   v-model="formState[row.name]"
                   v-bind="{ ...formItem, ...row.props }"
                 />
+                <USelect
+                  v-else-if="row.type === 'select'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
                 <FormAutocomplete
                   v-else-if="row.type === 'autocomplete'"
                   v-model="formState[row.name]"
@@ -886,26 +929,29 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                   v-bind="{ ...formItem, ...row.props }"
                 />
               </UFormField>
-            </div>
-            <div class="flex justify-end gap-2 mt-4">
-              <UButton
-                icon="i-lucide-x"
-                type="button"
-                color="error"
-                variant="subtle"
-                @click="formOpen = false"
-              >
-                Cancel
-              </UButton>
-              <UButton
-                type="submit"
-                :loading="isSubmitting"
-                icon="i-lucide-send"
-              >
-                Submit
-              </UButton>
-            </div>
-          </UForm>
+            </template>
+          </div>
+        </UForm>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2 flex-1">
+          <UButton
+            icon="i-lucide-x"
+            type="button"
+            color="error"
+            variant="subtle"
+            @click="formOpen = false"
+          >
+            Cancel
+          </UButton>
+          <UButton
+            type="button"
+            :loading="isSubmitting"
+            icon="i-lucide-send"
+            @click="formRef?.submit()"
+          >
+            Submit
+          </UButton>
         </div>
       </template>
     </UModal>

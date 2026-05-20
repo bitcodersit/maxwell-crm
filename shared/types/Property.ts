@@ -9,6 +9,7 @@ export type TProperty = Property & {
   creator?: TMaybe<TUser>
   assignable?: TMaybe<TAssignable>
   address?: TMaybe<TAddress>
+  purchaseType?: TMaybe<TOption>
   sizes?: TMaybe<TPropertySize[]>
   leads?: TMaybe<TLeadProperty[]>
   attachables?: TMaybe<TAttachable[]>

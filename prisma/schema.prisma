@@ -450,10 +450,11 @@ model TaskTeam {
 // START CRM
 
 enum OptionType {
-    SOURCE
-    PROPERTY_TYPE_MAIN
-    PROPERTY_TYPE_SUB
     SIZE
+    SOURCE
+    PROPERTY_TYPE_SUB
+    PROPERTY_TYPE_MAIN
+    PROPERTY_PURCHASE_TYPE
 }
 
 model Option {
@@ -462,10 +463,11 @@ model Option {
     name String
     type OptionType
 
-    leadsAsSource           Lead[]         @relation("LeadSourceOption")
-    leadsAsPropertyTypeMain Lead[]         @relation("LeadPropertyTypeMainOption")
-    leadsAsPropertyTypeSub  Lead[]         @relation("LeadPropertyTypeSubOption")
-    propertySizes           PropertySize[]
+    leadsAsSource            Lead[]         @relation("LeadSourceOption")
+    leadsAsPropertyTypeMain  Lead[]         @relation("LeadPropertyTypeMainOption")
+    leadsAsPropertyTypeSub   Lead[]         @relation("LeadPropertyTypeSubOption")
+    propertiesAsPurchaseType Property[]     @relation("PropertyPurchaseTypeOption")
+    propertySizes            PropertySize[]
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -557,6 +559,9 @@ model Property {
 
     addressId Int?
     address   Address? @relation(fields: [addressId], references: [id], onDelete: SetNull)
+
+    purchaseTypeId Int?
+    purchaseType   Option? @relation("PropertyPurchaseTypeOption", fields: [purchaseTypeId], references: [id], onDelete: SetNull)
 
     facing        String?
     price         Decimal? @db.Decimal(18, 2)
