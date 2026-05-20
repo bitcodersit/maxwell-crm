@@ -11,25 +11,24 @@ const emailEditable = ref(false)
 const pendingEmail = ref<string | null>(null)
 const pendingEmailStage = ref<string | null>(null)
 
-const { user, fetch: fetchSession } = useUserSession()
-
+const { user, refetch } = useCurrentUser()
 const { getAttachment } = useGetAttachment()
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Too short'),
-  email: z.email('Invalid email address'),
+  email: z.email('Invalid email address')
 })
 
 type ProfileSchema = z.output<typeof profileSchema>
 
 const profile = reactive({
   name: '',
-  email: '',
+  email: ''
 })
 
 watch(
   user,
-  (u) => {
+  u => {
     if (u) {
       profile.name = u.name
       profile.email = u.email
@@ -39,7 +38,7 @@ watch(
   { immediate: true }
 )
 
-watch(pendingFile, (f) => {
+watch(pendingFile, f => {
   if (previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value)
     previewUrl.value = null
@@ -62,7 +61,7 @@ const avatarSrc = computed(() => {
   if (previewUrl.value) {
     return previewUrl.value
   }
-  return getAttachment(user.value?.avatarId)
+  return getAttachment(user.value?.avatar?.path)
 })
 
 const toast = useToast()
@@ -97,17 +96,17 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
     let newAvatarId: number | undefined
     if (pendingFile.value) {
       const fd = new FormData()
-      fd.append('file', pendingFile.value)
-      const up = await $fetch<{ id: number; url: string }>('/api/attachments', {
+      fd.append('files', pendingFile.value)
+      const attachments = await $fetch('/api/attachments', {
         method: 'POST',
-        body: fd,
+        body: fd
       })
-      newAvatarId = up.id
+      newAvatarId = attachments[0]?.id
     }
 
     const body: { name?: string; email?: string; avatarId?: number | null } = {
       name: event.data.name,
-      email: requestedEmail,
+      email: requestedEmail
     }
     if (clearAvatar.value) {
       body.avatarId = null
@@ -117,13 +116,13 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
 
     await $fetch('/api/me', {
       method: 'PUT',
-      body,
+      body
     })
 
     pendingFile.value = null
     clearAvatar.value = false
     emailEditable.value = false
-    await fetchSession()
+    await refetch()
     await fetchPendingEmailChange()
 
     toast.add({
@@ -132,13 +131,13 @@ async function onSubmit(event: FormSubmitEvent<ProfileSchema>) {
         ? 'Profile updated. Please confirm from your old email address.'
         : 'Your settings have been updated.',
       icon: 'i-lucide-check',
-      color: 'success',
+      color: 'success'
     })
   } catch (error: any) {
     toast.add({
       title: 'Error',
       description: error.data.message ?? error.message ?? 'Update failed',
-      color: 'error',
+      color: 'error'
     })
   } finally {
     loading.value = false
@@ -177,7 +176,12 @@ const onCancelEmailChange = () => {
 </script>
 
 <template>
-  <UForm id="settings" :schema="profileSchema" :state="profile" @submit="onSubmit">
+  <UForm
+    id="settings"
+    :schema="profileSchema"
+    :state="profile"
+    @submit="onSubmit"
+  >
     <UPageCard
       title="Profile"
       description="These informations will be displayed publicly."
@@ -204,7 +208,11 @@ const onCancelEmailChange = () => {
         description="Will appear on receipts, invoices, and other communication."
         class="flex max-sm:flex-col justify-between items-start gap-4"
       >
-        <UInput v-model="profile.name" autocomplete="off" class="min-w-48 w-full" />
+        <UInput
+          v-model="profile.name"
+          autocomplete="off"
+          class="min-w-48 w-full"
+        />
       </UFormField>
       <USeparator />
       <div>
@@ -218,11 +226,17 @@ const onCancelEmailChange = () => {
             <ClientOnly>
               <div>Used to sign in, for email receipts and product updates.</div>
               <template v-if="pendingEmail">
-                <div v-if="pendingEmailStage === 'old-confirm'" class="text-warning">
+                <div
+                  v-if="pendingEmailStage === 'old-confirm'"
+                  class="text-warning"
+                >
                   You have a pending email <b class="underline">`{{ pendingEmail }}`</b> change
                   request. Please check your current email address to confirm the change.
                 </div>
-                <div v-else-if="pendingEmailStage === 'new-verify'" class="text-warning">
+                <div
+                  v-else-if="pendingEmailStage === 'new-verify'"
+                  class="text-warning"
+                >
                   Email is not verified. An email has been sent to
                   <b class="underline">`{{ pendingEmail }}`</b> to verify.
                 </div>
@@ -238,7 +252,10 @@ const onCancelEmailChange = () => {
           />
         </UFormField>
         <ClientOnly>
-          <div v-if="!isFetchingPendingEmailChange" class="flex justify-end">
+          <div
+            v-if="!isFetchingPendingEmailChange"
+            class="flex justify-end"
+          >
             <UButton
               v-if="!emailEditable && pendingEmailStage !== 'old-confirm'"
               size="xs"
@@ -274,7 +291,11 @@ const onCancelEmailChange = () => {
             :alt="profile.name"
             size="lg"
           />
-          <UButton label="Choose" color="neutral" @click="onFileClick" />
+          <UButton
+            label="Choose"
+            color="neutral"
+            @click="onFileClick"
+          />
           <UButton
             v-if="user?.avatarId || pendingFile"
             label="Remove"

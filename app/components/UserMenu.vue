@@ -1,4 +1,6 @@
 <script lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 const colors = [
   'red',
   'orange',
@@ -16,21 +18,19 @@ const colors = [
   'purple',
   'fuchsia',
   'pink',
-  'rose',
+  'rose'
 ]
 const neutrals = ['slate', 'gray', 'zinc', 'neutral', 'stone']
 </script>
 
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui'
-
 defineProps<{
   collapsed?: boolean
 }>()
 
 const colorMode = useColorMode()
 
-const { user: userSession } = useUserSession()
+const { user: userSession } = useCurrentUser()
 const { primary, neutral } = useUiColors()
 
 const { getAttachment } = useGetAttachment()
@@ -39,9 +39,9 @@ const user = computed(() => {
   return {
     name: userSession.value?.name,
     avatar: {
-      src: getAttachment(userSession.value?.avatarId),
-      alt: userSession.value?.name,
-    },
+      src: getAttachment(userSession.value?.avatar?.path),
+      alt: userSession.value?.name
+    }
   }
 })
 
@@ -53,23 +53,23 @@ const items = computed<DropdownMenuItem[][]>(() => [
       type: 'label',
 
       label: user.value.name,
-      avatar: user.value.avatar,
-    },
+      avatar: user.value.avatar
+    }
   ],
   [
     {
       label: 'Profile',
-      icon: 'i-lucide-user',
+      icon: 'i-lucide-user'
     },
     {
       label: 'Billing',
-      icon: 'i-lucide-credit-card',
+      icon: 'i-lucide-credit-card'
     },
     {
       label: 'Settings',
       icon: 'i-lucide-settings',
-      to: '/settings',
-    },
+      to: '/settings'
+    }
   ],
   [
     {
@@ -82,19 +82,19 @@ const items = computed<DropdownMenuItem[][]>(() => [
           chip: primary.value,
           content: {
             align: 'center',
-            collisionPadding: 16,
+            collisionPadding: 16
           },
-          children: colors.map((color) => ({
+          children: colors.map(color => ({
             label: color,
             chip: color,
             slot: 'chip',
             checked: primary.value === color,
             type: 'checkbox',
-            onSelect: (e) => {
+            onSelect: e => {
               e.preventDefault()
               primary.value = color
-            },
-          })),
+            }
+          }))
         },
         {
           label: 'Neutral',
@@ -102,21 +102,21 @@ const items = computed<DropdownMenuItem[][]>(() => [
           chip: neutral.value === 'neutral' ? 'old-neutral' : neutral.value,
           content: {
             align: 'end',
-            collisionPadding: 16,
+            collisionPadding: 16
           },
-          children: neutrals.map((color) => ({
+          children: neutrals.map(color => ({
             label: color,
             chip: color === 'neutral' ? 'old-neutral' : color,
             slot: 'chip',
             type: 'checkbox',
             checked: neutral.value === color,
-            onSelect: (e) => {
+            onSelect: e => {
               e.preventDefault()
               neutral.value = color
-            },
-          })),
-        },
-      ],
+            }
+          }))
+        }
+      ]
     },
     {
       label: 'Appearance',
@@ -130,7 +130,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
           onSelect(e: Event) {
             e.preventDefault()
             colorMode.preference = 'light'
-          },
+          }
         },
         {
           label: 'Dark',
@@ -144,10 +144,10 @@ const items = computed<DropdownMenuItem[][]>(() => [
           },
           onSelect(e: Event) {
             e.preventDefault()
-          },
-        },
-      ],
-    },
+          }
+        }
+      ]
+    }
   ],
   [
     {
@@ -156,62 +156,62 @@ const items = computed<DropdownMenuItem[][]>(() => [
       children: [
         {
           label: 'Starter',
-          to: 'https://starter-template.nuxt.dev/',
+          to: 'https://starter-template.nuxt.dev/'
         },
         {
           label: 'Landing',
-          to: 'https://landing-template.nuxt.dev/',
+          to: 'https://landing-template.nuxt.dev/'
         },
         {
           label: 'Docs',
-          to: 'https://docs-template.nuxt.dev/',
+          to: 'https://docs-template.nuxt.dev/'
         },
         {
           label: 'SaaS',
-          to: 'https://saas-template.nuxt.dev/',
+          to: 'https://saas-template.nuxt.dev/'
         },
         {
           label: 'Dashboard',
           to: 'https://dashboard-template.nuxt.dev/',
           color: 'primary',
           checked: true,
-          type: 'checkbox',
+          type: 'checkbox'
         },
         {
           label: 'Chat',
-          to: 'https://chat-template.nuxt.dev/',
+          to: 'https://chat-template.nuxt.dev/'
         },
         {
           label: 'Portfolio',
-          to: 'https://portfolio-template.nuxt.dev/',
+          to: 'https://portfolio-template.nuxt.dev/'
         },
         {
           label: 'Changelog',
-          to: 'https://changelog-template.nuxt.dev/',
-        },
-      ],
-    },
+          to: 'https://changelog-template.nuxt.dev/'
+        }
+      ]
+    }
   ],
   [
     {
       label: 'Documentation',
       icon: 'i-lucide-book-open',
       to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-      target: '_blank',
+      target: '_blank'
     },
     {
       label: 'GitHub repository',
       icon: 'i-simple-icons-github',
       to: 'https://github.com/nuxt-ui-templates/dashboard',
-      target: '_blank',
+      target: '_blank'
     },
     {
       label: 'Log out',
       icon: 'i-lucide-log-out',
       loading: isLoggingOut.value,
-      onClick: logout,
-    },
-  ],
+      onClick: logout
+    }
+  ]
 ])
 </script>
 
@@ -226,7 +226,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
       v-bind="{
         ...user,
         label: collapsed ? undefined : user?.name,
-        trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down',
+        trailingIcon: collapsed ? undefined : 'i-lucide-chevrons-up-down'
       }"
       color="neutral"
       variant="ghost"
@@ -234,7 +234,7 @@ const items = computed<DropdownMenuItem[][]>(() => [
       :square="collapsed"
       class="data-[state=open]:bg-elevated"
       :ui="{
-        trailingIcon: 'text-dimmed',
+        trailingIcon: 'text-dimmed'
       }"
     />
 

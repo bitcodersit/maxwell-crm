@@ -6,10 +6,13 @@ type TModule = 'Users' | 'Roles' | 'Permissions' | 'Teams' | 'Attachments' | 'Ta
 type TOperation = 'create' | 'read' | 'update' | 'delete' | 'export'
 type TSubject = 'Any' | 'Own'
 
+type TRoleName = 'SuperAdmin' | 'Admin' | 'Manager' | 'Salesman' | 'Accountant' | 'Customer'
+
 export type TUser = User & {
   avatar?: TMaybe<Attachment>
   creator?: TMaybe<Pick<User, 'id' | 'name'>>
   userRoles?: TUserRole[]
   roles?: string[]
   permissions?: string[]
-} & Record<`${TOperation}${TSubject}${TModule}`, TMaybe<boolean>>
+} & Record<`${TOperation}${TSubject}${TModule}`, TMaybe<boolean>> &
+  Record<`is${TRoleName}`, boolean>

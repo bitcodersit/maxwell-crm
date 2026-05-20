@@ -7,7 +7,7 @@ type TModel = Pick<
   'id' | 'name' | 'status' | 'sortOrder' | 'completedAt' | 'completedBy' | 'completedById'
 >
 
-const { user } = useUserSession()
+const { user } = useCurrentUser()
 const { getAttachment } = useGetAttachment()
 
 const model = defineModel<TModel[]>({
@@ -159,7 +159,7 @@ const completion = computed(() => {
           >
             <UAvatar
               :size="'xs'"
-              :src="getAttachment(item.completedBy.avatarId)"
+              :src="getAttachment(item.completedBy.avatar?.path)"
               :alt="item.completedBy.name"
             />
             <template #content>

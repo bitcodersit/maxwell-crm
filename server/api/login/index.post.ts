@@ -21,17 +21,22 @@ export default defineEventHandler(async event => {
     where: {
       email: input.email
     },
-    include: {
-      avatar: true,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      password: true,
+      deletedAt: true,
+      avatar: {
+        select: {
+          path: true
+        }
+      },
       userRoles: {
-        include: {
+        select: {
           role: {
-            include: {
-              rolePermissions: {
-                include: {
-                  permission: true
-                }
-              }
+            select: {
+              name: true
             }
           }
         }
@@ -69,5 +74,7 @@ export default defineEventHandler(async event => {
     user: userToSession(user)
   })
 
-  return getUserSession(event)
+  return {
+    message: 'Logged in successfully'
+  }
 })

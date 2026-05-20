@@ -8,7 +8,7 @@ const allowedStatuses: TaskStatus[] = [
 ]
 
 export const useTaskStatusItems = (onSelect?: (value: TaskStatus) => void) => {
-  const { user } = useUserSession()
+  const { user } = useCurrentUser()
   return computed(() => {
     const values = Object.values(TaskStatus)
     return (
@@ -25,7 +25,7 @@ export const useTaskStatusItems = (onSelect?: (value: TaskStatus) => void) => {
 
 const allowedPriorities: TaskPriority[] = []
 export const useTaskPriorityItems = (onSelect?: (value: TaskPriority) => void) => {
-  const { user } = useUserSession()
+  const { user } = useCurrentUser()
   return computed(() => {
     const values = Object.values(TaskPriority)
     return (

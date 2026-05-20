@@ -1,39 +1,74 @@
 import type { H3Event } from 'h3'
+import { capitalize } from 'vue'
 
-export type TGetCurrentUserOptions = {
-  cache?: boolean
-}
+const name = 'getCurrentUser'
 
-export const getCurrentUser = async (event: H3Event, options?: TGetCurrentUserOptions) => {
-  const { cache = true } = options ?? {}
-  const session = await requireUserSession(event)
-  if (cache) return session.user
-
-  const user = await prisma.user.findUnique({
-    where: {
-      id: session.user.id
-    },
-    include: {
-      userRoles: {
-        include: {
-          role: {
-            include: {
-              rolePermissions: {
-                include: {
-                  permission: true
+export const getCurrentUser = defineCachedFunction(
+  async (_: H3Event, id: number) => {
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: {
+          select: {
+            path: true
+          }
+        },
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                name: true,
+                rolePermissions: {
+                  select: {
+                    permission: {
+                      select: {
+                        name: true
+                      }
+                    }
+                  }
                 }
               }
             }
           }
         }
       }
-    }
-  })
-
-  if (!user) {
-    await clearUserSession(event)
-    throw err.unauth()
+    })
+    if (!user) throw err.unauth()
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar
+        ? {
+            path: user.avatar?.path
+          }
+        : undefined,
+      ...user.userRoles?.reduce(
+        (acc, ur) => {
+          acc[`is${ur.role?.name?.replace(/\s/g, '')}`] = true
+          return acc
+        },
+        {} as Record<string, boolean>
+      ),
+      ...(
+        user.userRoles?.flatMap(
+          ur => ur.role?.rolePermissions?.map(rp => rp.permission?.name).filter(Boolean) ?? []
+        ) ?? []
+      ).reduce((acc, permission) => {
+        const [operation, subject, module] = (permission as string).split('-')
+        if (operation && subject && module) {
+          ;(acc as any)[`${operation}${capitalize(subject)}${capitalize(module)}`] = true
+        }
+        return acc
+      }, {})
+    } as TUser
+  },
+  {
+    name,
+    maxAge: 60, // seconds,
+    getKey: (_, id) => `${name}(${id})`
   }
-
-  return userToSession(user)
-}
+)

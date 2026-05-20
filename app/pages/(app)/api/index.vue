@@ -17,8 +17,8 @@ const MAX_HISTORY = 100
 const methods: HttpMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
 
 const method = ref<HttpMethod>('GET')
-const endpoint = ref('/api/options')
-const payload = ref('{\n  "type": "SOURCE"\n}')
+const endpoint = ref('/api/me')
+const payload = ref('{}')
 const response = ref('')
 const error = ref('')
 const loading = ref(false)

@@ -19,3 +19,14 @@ export const selectUserForDisplay: Prisma.UserSelect = {
     }
   }
 }
+
+export const selectUserForSession: Prisma.UserSelect = {
+  id: true,
+  name: true,
+  email: true,
+  avatar: {
+    select: {
+      path: true
+    }
+  }
+}

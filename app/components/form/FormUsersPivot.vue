@@ -1,6 +1,9 @@
 <script context="module" lang="ts">
-import type { SelectProps } from '@nuxt/ui'
+import type { TFormSearchboxProps } from './FormSearchbox.vue'
+import type { SelectProps, InputProps } from '@nuxt/ui'
+</script>
 
+<script setup lang="ts" generic="ModelValue extends TModelValue">
 type TModelValue = {
   user: TUser
   userId: TUser['id']
@@ -20,11 +23,6 @@ type TMemberInputField = {
 }
 
 type TMemberField = TMemberSelectField | TMemberInputField
-</script>
-
-<script setup lang="ts" generic="ModelValue extends TModelValue">
-import type { InputProps } from '@nuxt/ui'
-import type { TFormSearchboxProps } from './FormSearchbox.vue'
 
 export type TFormUsersPivotProps = Partial<
   Omit<TFormSearchboxProps<TUser, number>, 'api' | 'query' | 'getValue' | 'getLabel'>
@@ -34,7 +32,7 @@ export type TFormUsersPivotProps = Partial<
 
 const props = withDefaults(defineProps<TFormUsersPivotProps>(), {
   fields: () => [],
-  placeholder: 'Search user',
+  placeholder: 'Search user'
 })
 
 const model = defineModel<ModelValue[]>({ default: () => [] })
@@ -44,14 +42,14 @@ const { getAttachment } = useGetAttachment()
 
 const selectedUsers = computed<TUser[]>({
   get() {
-    return model.value.map((member) => member.user)
+    return model.value.map(member => member.user)
   },
   set(users) {
-    model.value = users.map((user) => {
-      const existing = model.value.find((m) => m.userId === user.id)
+    model.value = users.map(user => {
+      const existing = model.value.find(m => m.userId === user.id)
       return { ...existing, user, userId: user.id } as ModelValue
     })
-  },
+  }
 })
 
 const getLabel = (user: TUser) => {
@@ -59,15 +57,15 @@ const getLabel = (user: TUser) => {
     h(UAvatar, {
       size: '2xs',
       class: 'bg-primary/20',
-      src: getAttachment(user.avatarId || undefined),
-      alt: user.name,
+      src: getAttachment(user.avatar?.path || undefined),
+      alt: user.name
     }),
-    h('span', user.name || `User #${user.id}`),
+    h('span', user.name || `User #${user.id}`)
   ])
 }
 
 const onRemoveItem = (item: ModelValue) => {
-  model.value = model.value.filter((v) => {
+  model.value = model.value.filter(v => {
     return v.userId !== item.user.id
   })
 }
@@ -86,14 +84,25 @@ const onRemoveItem = (item: ModelValue) => {
           class="bg-primary/20"
           :alt="item.user?.name"
           :ui="{ fallback: 'text-xs' }"
-          :src="getAttachment(item.user?.avatarId || undefined)"
+          :src="getAttachment(item.user?.avatar?.path || undefined)"
         />
         <span class="truncate">{{ item.user.name }}</span>
       </div>
       <div class="flex items-center gap-2 flex-none">
-        <template v-for="field in fields" :key="`${item.userId}:${field.name}`">
-          <UInput v-if="field.type === 'input'" v-model="item[field.name]" v-bind="field.props" />
-          <USelect v-else v-model="item[field.name]" v-bind="field.props" />
+        <template
+          v-for="field in fields"
+          :key="`${item.userId}:${field.name}`"
+        >
+          <UInput
+            v-if="field.type === 'input'"
+            v-model="item[field.name]"
+            v-bind="field.props"
+          />
+          <USelect
+            v-else
+            v-model="item[field.name]"
+            v-bind="field.props"
+          />
         </template>
         <UButton
           size="sm"
@@ -112,7 +121,7 @@ const onRemoveItem = (item: ModelValue) => {
       :api="'/api/users'"
       :query="{ options: true }"
       :get-label="getLabel"
-      :get-value="(v) => v.id"
+      :get-value="v => v.id"
       :placeholder="placeholder"
     />
   </div>

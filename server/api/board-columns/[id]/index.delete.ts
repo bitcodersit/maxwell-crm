@@ -1,5 +1,5 @@
 export default defineEventHandler(async event => {
-  await getCurrentUser(event)
+  await requireUserSession(event)
 
   const id = getRouterParam(event, 'id')
   const ids = stringToIds(id)

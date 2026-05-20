@@ -18,7 +18,7 @@ const attachments = defineModel<TAttachment[]>({
   default: () => []
 })
 
-const { user } = useUserSession()
+const { user } = useCurrentUser()
 const { mutateAsync, isPending } = useAttachmentsMutation()
 const { getAttachment } = useGetAttachment()
 
@@ -83,7 +83,7 @@ const imgs = computed(() => {
     .filter(item => item.mime?.startsWith('image/'))
     .map(item => ({
       id: item.id,
-      src: getAttachment(item.id),
+      src: getAttachment(item.path),
       title: item.name ?? `Attachment #${item.id}`
     }))
 })
@@ -91,7 +91,7 @@ const onHide = () => {
   visibleRef.value = false
 }
 const onShow = (item: TAttachment) => {
-  const src = getAttachment(item.id)
+  const src = getAttachment(item.path)
   if (!src) return
   if (item.mime?.startsWith('application/pdf') || item.path?.endsWith('.pdf')) {
     return pdfViewer.open({
@@ -216,7 +216,7 @@ const onDeleteSelected = async () => {
             class="rounded-lg"
             icon="i-lucide-file"
             :alt="item.name ?? ''"
-            :src="getAttachment(item.id)"
+            :src="getAttachment(item.path)"
           />
           <div
             v-if="!!user?.deleteAnyAttachments"

@@ -3,7 +3,7 @@ useHead({ title: 'Verify Email' })
 definePageMeta({ layout: false })
 
 const route = useRoute()
-const { user, fetch: fetchSession } = useUserSession()
+const { user, refetch } = useCurrentUser()
 
 const token = computed(() => {
   const value = route.query.token
@@ -38,8 +38,8 @@ const verifyEmail = async () => {
       forceLogout?: boolean
     }>('/api/users/verify-email', {
       query: {
-        token: token.value,
-      },
+        token: token.value
+      }
     })
     success.value = true
     flow.value = (response?.flow as typeof flow.value) || 'normal'
@@ -51,7 +51,7 @@ const verifyEmail = async () => {
       message.value = 'Email has been verified. You can now close this window.'
     }
     if (response?.forceLogout) {
-      await fetchSession()
+      await refetch()
     }
   } catch (error: any) {
     success.value = false
@@ -75,11 +75,11 @@ onMounted(verifyEmail)
               loading
                 ? 'i-lucide-loader-circle'
                 : success
-                ? 'i-lucide-badge-check'
-                : 'i-lucide-circle-alert'
+                  ? 'i-lucide-badge-check'
+                  : 'i-lucide-circle-alert'
             "
             :class="[
-              loading ? 'animate-spin text-primary' : success ? 'text-success' : 'text-error',
+              loading ? 'animate-spin text-primary' : success ? 'text-success' : 'text-error'
             ]"
           />
           <span>{{ title }}</span>
@@ -91,10 +91,19 @@ onMounted(verifyEmail)
       <template #footer>
         <div class="flex justify-end gap-2">
           <template v-if="success && flow === 'normal'">
-            <UButton v-if="isLoggedIn" to="/settings" icon="i-lucide-user" :disabled="loading">
+            <UButton
+              v-if="isLoggedIn"
+              to="/settings"
+              icon="i-lucide-user"
+              :disabled="loading"
+            >
               Go to profile
             </UButton>
-            <UButton v-else to="/login" icon="i-lucide-log-in" :disabled="loading"
+            <UButton
+              v-else
+              to="/login"
+              icon="i-lucide-log-in"
+              :disabled="loading"
               >Go to login</UButton
             >
             <UButton
@@ -108,7 +117,12 @@ onMounted(verifyEmail)
             </UButton>
           </template>
           <template v-else-if="success && flow === 'email-change'">
-            <UButton to="/login" icon="i-lucide-log-in" :disabled="loading">Go to login</UButton>
+            <UButton
+              to="/login"
+              icon="i-lucide-log-in"
+              :disabled="loading"
+              >Go to login</UButton
+            >
             <UButton
               color="neutral"
               variant="soft"
@@ -120,7 +134,12 @@ onMounted(verifyEmail)
             </UButton>
           </template>
           <template v-else>
-            <UButton to="/login" icon="i-lucide-log-in" :disabled="loading">Go to login</UButton>
+            <UButton
+              to="/login"
+              icon="i-lucide-log-in"
+              :disabled="loading"
+              >Go to login</UButton
+            >
           </template>
         </div>
       </template>

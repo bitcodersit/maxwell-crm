@@ -2,7 +2,7 @@ import { UBadge, UAvatar } from '#components'
 
 export const useUsersCell = () => {
   const { getAttachment } = useGetAttachment()
-  return <T extends Pick<TUser, 'name' | 'avatarId'>>(
+  return <T extends Pick<TUser, 'name' | 'avatar'>>(
     items: T[],
     options?: { modal?: boolean; right?: (user: T) => TMaybe<VNode> }
   ) => {
@@ -23,7 +23,7 @@ export const useUsersCell = () => {
           h('div', { class: 'flex items-center gap-1' }, [
             h(UAvatar, {
               size: '2xs',
-              src: getAttachment(item.avatarId),
+              src: getAttachment(item.avatar?.path),
               alt: item.name,
               class: 'bg-primary/20'
             }),

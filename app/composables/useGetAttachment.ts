@@ -3,11 +3,11 @@ import type { TMaybe } from '~~/shared/types'
 export function useGetAttachment() {
   const config = useRuntimeConfig()
 
-  const getAttachment = (id?: TMaybe<number>) => {
-    return id ? `${config.public.siteUrl}/api/attachments/${id}` : undefined
+  const getAttachment = (path?: TMaybe<string>) => {
+    return path ? `${config.public.siteUrl}/api/attachments/path/${path}` : undefined
   }
 
   return {
-    getAttachment,
+    getAttachment
   }
 }

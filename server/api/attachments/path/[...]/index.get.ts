@@ -1,9 +1,9 @@
 export default defineEventHandler(async event => {
   try {
-    const id = getRouterParamId(event)
+    const path = event.context.params?._
     const row = await prisma.attachment.findFirst({
       where: {
-        id,
+        path,
         deletedAt: null
       },
       select: {

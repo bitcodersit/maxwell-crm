@@ -17,7 +17,7 @@ const toast = useToast()
 
 const open = ref(false)
 
-const { user } = useUserSession()
+const { user } = useCurrentUser()
 const { title, links: panelLinks, isSearchOpen, isNotificationsOpen } = useDashboard()
 
 const links = computed(() => {

@@ -1,6 +1,7 @@
 import { render } from '@vue-email/render'
 import EmailConfirmEmailChange from '@/components/emails/EmailConfirmEmailChange.vue'
 import { createEmailChangeConfirmLink } from '~~/server/utils/emailVerification'
+import { selectUserForSession } from '~~/server/utils/users'
 
 const zMeUpdate = z.object({
   name: z.string().min(2).optional(),
@@ -9,10 +10,10 @@ const zMeUpdate = z.object({
 })
 
 export default defineEventHandler(async event => {
-  const { user: sessionUser } = await requireUserSession(event)
-  if (!sessionUser.updateOwnUsers) {
-    throw err.denied()
-  }
+  const session = await requireUserSession(event)
+  const currentUser = await getCurrentUser(event, session.user.id)
+
+  if (!currentUser.updateOwnUsers) throw err.denied()
 
   const body = await readBody(event)
   const input = await validate(body, zMeUpdate)
@@ -26,7 +27,7 @@ export default defineEventHandler(async event => {
 
   const existing = await prisma.user.findUnique({
     where: {
-      id: sessionUser.id
+      id: currentUser.id
     },
     select: {
       id: true,
@@ -82,28 +83,13 @@ export default defineEventHandler(async event => {
 
   const user = await prisma.user.update({
     where: {
-      id: sessionUser.id
+      id: currentUser.id
     },
     data: {
       ...(input.name ? { name: input.name } : {}),
       ...(input.avatarId ? { avatarId: input.avatarId } : {})
     },
-    include: {
-      avatar: true,
-      userRoles: {
-        include: {
-          role: {
-            include: {
-              rolePermissions: {
-                include: {
-                  permission: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    select: selectUserForSession
   })
 
   if (isEmailChangeRequested && requestedEmail) {
@@ -115,7 +101,7 @@ export default defineEventHandler(async event => {
     })
 
     await queueEmail({
-      to: existing.email,
+      to: existing.email!,
       subject: 'Confirm your email change request',
       html
     })
@@ -125,5 +111,7 @@ export default defineEventHandler(async event => {
     user: userToSession(user)
   })
 
-  return getUserSession(event)
+  return {
+    message: 'Profile updated successfully'
+  }
 })

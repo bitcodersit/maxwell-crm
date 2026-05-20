@@ -1,17 +1,17 @@
-import { getCurrentUser } from './index.get'
-import { isCustomerRoleName } from '~~/server/utils/customerRole'
-
 const zPasswordChange = z.object({
   current: z.string().min(8),
   new: z.string().min(8)
 })
 
 export default defineEventHandler(async event => {
-  const sessionUser = await getCurrentUser(event)
-  if (!sessionUser.updateOwnUsers) {
+  const session = await requireUserSession(event)
+  const currentUser = await getCurrentUser(event, session.user.id)
+
+  if (!currentUser.updateOwnUsers) {
     throw err.denied()
   }
-  if (sessionUser.roles.some(role => isCustomerRoleName(role))) {
+
+  if (currentUser.isCustomer) {
     throw err.denied('Customer portal is not available yet')
   }
 
@@ -27,7 +27,7 @@ export default defineEventHandler(async event => {
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: sessionUser.id },
+    where: { id: currentUser.id },
     select: { id: true, password: true }
   })
   if (!user) {

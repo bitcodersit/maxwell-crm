@@ -15,11 +15,11 @@ const UAvatar = resolveComponent('UAvatar')
 
 const { getAttachment } = useGetAttachment()
 const userFilterLabelProps = {
-  getLabel(v: { name?: string; avatarId?: number }) {
+  getLabel(v: { name?: string; avatar?: TAttachment }) {
     return h('div', { class: 'flex items-center gap-2' }, [
       h(UAvatar, {
         size: '2xs',
-        src: getAttachment(v?.avatarId),
+        src: getAttachment(v?.avatar?.path),
         alt: v?.name
       }),
       h('span', v?.name || '—')

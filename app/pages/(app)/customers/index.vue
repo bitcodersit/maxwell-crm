@@ -54,7 +54,7 @@ const columns = computed<TColumn<TUser>[]>(() => [
       return h('div', { class: 'flex items-center gap-2' }, [
         h(UAvatar, {
           size: 'sm',
-          src: getAttachment(row.original.avatarId),
+          src: getAttachment(row.original.avatar?.path),
           alt: row.original.name,
           ui: {
             fallback: 'text-xs'

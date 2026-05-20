@@ -31,9 +31,8 @@ const zSchema = z
   })
 
 export default defineEventHandler(async event => {
-  const user = await getCurrentUser(event, {
-    cache: false
-  })
+  const session = await requireUserSession(event)
+  const user = await getCurrentUser(event, session.user.id)
 
   if (!user.createAnyAttachments || !user.createOwnAttachments) {
     throw err.denied()

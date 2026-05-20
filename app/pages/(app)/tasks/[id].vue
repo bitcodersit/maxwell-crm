@@ -9,7 +9,7 @@ const router = useRouter()
 const id = computed(() => Number(route.params.id))
 const task = useState<TTask>(keys.task(id.value).toString())
 
-const { user } = useUserSession()
+const { user } = useCurrentUser()
 const { mutate, isPending } = useTaskPatchMutation(id)
 const { data, isFetching } = useTaskQuery(id, v => {
   task.value = { ...v }

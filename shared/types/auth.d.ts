@@ -1,6 +1,6 @@
 declare module '#auth-utils' {
-  interface User extends TUser {
-    //
+  interface User extends Pick<TUser, 'id' | 'name' | 'email'> {
+    avatar: TMaybe<Pick<TUser['avatar'], 'path'>>
   }
 
   interface UserSession {

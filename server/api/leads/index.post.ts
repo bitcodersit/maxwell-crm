@@ -1,6 +1,7 @@
 export default defineEventHandler(async event => {
   // Check permission
-  const user = await getCurrentUser(event, { cache: false })
+  const session = await requireUserSession(event)
+  const user = await getCurrentUser(event, session.user.id)
   if (!user.createAnyLeads) return err.denied()
 
   // Parse and validate input
