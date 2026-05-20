@@ -43,6 +43,7 @@ model User {
 
     assignableTeams     AssignableTeam[] @relation("AssignableTeamAssigner")
     propertiesAsCreator Property[]       @relation("PropertyCreator")
+    auditLogs           AuditLog[]
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -761,6 +762,26 @@ model EmailJob {
     @@index([status, scheduledAt])
     @@index([priority, status, scheduledAt])
     @@map("email_jobs")
+}
+
+model AuditLog {
+    id            Int      @id @default(autoincrement())
+    userId        Int?
+    recordId      Json
+    action        String
+    model         String
+    oldData       Json?
+    newData       Json?
+    changedFields Json?
+    ipAddress     String?
+    userAgent     String?
+    metadata      Json?
+    createdAt     DateTime @default(now())
+    user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+    @@index([model, createdAt])
+    @@index([userId, createdAt])
+    @@map("audit_logs")
 }
 
 // END UTILITY

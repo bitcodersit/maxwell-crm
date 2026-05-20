@@ -20,6 +20,7 @@
     "prisma:reset": "prisma migrate reset && prisma generate"
   },
   "dependencies": {
+    "@explita/prisma-audit-log": "^0.2.3",
     "@iconify-json/lucide": "^1.2.105",
     "@iconify-json/simple-icons": "^1.2.80",
     "@internationalized/date": "^3.12.1",

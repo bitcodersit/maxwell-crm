@@ -69,15 +69,17 @@ export default defineNuxtConfig({
   vite: {
     optimizeDeps: {
       include: [
-        'date-fns',
         '@internationalized/date',
-        '@unovis/vue',
+        '@nuxt/ui > prosemirror-gapcursor',
+        '@nuxt/ui > prosemirror-model',
         '@nuxt/ui > prosemirror-state',
         '@nuxt/ui > prosemirror-transform',
-        '@nuxt/ui > prosemirror-model',
         '@nuxt/ui > prosemirror-view',
-        '@nuxt/ui > prosemirror-gapcursor',
-        '@vueuse/integrations/useSortable'
+        '@unovis/vue',
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        '@vueuse/integrations/useSortable',
+        'date-fns'
       ]
     }
   },
