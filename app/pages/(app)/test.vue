@@ -31,10 +31,24 @@ const onTest = () => {
     }
   })
 }
+
+const onTestOptions = () => {
+  $fetch(`/api/options`, {
+    query: {
+      type: 'SOURCE',
+      // q: 'face',
+      // perPage: 2,
+      orderBy: {
+        name: 'asc'
+      }
+    }
+  })
+}
 </script>
 
 <template>
   <div>
     <UButton @click="onTest"> Test </UButton>
+    <UButton @click="onTestOptions"> Test Options </UButton>
   </div>
 </template>

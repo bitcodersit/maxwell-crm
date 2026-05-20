@@ -1,4 +1,6 @@
-export const getPagination = (query: any) => {
+import type { TZPagination } from './zPagination'
+
+export const getPagination = (query: TZPagination) => {
   const paginate = 'paginate' in query ? isTrue(query.paginate) : true
 
   const page = Number(query.page) || 1
