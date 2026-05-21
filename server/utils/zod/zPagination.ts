@@ -11,8 +11,6 @@ export const zPagination = (options?: TOptions) => {
   return z.object({
     page: zId('Invalid page').default(options?.page ?? 1),
     perPage: zId('Invalid per page').default(options?.perPage ?? 10),
-    paginate: z.transform<boolean>(v => {
-      return isTrue(v ?? options?.paginate ?? true)
-    })
+    paginate: zBoolean().default(options?.paginate ?? true)
   })
 }
