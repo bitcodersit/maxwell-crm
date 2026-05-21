@@ -1,5 +1,5 @@
-import type { Prisma } from '~~/prisma/client/client'
 import type { TZUpdateProperty } from './zod'
+import type { Prisma } from '~~/prisma/client/client'
 import { upsertAddress } from '../address/upsertAddress'
 
 export const updateProperty = async (id: number, input: TZUpdateProperty) => {
@@ -77,8 +77,7 @@ export const updateProperty = async (id: number, input: TZUpdateProperty) => {
   }
 
   if ((input.katha !== undefined || input.sqft !== undefined) && kathaOptionId && sqftOptionId) {
-    const existingKatha =
-      existing.sizes.find(item => item.size?.name === 'Katha')?.sizeValue ?? 0
+    const existingKatha = existing.sizes.find(item => item.size?.name === 'Katha')?.sizeValue ?? 0
     const existingSqft = existing.sizes.find(item => item.size?.name === 'Sqft')?.sizeValue ?? 0
 
     data.sizes = {
@@ -90,37 +89,46 @@ export const updateProperty = async (id: number, input: TZUpdateProperty) => {
       create: [
         {
           sizeId: kathaOptionId,
-          sizeValue: input.katha ?? Number(existingKatha)
+          sizeValue: input.katha !== undefined ? input.katha : Number(existingKatha)
         },
         {
           sizeId: sqftOptionId,
-          sizeValue: input.sqft ?? Number(existingSqft)
+          sizeValue: input.sqft !== undefined ? input.sqft : Number(existingSqft)
         }
       ]
     }
   }
 
-  return prisma.property.update({
-    where: { id },
-    data,
-    include: {
-      purchaseType: {
-        select: {
-          id: true,
-          name: true
-        }
-      },
-      address: true,
-      sizes: {
-        include: {
-          size: {
-            select: {
-              id: true,
-              name: true
-            }
+  const include = {
+    purchaseType: {
+      select: {
+        id: true,
+        name: true
+      }
+    },
+    address: true,
+    sizes: {
+      include: {
+        size: {
+          select: {
+            id: true,
+            name: true
           }
         }
       }
     }
+  } as const
+
+  if (!Object.keys(data).length) {
+    return prisma.property.findFirstOrThrow({
+      where: { id, deletedAt: null },
+      include
+    })
+  }
+
+  return prisma.property.update({
+    where: { id },
+    data,
+    include
   })
 }

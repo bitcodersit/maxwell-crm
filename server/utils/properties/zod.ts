@@ -17,6 +17,12 @@ const zNullableNumber = z.preprocess(
   z.coerce.number().nonnegative().nullable()
 )
 
+const zPatchNumber = z.preprocess(value => {
+  if (value === undefined) return undefined
+  if (value === '' || value === null) return null
+  return value
+}, z.coerce.number().nonnegative().nullable())
+
 const zPropertyAddress = z.object({
   id: zId().nullish(),
   name: z.string().nullish(),
@@ -76,11 +82,18 @@ export const zCreateProperty = zPropertyPayload.refine(data => !!data.addressId 
 
 export type TZCreateProperty = z.infer<typeof zCreateProperty>
 
-export const zUpdateProperty = zPropertyPayload
-  .partial()
-  .refine(data => Object.keys(data).length > 0, {
-    message: 'At least one field is required to update the property'
-  })
+export const zUpdateProperty = z.object({
+  name: z.string().trim().min(1, 'Property name is required').optional(),
+  facing: zOptionalText,
+  price: zPatchNumber.optional(),
+  previousPrice: zPatchNumber.optional(),
+  status: z.enum(propertyStatuses).optional(),
+  purchaseTypeId: zId().nullish(),
+  katha: zPatchNumber.optional(),
+  sqft: zPatchNumber.optional(),
+  addressId: zId().nullish(),
+  address: zPropertyAddress.nullish()
+})
 
 export type TZUpdateProperty = z.infer<typeof zUpdateProperty>
 

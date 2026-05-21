@@ -283,27 +283,39 @@ const getActions: TGetActions<TPropertyRow> = (item, v) => [
   ]
 ]
 
+const parseNumber = (val: unknown) => {
+  if (val === undefined) return undefined
+  if (val === null || val === '') return null
+  const n = Number(val)
+  return Number.isFinite(n) ? n : null
+}
+
+const toFormNumber = (val: unknown) => {
+  const n = parseNumber(val)
+  return n === null ? undefined : n
+}
+
 const getFormState = (v?: TPropertyRow) => {
   const state = {
     id: v?.id,
     name: v?.name ?? '',
     facing: v?.facing ?? '',
-    price: v?.price,
-    previousPrice: v?.previousPrice,
+    price: toFormNumber(v?.price),
+    previousPrice: toFormNumber(v?.previousPrice),
     status: v?.status ?? 'Available',
     purchaseType: v?.purchaseType ?? null,
-    katha: v?.sizes?.find(item => item.size?.name === 'Katha')?.sizeValue,
-    sqft: v?.sizes?.find(item => item.size?.name === 'Sqft')?.sizeValue,
+    katha: toFormNumber(v?.sizes?.find(item => item.size?.name === 'Katha')?.sizeValue),
+    sqft: toFormNumber(v?.sizes?.find(item => item.size?.name === 'Sqft')?.sizeValue),
     addressId: v?.addressId,
     addressLine1: v?.address?.addressLine1 ?? '',
     road: v?.address?.road ?? '',
     block: v?.address?.block ?? ''
   }
-  const normalized = toPayload(state)
+  const normalized = toComparable(state)
   return v ? { ...state, _original: normalized } : state
 }
 
-const toPayload = (v: Record<string, unknown>) => {
+const toComparable = (v: Record<string, unknown>) => {
   const purchaseTypeId = (v.purchaseType as { id?: number } | null | undefined)?.id
   const addressLine1 = String(v.addressLine1 ?? '').trim()
   const road = String(v.road ?? '').trim()
@@ -313,12 +325,12 @@ const toPayload = (v: Record<string, unknown>) => {
   return {
     name: String(v.name ?? ''),
     facing: (v.facing as string | null | undefined) || undefined,
-    price: Number(v.price ?? 0),
-    previousPrice: Number(v.previousPrice ?? 0),
+    price: parseNumber(v.price),
+    previousPrice: parseNumber(v.previousPrice),
     status: String(v.status ?? 'Available'),
-    purchaseTypeId: typeof purchaseTypeId === 'number' ? purchaseTypeId : undefined,
-    katha: Number(v.katha ?? 0),
-    sqft: Number(v.sqft ?? 0),
+    purchaseTypeId: typeof purchaseTypeId === 'number' ? purchaseTypeId : null,
+    katha: parseNumber(v.katha),
+    sqft: parseNumber(v.sqft),
     addressId,
     address: addressLine1
       ? {
@@ -331,18 +343,31 @@ const toPayload = (v: Record<string, unknown>) => {
   }
 }
 
+const toPostPayload = (v: Record<string, unknown>) => {
+  const comparable = toComparable(v)
+  return {
+    ...comparable,
+    price: comparable.price ?? 0,
+    previousPrice: comparable.previousPrice,
+    purchaseTypeId: comparable.purchaseTypeId ?? undefined,
+    katha: comparable.katha ?? 0,
+    sqft: comparable.sqft ?? 0
+  }
+}
+
 const isSameValue = (a: unknown, b: unknown) => {
   if (a == null && b == null) return true
+  if (typeof a === 'number' && typeof b === 'number') return a === b
   if (typeof a === 'object' && a !== null && typeof b === 'object' && b !== null) {
     return JSON.stringify(a) === JSON.stringify(b)
   }
   return a === b
 }
 
-const getPostBody = (v: Record<string, unknown>) => toPayload(v)
+const getPostBody = (v: Record<string, unknown>) => toPostPayload(v)
 
 const getPatchBody = (v: Record<string, unknown>) => {
-  const payload = toPayload(v)
+  const payload = toComparable(v)
   const original = (v._original as Record<string, unknown> | undefined) ?? {}
   const changed: Record<string, unknown> = {}
   for (const key of Object.keys(payload) as (keyof typeof payload)[]) {
