@@ -26,9 +26,9 @@ export const selectTeamForTable: Prisma.TeamInclude = {
 export const selectTeam = (v?: { options?: boolean }) => {
   return v?.options
     ? {
-        include: selectTeamForTable
+        select: selectTeamForOptions
       }
     : {
-        select: selectTeamForOptions
+        include: selectTeamForTable
       }
 }
