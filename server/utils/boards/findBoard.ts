@@ -1,5 +1,5 @@
 import z from 'zod'
-import { zBoolean } from '../z'
+import { zBoolean } from '../zod'
 
 export type TZFindBoardQuery = z.infer<typeof zFindBoardQuery>
 export const zFindBoardQuery = z.object({

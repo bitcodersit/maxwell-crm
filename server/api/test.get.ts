@@ -1,7 +1,8 @@
 export const zTest = z
   .object({
     id: zId().nullish(),
-    ids: zIds().nullish()
+    ids: zIds().nullish(),
+    isDefault: zBoolean().default(true)
   })
   .and(zPagination())
   .and(zOrderable())

@@ -86,8 +86,4 @@ export const zSortOrder = (message = 'Sort order is required!') => {
   ])
 }
 
-export const zBoolean = (message = 'Invalid boolean') => {
-  return z.coerce.boolean(message)
-}
-
 export { z }

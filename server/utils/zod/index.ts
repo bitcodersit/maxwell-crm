@@ -1,4 +1,5 @@
 export * from './zId'
 export * from './zIds'
 export * from './zOrderBy'
+export * from './zBoolean'
 export * from './zPagination'
