@@ -9,14 +9,8 @@ type TOptions = {
 export type TZPagination = z.infer<typeof zPagination>
 export const zPagination = (options?: TOptions) => {
   return z.object({
-    page: z.transform<number>(v => {
-      const number = Number(v)
-      return !isNaN(number) && number > 0 ? number : (options?.page ?? 1)
-    }),
-    perPage: z.transform<number>(v => {
-      const number = Number(v)
-      return !isNaN(number) && number > 0 ? number : (options?.perPage ?? 10)
-    }),
+    page: zId('Invalid page').default(options?.page ?? 1),
+    perPage: zId('Invalid per page').default(options?.perPage ?? 10),
     paginate: z.transform<boolean>(v => {
       return isTrue(v ?? options?.paginate ?? true)
     })

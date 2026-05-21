@@ -2,13 +2,6 @@ import type { E164Number } from 'libphonenumber-js'
 import { parsePhoneNumberWithError } from 'libphonenumber-js'
 import { z } from 'zod'
 
-export const zId = (message = 'Invalid ID') => {
-  return z
-    .union([z.string(message), z.number(message)])
-    .transform(val => Number(val))
-    .refine(val => Number.isInteger(val) && val > 0, message)
-}
-
 export const zName = (message = 'Name is required!', length = 3) =>
   z.string().trim().min(length, message)
 

@@ -1,8 +1,7 @@
-import { zOrderable } from '../utils/zOrderBy'
-
 export const zTest = z
   .object({
-    //
+    id: zId().nullish(),
+    ids: zIds().nullish()
   })
   .and(zPagination())
   .and(zOrderable())

@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { isPlainObject } from './isPlainObject'
 
 type TOrderBy = Record<string, 'asc' | 'desc'> | TOrderBy[]
 const Default: TOrderBy = { id: 'desc' }

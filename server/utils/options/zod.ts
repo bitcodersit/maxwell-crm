@@ -1,6 +1,4 @@
 import { z } from 'zod'
-import { zOrderable } from '../zOrderBy'
-import { zPagination } from '../zPagination'
 import { OptionType } from '~~/prisma/client/enums'
 
 export type TZGetOptions = z.infer<typeof zGetOptions>

@@ -2,8 +2,6 @@ import type { H3Event } from 'h3'
 import type { Prisma } from '~~/prisma/client/client'
 import { endOfDay, startOfDay } from 'date-fns'
 import { z } from 'zod'
-import { zOrderable } from '../zOrderBy'
-import { zPagination } from '../zPagination'
 
 const leadStatusValues = ['New', 'Hot', 'Warm', 'Cold', 'Not_Interested', 'Closed'] as const
 const dateModes = ['lt', 'lte', 'eq', 'gte', 'gt', 'before', 'after', 'exact', 'single'] as const
