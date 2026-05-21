@@ -6,10 +6,10 @@ import { getTeamScopedWhere } from './where'
 export type TGetTeams = z.infer<typeof zGetTeams>
 export const zGetTeams = z
   .object({
+    q: z.string().trim().nullish(),
     id: zIds(),
     creatorId: zIds(),
     memberUserIds: zIds(),
-    q: z.string().trim().nullish(),
     createdAt: zDateObject().nullish(),
     updatedAt: zDateObject().nullish(),
     options: zBoolean().default(false)
@@ -35,6 +35,7 @@ export const getTeams = async (input: TGetTeams, user: TUser) => {
         }
       }))
       .date('createdAt')
+      .date('updatedAt')
       .get()
   )
 
