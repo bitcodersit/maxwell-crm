@@ -4,22 +4,27 @@ import withNuxt from './.nuxt/eslint.config.mjs'
 
 export default withNuxt({
   rules: {
+    '@typescript-eslint/no-explicit-any': 'off',
     'sort-imports': 'off',
+    'no-unused-vars': 'error',
+    'vue/no-multiple-template-root': 'off',
     'import/order': [
       'error',
       {
-        groups: ['type', 'builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'object'],
         'newlines-between': 'never',
+        groups: ['type', 'builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'object'],
         alphabetize: {
           order: 'asc',
           caseInsensitive: true
         }
       }
     ],
-    'no-unused-vars': 'error',
-    '@typescript-eslint/no-explicit-any': 'off',
-    'prettier/prettier': 'error',
-    'vue/no-multiple-template-root': 'off',
+    'prettier/prettier': [
+      'error',
+      {
+        endOfLine: 'auto'
+      }
+    ],
     'vue/max-attributes-per-line': [
       'error',
       {
