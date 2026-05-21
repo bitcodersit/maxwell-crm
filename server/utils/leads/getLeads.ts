@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import type { Prisma } from '~~/prisma/client/client'
 import { endOfDay, startOfDay } from 'date-fns'
 import { z } from 'zod'
-import { zOrderBy } from '../zOrderBy'
+import { zOrderable } from '../zOrderBy'
 import { zPagination } from '../zPagination'
 
 const leadStatusValues = ['New', 'Hot', 'Warm', 'Cold', 'Not_Interested', 'Closed'] as const
@@ -76,7 +76,7 @@ const zGetLeadsFilter = z
       z.boolean().default(false)
     )
   })
-  .and(zOrderBy({ createdAt: 'desc' }))
+  .and(zOrderable({ createdAt: 'desc' }))
   .and(zPagination())
 
 export type TZGetLeads = z.infer<typeof zGetLeads>

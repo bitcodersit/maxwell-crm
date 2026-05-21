@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { zId } from '../z'
-import { zOrderBy } from '../zOrderBy'
+import { zOrderable } from '../zOrderBy'
 import { zPagination } from '../zPagination'
 
 const propertyStatuses = ['Available', 'Hold', 'Sold'] as const
@@ -105,7 +105,7 @@ export const zGetProperties = z
     name: zOptionalText,
     purchaseTypeId: zIdArray.optional()
   })
-  .and(zOrderBy({ id: 'desc' }))
+  .and(zOrderable({ id: 'desc' }))
   .and(zPagination())
 
 export type TZGetProperties = z.infer<typeof zGetProperties>
