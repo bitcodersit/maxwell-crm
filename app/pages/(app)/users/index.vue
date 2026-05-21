@@ -342,7 +342,6 @@ const getPostBody = (v: Record<string, unknown>) => {
     :fields="fields"
     :filters="filters"
     :columns="columns"
-    :date-fields="['createdAt', 'updatedAt']"
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"

@@ -1,79 +1,167 @@
-<script setup lang="ts">
+<script lang="ts">
 import type { CalendarProps } from '@nuxt/ui'
-export type TDateFilterMode = 'lt' | 'lte' | 'eq' | 'gte' | 'gt' | 'range' | 'multiple'
+import { parseDate } from '@internationalized/date'
 
-type TValue = CalendarProps['modelValue']
+type TModeSingle = 'lt' | 'lte' | 'eq' | 'gte' | 'gt'
+type TModeRange = 'range'
+type TModeMultiple = 'multiple'
 
-const DATE_FILTER_MODE_ITEMS: { label: string; value: TDateFilterMode }[] = [
+type TModelSingle = {
+  mode: TModeSingle
+  value: TMaybe<string>
+}
+
+type TModelRange = {
+  mode: TModeRange
+  value: TMaybe<{
+    start: string
+    end: string
+  }>
+}
+
+type TModelMultiple = {
+  mode: TModeMultiple
+  value: TMaybe<string[]>
+}
+
+type TMode = TModeSingle | TModeRange | TModeMultiple
+
+type TInnerModel = {
+  mode: TMode
+  value: any
+}
+
+type TItem = {
+  label: string
+  value: TMode
+}
+
+const items: TItem[] = [
   { label: 'Exact', value: 'eq' },
+  { label: 'Range', value: 'range' },
+  { label: 'Multiple', value: 'multiple' },
   { label: 'Less than', value: 'lt' },
   { label: 'Less than or equal to', value: 'lte' },
   { label: 'Greater than or equal to', value: 'gte' },
-  { label: 'Greater than', value: 'gt' },
-  { label: 'Range', value: 'range' },
-  { label: 'Multiple', value: 'multiple' }
+  { label: 'Greater than', value: 'gt' }
 ]
 
-export type TFilterDateProps = CalendarProps & {
-  mode?: TDateFilterMode
+const getDefault = () => ({
+  mode: 'eq' as TMode,
+  value: null
+})
+
+const toModel = ({ mode, value }: TInnerModel): TFilterDate => {
+  if (mode === 'range') {
+    return {
+      mode,
+      value: {
+        start: value.start?.toString(),
+        end: value.end?.toString()
+      }
+    }
+  }
+  if (mode === 'multiple') {
+    return {
+      mode,
+      value: value.map((v: any) => v?.toString())
+    }
+  }
+  return {
+    mode,
+    value: value?.toString()
+  }
+}
+
+const toInnerModel = (v?: TFilterDate): TInnerModel => {
+  const { mode, value } = v ?? getDefault()
+  if (mode === 'range') {
+    return {
+      mode,
+      value: {
+        start: value?.start ? parseDate(value?.start) : null,
+        end: value?.end ? parseDate(value?.end) : null
+      }
+    }
+  }
+  if (mode === 'multiple') {
+    return {
+      mode,
+      value: Array.isArray(value) ? value.map(v => parseDate(v)) : null
+    }
+  }
+  return {
+    mode,
+    value: value ? parseDate(value) : null
+  }
+}
+
+export type TFilterDate = TModelSingle | TModelRange | TModelMultiple
+export type TFilterDateProps = Omit<CalendarProps, 'modelValue' | 'range' | 'multiple'> & {
   label?: string
   dense?: boolean
 }
+</script>
 
-const props = withDefaults(defineProps<TFilterDateProps>(), {
-  mode: 'eq',
-  dense: false
-})
-
-const emit = defineEmits<{
-  'update:mode': [mode?: TDateFilterMode]
-  'update:modelValue': [value?: TValue]
-}>()
-
-const { mode: modelMode, modelValue } = toRefs(props)
+<script setup lang="ts">
+defineProps<TFilterDateProps>()
 
 const open = ref(false)
-const filterMode = ref<TDateFilterMode>(modelMode.value)
-const value = ref<any>(modelValue.value)
+const model = defineModel<TFilterDate>({})
+const innerModel = ref<TInnerModel>(getDefault())
 
-const modeKind = (m: TDateFilterMode) => {
+const getMode = (m: TMode) => {
   if (m === 'range') return 'range'
   if (m === 'multiple') return 'multiple'
   return 'single'
 }
 
-const onUpdateMode = (v?: TDateFilterMode) => {
+const onUpdateMode = (v?: TMode) => {
   if (!v) return
-  if (modeKind(v) !== modeKind(filterMode.value)) {
-    value.value = undefined
+  if (getMode(v) !== getMode(innerModel.value.mode)) {
+    innerModel.value.value = null
   }
-  filterMode.value = v
+  innerModel.value.mode = v
 }
 
 const onClear = () => {
-  value.value = undefined
-  emit('update:mode', undefined)
-  emit('update:modelValue', undefined)
+  innerModel.value = getDefault()
+  model.value = undefined
   open.value = false
 }
 
 const onApply = () => {
-  if (!value.value) return
-  emit('update:mode', filterMode.value)
-  emit('update:modelValue', value.value)
+  if (!innerModel.value.value) return
   open.value = false
+  model.value = toModel(innerModel.value)
 }
 
-watch(modelValue, v => {
+watch(open, v => {
   if (!v) return
-  if (v == value.value) return
-  value.value = v
+  innerModel.value = toInnerModel(model.value)
 })
 
-watch(modelMode, v => {
-  if (filterMode.value !== v) {
-    filterMode.value = v
+const disabled = computed(() => {
+  const { mode, value } = innerModel.value
+  if (mode === 'range') {
+    return !value?.start || !value?.end
   }
+  if (mode === 'multiple') {
+    return !value || !value.length
+  }
+  return !value
+})
+
+const count = computed(() => {
+  const { mode, value } = model.value || {}
+  if (mode === 'range') {
+    if (!value?.start && !value?.end) return null
+    return value?.start && value?.end ? 2 : 1
+  }
+  if (mode === 'multiple') {
+    return value?.length || null
+  }
+  return value ? 1 : null
 })
 </script>
 
@@ -85,7 +173,7 @@ watch(modelMode, v => {
     :content="{ align: 'start', side: 'bottom' }"
   >
     <UChip
-      :show="!!modelValue"
+      :show="!!model?.value"
       :size="dense ? 'xs' : 'md'"
       :inset="dense"
     >
@@ -101,16 +189,14 @@ watch(modelMode, v => {
         @click="open = true"
       >
         {{ label ?? 'Date' }}
-        <template v-if="modelValue && !dense">
-          |
-          {{
-            calendarFormatDate(modelValue, {
-              returnType: 'display'
-            })
-          }}
+        <template v-if="model?.value && !dense">
+          | {{ model?.mode }}
+          <UKbd size="sm">
+            {{ count }}
+          </UKbd>
         </template>
         <template
-          v-if="modelValue && !dense"
+          v-if="model?.value && !dense"
           #trailing
         >
           <UButton
@@ -126,20 +212,20 @@ watch(modelMode, v => {
     </UChip>
     <template #content>
       <USelect
-        :model-value="filterMode"
-        :items="DATE_FILTER_MODE_ITEMS"
+        :model-value="innerModel.mode"
+        :items="items"
         size="sm"
         class="w-full"
         @update:model-value="onUpdateMode"
       />
       <UCalendar
-        v-model="value"
-        :range="filterMode === 'range'"
-        :multiple="filterMode === 'multiple'"
+        v-model="innerModel.value"
+        :range="innerModel.mode === 'range'"
+        :multiple="innerModel.mode === 'multiple'"
       />
       <div class="flex items-center gap-2 justify-end">
         <UButton
-          v-if="modelValue"
+          v-if="model?.value"
           :icon="!dense ? 'i-lucide-x' : undefined"
           :size="dense ? 'xs' : 'sm'"
           color="error"
@@ -151,9 +237,9 @@ watch(modelMode, v => {
         <UButton
           :icon="!dense ? 'i-lucide-check' : undefined"
           :size="dense ? 'xs' : 'sm'"
+          :disabled="disabled"
           color="primary"
           variant="solid"
-          :disabled="!value"
           @click="onApply"
         >
           Apply

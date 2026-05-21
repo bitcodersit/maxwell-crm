@@ -1,45 +1,34 @@
 <script setup lang="ts">
+import type { TFilterDate } from '~/components/filter/FilterDate.vue'
+
 definePageMeta({
   title: 'FormSelectMenu Test'
 })
 
-const singlePurchaseType = ref<number | null>(null)
-const multipleUsers = ref([])
+const date = ref<TFilterDate>({
+  mode: 'range',
+  value: {
+    start: '2026-05-21',
+    end: '2026-05-30'
+  }
+})
+
+const onSend = () => {
+  $fetch('/api/test', {
+    query: {
+      date: date.value
+    }
+  })
+}
 </script>
 
 <template>
   <div class="mx-auto flex max-w-xl flex-col gap-8 p-6">
-    <section class="flex flex-col gap-3">
-      <h2 class="text-lg font-semibold">Single select</h2>
-      <p class="text-sm text-muted">
-        Purchase types (one page) — search hidden when the API returns a single page.
-      </p>
-      <FormSelectMenu
-        v-model="singlePurchaseType"
-        :api="'/api/options'"
-        :query="{ type: 'PROPERTY_PURCHASE_TYPE' }"
-        clear
-        size="xl"
-        placeholder="Select purchase type"
-      />
-      <pre class="rounded-md bg-elevated p-3 text-sm">modelValue: {{ singlePurchaseType }}</pre>
-    </section>
+    <UCard>
+      <FilterDate2 v-model="date" />
+      <UButton @click="onSend">Send</UButton>
 
-    <section class="flex flex-col gap-3">
-      <h2 class="text-lg font-semibold">Multiple select</h2>
-      <p class="text-sm text-muted">
-        Users (paginated) — search shown when the API response has more than one page.
-      </p>
-      <FormSelectMenu
-        v-model="multipleUsers"
-        :api="'/api/users'"
-        :query="{ options: true }"
-        clear
-        multiple
-        placeholder="Select users"
-        size="xl"
-      />
-      <pre class="rounded-md bg-elevated p-3 text-sm">modelValue: {{ multipleUsers }}</pre>
-    </section>
+      <pre><code>{{ date }}</code></pre>
+    </UCard>
   </div>
 </template>

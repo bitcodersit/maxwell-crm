@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 
 type TRecord = Record<string, unknown>
-type ExportFormat = 'csv' | 'excel'
+type ExportFormat = 'csv' | 'xlsx'
 type ExportColumnValue<T extends TRecord> = ((row: T) => string) | true
 type ExportDataOptions<T extends TRecord> = {
   format?: unknown
@@ -18,7 +18,7 @@ const serializeCell = (value: unknown) => {
 }
 
 const getFormat = (format: unknown): ExportFormat => {
-  return format?.toString().trim() === 'csv' ? 'csv' : 'excel'
+  return format?.toString().trim() === 'csv' ? 'csv' : 'xlsx'
 }
 
 export const exportData = <T extends TRecord>(
@@ -35,7 +35,7 @@ export const exportData = <T extends TRecord>(
   const columns = options.columns
   const keys = columns
     ? Object.keys(columns)
-    : (Array.from(new Set(rows.flatMap((row) => Object.keys(row)))) as string[])
+    : (Array.from(new Set(rows.flatMap(row => Object.keys(row)))) as string[])
 
   const escapeCell = (value: unknown) => {
     const text = serializeCell(value).replace(/\r?\n/g, ' ')
@@ -52,8 +52,8 @@ export const exportData = <T extends TRecord>(
   }
 
   const content = [
-    keys.map((key) => escapeCell(key)).join(delimiter),
-    ...rows.map((row) => keys.map((key) => escapeCell(resolveCell(row, key))).join(delimiter)),
+    keys.map(key => escapeCell(key)).join(delimiter),
+    ...rows.map(row => keys.map(key => escapeCell(resolveCell(row, key))).join(delimiter))
   ].join('\n')
 
   setHeader(

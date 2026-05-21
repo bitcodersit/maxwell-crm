@@ -8,7 +8,7 @@ import type {
 } from '@nuxt/ui'
 
 export type TFormSelectMenuProps<
-  T extends ArrayOrNested<SelectMenuItem>,
+  T extends ArrayOrNested<SelectMenuItem> = ArrayOrNested<SelectMenuItem>,
   VK extends GetItemKeys<T> | undefined = undefined,
   M extends boolean = false,
   Mod extends Omit<ModelModifiers, 'lazy'> = Omit<ModelModifiers, 'lazy'>,

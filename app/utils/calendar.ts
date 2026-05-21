@@ -13,7 +13,7 @@ export const calendarFormatDate = (
   const { formatStr = 'MMM dd yyyy', returnType = 'default' } = options ?? {}
   if (!date) return undefined
   if (Array.isArray(date)) {
-    const v = date.map((d) => {
+    const v = date.map(d => {
       if (returnType === 'dateValue') return parseDate(d)
       if (returnType === 'storage') return d.toString()
       return format(d.toString(), formatStr)
@@ -24,19 +24,19 @@ export const calendarFormatDate = (
     if (returnType === 'storage') {
       return {
         start: date.start?.toString(),
-        end: date.end?.toString(),
+        end: date.end?.toString()
       }
     }
     if (returnType === 'dateValue') {
       return {
         start: parseDate(date.start),
-        end: parseDate(date.end || date.start),
+        end: parseDate(date.end || date.start)
       }
     }
     const v = [date.start, date.end].filter(Boolean).map((d: any) => {
       return format(d.toString(), formatStr)
     })
-    return returnType === 'display' ? v.join(' to ') : v.join(',')
+    return returnType === 'display' ? v.join(' to ') : v.join('::')
   }
   if (returnType === 'dateValue') return parseDate(date)
   if (returnType === 'storage') return date.toString()
@@ -51,7 +51,7 @@ export const calendarFormatDates = <T extends object>(
   return fields.reduce(
     (acc, property) => ({
       ...acc,
-      [property]: calendarFormatDate(data[property], options),
+      [property]: calendarFormatDate(data[property], options)
     }),
     data
   )

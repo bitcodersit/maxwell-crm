@@ -321,7 +321,6 @@ const getActions: TGetActions<TTask> = (item, v) => [
     delete-url="/api/tasks/{id}"
     :filters="filters"
     :columns="columns"
-    :date-fields="['dueAt', 'createdAt', 'updatedAt']"
     :get-actions="getActions"
     :initial-query="initialQuery"
     grid-class="grid grid-cols-12 gap-4"

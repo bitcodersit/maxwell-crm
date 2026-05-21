@@ -165,9 +165,6 @@ const getPersisted = <T,>(
       const parsed = JSON.parse(value)
       return {
         ...parsed,
-        ...calendarFormatDates(parsed, dateFields.value, {
-          returnType: 'dateValue'
-        }),
         ...initial,
         orderBy: {
           ...parsed?.orderBy,
@@ -197,20 +194,21 @@ const selected = ref(
   })
 )
 
-const fetchQuery = computed(() => {
-  return calendarFormatDates(query.value, dateFields.value, {
-    formatStr: 'yyyy-MM-dd'
-  })
-})
-
-const { data, isFetching, refetch } = useQuerySSR<TPaginated<T>>({
+const { data, error, isFetching, refetch } = useQuerySSR<TPaginated<T>>({
+  retry: false,
+  queryKey: [getUrl, query],
   initialData: () => def,
-  queryKey: [getUrl, fetchQuery],
   queryFn: () => {
     return $fetch<TPaginated<T>>(getUrl.value, {
-      query: fetchQuery.value
+      query: query.value
     })
   }
+})
+
+watch(error, v => {
+  if (!v) return
+  const { title, description } = parseError(v)
+  toast.add({ color: 'error', title, description })
 })
 
 const UButton = resolveComponent('UButton')
@@ -530,8 +528,8 @@ defineExpose({
 // Export
 const exportOpen = ref(false)
 const exportState = ref({
-  format: 'excel',
-  selection: 'all'
+  format: 'xlsx',
+  selection: 'current-page'
 })
 
 const { exporting, execute: onExport } = useExport()
@@ -544,7 +542,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
   )
     return
   await onExport(exportUrl.value, {
-    ...fetchQuery.value,
+    ...query.value,
     ...exportState.value,
     ...(exportState.value.selection === 'selected'
       ? {
@@ -585,7 +583,6 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
               v-else-if="row.type === 'date'"
               v-bind="row.props"
               v-model="query[row.name]"
-              v-model:mode="query[row.name + 'Mode']"
               @update:model-value="onGotoFirstPage"
             />
             <FilterCheckbox
@@ -683,16 +680,16 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                     orientation="horizontal"
                     :items="[
                       {
-                        label: 'All',
-                        value: 'all'
+                        label: 'Current Page',
+                        value: 'current-page'
                       },
                       {
                         label: 'Selected',
                         value: 'selected'
                       },
                       {
-                        label: 'Current Page',
-                        value: 'current-page'
+                        label: 'All',
+                        value: 'all'
                       }
                     ]"
                   />
@@ -703,7 +700,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                     variant="table"
                     orientation="horizontal"
                     :items="[
-                      { label: 'Excel', value: 'excel' },
+                      { label: 'Excel', value: 'xlsx' },
                       { label: 'CSV', value: 'csv' }
                     ]"
                   />

@@ -68,17 +68,6 @@ export const zPhone = (options?: TUniqueOptions) => {
     })
 }
 
-export const zDate = (message = 'Invalid date') => {
-  return z.coerce.date(message)
-}
-
-export const zDateRequired = (message = 'Date is required!') => {
-  return z.preprocess(
-    (v: unknown) => (v === null || v === undefined || v === '' ? undefined : v),
-    zDate(message)
-  )
-}
-
 export const zSortOrder = (message = 'Sort order is required!') => {
   return z.union([
     z.string().min(1, message),

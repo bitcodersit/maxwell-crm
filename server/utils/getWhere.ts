@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+import type { TZDateObject, TZId } from './zod'
 import { endOfDay, startOfDay } from 'date-fns'
 
 type TIdIn = { in: number[] }
@@ -185,6 +187,94 @@ export const getWhere = <T>(query: Record<string, any>, where: T = {} as T) => {
       return this
     },
     get(): T {
+      return where
+    }
+  }
+}
+
+type TInput = {
+  [x: string]: TMaybe<
+    TZId | TZIds | TZBoolean | TZDate | TZDateObject | TZOrderBy | string | number | boolean | Date
+  >
+}
+
+export const getWhere2 = <Where = any, Input extends TInput = TInput>(
+  input: Input,
+  where: Where = {} as Where
+) => {
+  return {
+    id<InputKey extends keyof Input, WhereKey extends keyof Where>(
+      key: InputKey,
+      field:
+        | WhereKey
+        | ((id: NonNullable<Input[InputKey]>) => Partial<Where>) = key as unknown as WhereKey
+    ) {
+      const id = input[key]
+      if (id) {
+        if (typeof field === 'function') {
+          where = { ...where, ...field(id) }
+        } else {
+          where = { ...where, [field]: id }
+        }
+      }
+      return this
+    },
+    text<InputKey extends keyof Input, WhereKey extends keyof Where>(
+      key: InputKey,
+
+      field:
+        | WhereKey
+        | WhereKey[]
+        | ((text: string, mode: string) => Partial<Where>) = key as unknown as WhereKey
+    ) {
+      const { text, textMode } = getText(input, key as string)
+      if (text) {
+        if (typeof field === 'function') {
+          where = {
+            ...where,
+            ...field(text, textMode)
+          }
+        } else if (Array.isArray(field)) {
+          where = {
+            ...where,
+            OR: [
+              ...((where as any).OR || []),
+              ...field.map(f => ({ [f]: textMode === 'contains' ? { contains: text } : text }))
+            ]
+          }
+        } else {
+          where = {
+            ...where,
+            [field]:
+              textMode === 'contains'
+                ? {
+                    contains: text
+                  }
+                : text
+          }
+        }
+      }
+      return this
+    },
+    date<InputKey extends keyof Input, WhereKey extends keyof Where>(
+      key: InputKey,
+
+      field: WhereKey | ((date: Input[InputKey]) => Partial<Where>) = key as unknown as WhereKey
+    ) {
+      const date = input[key]
+      if (date) {
+        if (typeof field === 'function') {
+          where = { ...where, ...field(date) }
+        } else if (Array.isArray(date)) {
+          where = { ...where, OR: [...((where as any).OR || []), ...date.map(d => ({ [key]: d }))] }
+        } else {
+          where = { ...where, [field]: date }
+        }
+      }
+      // return this
+      return this
+    },
+    get() {
       return where
     }
   }

@@ -1,5 +1,4 @@
-import { getTeams } from '../index.get'
-import { exportData } from '~~/server/utils/export'
+import { zExportable } from '~~/server/utils/zod'
 
 type TTeamExportRow = {
   creator?: {
@@ -12,22 +11,23 @@ type TTeamExportRow = {
   }[]
 }
 
+const zExportTeams = zGetTeams.and(zExportable())
+
 export default defineEventHandler(async event => {
   const user = await getCurrentUser(event)
-  if (!user.exportAnyTeams) {
-    throw err.denied()
-  }
+  if (!user.exportAnyTeams) throw err.denied()
 
   const query = getQuery(event)
-  const selection = query.selection?.toString() ?? ''
-  if (['all', 'selected'].includes(selection) || query.id) {
-    query.paginate = false
+  const input = await validate(query, zExportTeams)
+  console.log('input', input)
+
+  if (['all', 'selected'].includes(input.selection)) {
+    input.paginate = false
   }
 
-  const { error, data } = await getTeams(event, query)
-  if (error) throw error
-
+  const data = await getTeams(input, user)
   const rows = Array.isArray(data) ? data : data.data
+
   return exportData<TTeamExportRow>(event, rows as TTeamExportRow[], {
     format: query.format,
     filename: `Teams ${new Date().toISOString().slice(0, 10)} - ${Date.now()}`,
