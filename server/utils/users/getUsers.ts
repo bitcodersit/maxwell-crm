@@ -1,6 +1,5 @@
 import type { H3Event } from 'h3'
 import z from 'zod'
-import { getScopedUser } from './utils'
 
 export type TZGetUsers = z.infer<typeof zGetUsers>
 export const zGetUsers = z

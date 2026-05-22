@@ -14,15 +14,22 @@ model User {
     email           String?   @unique
     phone           String?   @unique
     password        String?
-    avatarId        Int?
-    creatorId       Int?
+    designation     String?
+    organization    String?
     emailVerifiedAt DateTime?
     phoneVerifiedAt DateTime?
 
-    avatar    Attachment? @relation(fields: [avatarId], references: [id], onDelete: SetNull)
+    addressableId Int?         @unique
+    addressable   Addressable? @relation(fields: [addressableId], references: [id], onDelete: SetNull)
+
+    avatarId Int?
+    avatar   Attachment? @relation(fields: [avatarId], references: [id], onDelete: SetNull)
+
     userRoles UserRole[]
 
-    creator      User?  @relation("UserCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+    creatorId Int?
+    creator   User? @relation("UserCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+
     createdUsers User[] @relation("UserCreator")
 
     teams               Team[]
@@ -38,12 +45,18 @@ model User {
     tasksReviewed  Task[]     @relation("TaskReviewer")
     tasksSubmitted Task[]     @relation("TaskSubmitter")
 
+    bills           Bill[] @relation("BillUser")
+    billsAsAuthor   Bill[] @relation("BillAuthor")
+    billsAsApprover Bill[] @relation("BillApprover")
+
     assignableUsers           AssignableUser[] @relation("AssignableUser")
     assignableUsersAsAssigner AssignableUser[] @relation("AssignableUserAssigner")
 
+    comments            Comment[]        @relation("CommentAuthor")
+    auditLogs           AuditLog[]
+    visitUsers          VisitUser[]
     assignableTeams     AssignableTeam[] @relation("AssignableTeamAssigner")
     propertiesAsCreator Property[]       @relation("PropertyCreator")
-    auditLogs           AuditLog[]
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -51,6 +64,7 @@ model User {
 
     @@index([email])
     @@index([creatorId])
+    @@index([addressableId])
     @@map("users")
 }
 
@@ -190,6 +204,9 @@ enum StorageProvider {
 model Attachment {
     id Int @id @default(autoincrement())
 
+    attachableId Int?
+    attachable   Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
+
     provider StorageProvider @default(FILESYSTEM)
 
     name String?
@@ -198,48 +215,80 @@ model Attachment {
     size Int?
     mime String?
 
-    users       User[]
-    teams       Team[]
-    attachables Attachable[]
+    users User[]
+    teams Team[]
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
     deletedAt DateTime?
 
+    @@index([attachableId])
     @@index([path])
     @@map("attachments")
 }
 
-// Morph like, as prisma doesn't support polymorphic relations natively
-// we will use this table to store the relationship between attachments and other models as needed
 model Attachable {
     id Int @id @default(autoincrement())
 
-    attachmentId Int
-    attachment   Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+    task     Task?
+    lead     Lead?
+    followUp FollowUp?
+    visit    Visit?
+    property Property?
 
-    taskId Int?
-    task   Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
-
-    leadId Int?
-    lead   Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
-
-    propertyId Int?
-    property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+    comments    Comment[]
+    attachments Attachment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now()) @updatedAt
 
-    @@unique([attachmentId, taskId])
-    @@unique([attachmentId, leadId])
-    @@unique([attachmentId, propertyId])
-    @@index([taskId])
-    @@index([leadId])
-    @@index([propertyId])
     @@map("attachables")
 }
 
 // END ATTACHMENT
+// ================================================================
+// START COMMENT
+
+model Commentable {
+    id Int @id @default(autoincrement())
+
+    lead     Lead?     @relation("LeadCommentable")
+    followUp FollowUp? @relation("FollowUpCommentable")
+    visit    Visit?    @relation("VisitCommentable")
+
+    comments Comment[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@map("commentables")
+}
+
+model Comment {
+    id Int @id @default(autoincrement())
+
+    commentableId Int?
+    commentable   Commentable? @relation(fields: [commentableId], references: [id], onDelete: SetNull)
+
+    attachableId Int?
+    attachable   Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
+
+    authorId Int?
+    author   User? @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+    text String @db.Text
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([commentableId, createdAt])
+    @@index([attachableId])
+    @@index([authorId, createdAt])
+    @@map("comments")
+}
+
+// END COMMENT
 // ================================================================
 // START BOARD
 
@@ -291,8 +340,6 @@ model BoardColumn {
     @@map("board_columns")
 }
 
-// Morph-like, as prisma doesn't support polymorphic relations natively
-// we will use nullable module ids to attach board cards with their entities
 model BoardItem {
     id Int @id @default(autoincrement())
 
@@ -302,12 +349,13 @@ model BoardItem {
     sortOrder String @db.VarChar(255)
 
     leadId Int?
+    lead   Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
     taskId Int?
+    task   Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
     board  Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
     column BoardColumn @relation(fields: [columnId], references: [id], onDelete: Restrict)
-    lead   Lead?       @relation(fields: [leadId], references: [id], onDelete: Cascade)
-    task   Task?       @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now()) @updatedAt
@@ -353,9 +401,10 @@ model Task {
     status   TaskStatus   @default(TODO)
     priority TaskPriority @default(MEDIUM)
 
-    creatorId   Int?
-    reviewerId  Int?
-    submitterId Int?
+    creatorId    Int?
+    reviewerId   Int?
+    submitterId  Int?
+    attachableId Int? @unique
 
     dueAt       DateTime?
     reviewedAt  DateTime?
@@ -365,11 +414,11 @@ model Task {
     reviewer  User? @relation("TaskReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
     submitter User? @relation("TaskSubmitter", fields: [submitterId], references: [id], onDelete: SetNull)
 
-    items       TaskItem[]
-    users       TaskUser[]
-    teams       TaskTeam[]
-    boardItems  BoardItem[]
-    attachables Attachable[]
+    items      TaskItem[]
+    users      TaskUser[]
+    teams      TaskTeam[]
+    boardItems BoardItem[]
+    attachable Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -380,6 +429,7 @@ model Task {
     @@index([creatorId])
     @@index([reviewerId])
     @@index([submitterId])
+    @@index([attachableId])
     @@map("tasks")
 }
 
@@ -452,6 +502,7 @@ model TaskTeam {
 enum OptionType {
     SIZE
     SOURCE
+    BILL_TYPE
     PROPERTY_TYPE_SUB
     PROPERTY_TYPE_MAIN
     PROPERTY_PURCHASE_TYPE
@@ -463,11 +514,12 @@ model Option {
     name String
     type OptionType
 
+    billsAsType              Bill[]         @relation("BillTypeOption")
     leadsAsSource            Lead[]         @relation("LeadSourceOption")
-    leadsAsPropertyTypeMain  Lead[]         @relation("LeadPropertyTypeMainOption")
-    leadsAsPropertyTypeSub   Lead[]         @relation("LeadPropertyTypeSubOption")
-    propertiesAsPurchaseType Property[]     @relation("PropertyPurchaseTypeOption")
     propertySizes            PropertySize[]
+    leadsAsPropertyTypeSub   Lead[]         @relation("LeadPropertyTypeSubOption")
+    leadsAsPropertyTypeMain  Lead[]         @relation("LeadPropertyTypeMainOption")
+    propertiesAsPurchaseType Property[]     @relation("PropertyPurchaseTypeOption")
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -486,6 +538,36 @@ enum LeadStatus {
     Cold
     Not_Interested
     Closed
+}
+
+enum FollowUpType {
+    CALL
+    VISIT
+    EMAIL
+    MESSAGE
+    WHATSAPP
+}
+
+enum FollowUpStatus {
+    PENDING
+    COMPLETED
+    RESCHEDULED
+    CANCELLED
+    FAILED
+}
+
+enum VisitStatus {
+    PENDING
+    COMPLETED
+    RESCHEDULED
+    CANCELLED
+    NO_SHOW
+}
+
+enum BillStatus {
+    PENDING
+    APPROVED
+    REJECTED
 }
 
 model Lead {
@@ -518,9 +600,16 @@ model Lead {
     propertyTypeSubId Int?
     propertyTypeSub   Option? @relation("LeadPropertyTypeSubOption", fields: [propertyTypeSubId], references: [id], onDelete: SetNull)
 
-    properties  LeadProperty[]
-    boardItems  BoardItem[]
-    attachables Attachable[]
+    attachableId Int?        @unique
+    attachable   Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
+
+    commentableId Int?         @unique
+    commentable   Commentable? @relation("LeadCommentable", fields: [commentableId], references: [id], onDelete: SetNull)
+
+    visits     Visit[]
+    followUps  FollowUp[]
+    boardItems BoardItem[]
+    properties LeadProperty[]
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -535,7 +624,128 @@ model Lead {
     @@index([propertyTypeSubId])
     @@index([status])
     @@index([createdAt])
+    @@index([attachableId])
+    @@index([commentableId])
     @@map("leads")
+}
+
+model FollowUp {
+    id Int @id @default(autoincrement())
+
+    leadId Int
+    lead   Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+    date   DateTime
+    type   FollowUpType
+    status FollowUpStatus @default(PENDING)
+
+    outcome  String?   @db.Text
+    nextDate DateTime?
+
+    attachableId Int?        @unique
+    attachable   Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
+
+    commentableId Int?         @unique
+    commentable   Commentable? @relation("FollowUpCommentable", fields: [commentableId], references: [id], onDelete: SetNull)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([leadId, date])
+    @@index([type])
+    @@index([status])
+    @@index([nextDate])
+    @@index([attachableId])
+    @@index([commentableId])
+    @@map("follow_ups")
+}
+
+model Visit {
+    id Int @id @default(autoincrement())
+
+    leadId Int?
+    lead   Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+    propertyId Int?
+    property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+    date   DateTime
+    status VisitStatus @default(PENDING)
+
+    checkIn          Json?
+    nextAction       String? @db.Text
+    customerPresence String? @db.Text
+
+    attachableId Int?        @unique
+    attachable   Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
+
+    commentableId Int?         @unique
+    commentable   Commentable? @relation("VisitCommentable", fields: [commentableId], references: [id], onDelete: SetNull)
+
+    visitUsers VisitUser[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([leadId, date])
+    @@index([propertyId, date])
+    @@index([status])
+    @@index([attachableId])
+    @@index([commentableId])
+    @@map("visits")
+}
+
+model VisitUser {
+    id Int @id @default(autoincrement())
+
+    visitId Int
+    visit   Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@unique([visitId, userId])
+    @@index([visitId])
+    @@index([userId])
+    @@map("visit_users")
+}
+
+model Bill {
+    id Int @id @default(autoincrement())
+
+    userId Int
+    user   User @relation("BillUser", fields: [userId], references: [id], onDelete: Cascade)
+
+    authorId Int
+    author   User @relation("BillAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+    approverId Int?
+    approver   User? @relation("BillApprover", fields: [approverId], references: [id], onDelete: SetNull)
+
+    typeId Int
+    type   Option @relation("BillTypeOption", fields: [typeId], references: [id], onDelete: Restrict)
+
+    date    DateTime
+    amount  Decimal    @db.Decimal(18, 2)
+    status  BillStatus @default(PENDING)
+    purpose String?    @db.Text
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([userId, date])
+    @@index([authorId, date])
+    @@index([approverId])
+    @@index([typeId])
+    @@index([status])
+    @@map("bills")
 }
 
 enum PropertyStatus {
@@ -563,13 +773,16 @@ model Property {
     purchaseTypeId Int?
     purchaseType   Option? @relation("PropertyPurchaseTypeOption", fields: [purchaseTypeId], references: [id], onDelete: SetNull)
 
+    attachableId Int?        @unique
+    attachable   Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
+
     facing        String?
     price         Decimal? @db.Decimal(18, 2)
     previousPrice Decimal? @db.Decimal(18, 2)
 
-    sizes       PropertySize[]
-    leads       LeadProperty[]
-    attachables Attachable[]
+    visits Visit[]
+    sizes  PropertySize[]
+    leads  LeadProperty[]
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -579,6 +792,7 @@ model Property {
     @@index([creatorId])
     @@index([assignableId])
     @@index([addressId])
+    @@index([attachableId])
     @@map("properties")
 }
 
@@ -616,13 +830,15 @@ model LeadProperty {
 model Address {
     id Int @id @default(autoincrement())
 
-    name         String?
-    addressLine1 String
-    road         String?
-    block        String?
+    name          String?
+    addressLine1  String
+    road          String?
+    block         String?
+    addressableId Int?
 
-    leads      Lead[]
-    properties Property[]
+    leads       Lead[]
+    properties  Property[]
+    addressable Addressable? @relation(fields: [addressableId], references: [id], onDelete: SetNull)
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -633,7 +849,20 @@ model Address {
     @@index([name])
     @@index([road])
     @@index([block])
+    @@index([addressableId])
     @@map("addresses")
+}
+
+model Addressable {
+    id Int @id @default(autoincrement())
+
+    user      User?
+    addresses Address[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@map("addressables")
 }
 
 model Assignable {
