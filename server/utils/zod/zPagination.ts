@@ -8,9 +8,11 @@ type TOptions = {
 
 export type TZPagination = z.infer<ReturnType<typeof zPagination>>
 export const zPagination = (options?: TOptions) => {
-  return z.object({
-    page: zId('Invalid page').default(options?.page ?? 1),
-    perPage: zId('Invalid per page').default(options?.perPage ?? 10),
-    paginate: zBoolean().default(options?.paginate ?? true)
-  })
+  return z
+    .object({
+      page: zId('Invalid page').default(options?.page ?? 1),
+      perPage: zId('Invalid per page').default(options?.perPage ?? 10),
+      paginate: zBoolean().default(options?.paginate ?? true)
+    })
+    .partial()
 }

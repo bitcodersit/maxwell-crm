@@ -223,7 +223,7 @@ const filters: TFilter[] = [
       api: '/api/users',
       query: {
         options: true,
-        creatorOfTeam: true
+        isCreatorOfTeam: true
       },
       ...userFilterLabelProps
     }

@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import type { TZDateObject, TZId } from './zod'
 import { endOfDay, startOfDay } from 'date-fns'
+import { set, merge } from 'lodash-es'
 
 type TIdIn = { in: number[] }
 type TIdRange = { lte: number; gte: number }
@@ -198,7 +199,7 @@ type TInput = {
   >
 }
 
-export const getWhere2 = <Where = any, Input extends TInput = TInput>(
+export const getWhere2 = <Where extends Record<string, any> = any, Input extends TInput = TInput>(
   input: Input,
   where: Where = {} as Where
 ) => {
@@ -208,21 +209,19 @@ export const getWhere2 = <Where = any, Input extends TInput = TInput>(
       key: InputKey,
       field:
         | WhereKey
-        | ((id: NonNullable<Input[InputKey]>) => Partial<Where>) = key as unknown as WhereKey
+        | ((
+            id: NonNullable<Input[InputKey]>
+          ) => Partial<Where> | undefined) = key as unknown as WhereKey
     ) {
       const id = input[key]
       if (id) {
-        if (typeof field === 'function') {
-          where = { ...where, ...field(id) }
-        } else {
-          where = { ...where, [field]: id }
-        }
+        if (typeof field === 'function') merge(where, field(id))
+        else set(where, field, id)
       }
       return this
     },
     text<InputKey extends keyof Input, WhereKey extends keyof Where>(
       key: InputKey,
-
       field:
         | WhereKey
         | WhereKey[]
@@ -231,10 +230,7 @@ export const getWhere2 = <Where = any, Input extends TInput = TInput>(
       const { text, textMode } = getText(input, key as string)
       if (text) {
         if (typeof field === 'function') {
-          where = {
-            ...where,
-            ...field(text, textMode)
-          }
+          merge(where, field(text, textMode))
         } else if (Array.isArray(field)) {
           where = {
             ...where,
@@ -244,42 +240,73 @@ export const getWhere2 = <Where = any, Input extends TInput = TInput>(
             ]
           }
         } else {
-          where = {
-            ...where,
-            [field]:
-              textMode === 'contains'
-                ? {
-                    contains: text
-                  }
-                : text
-          }
+          set(where, field, textMode === 'contains' ? { contains: text } : text)
         }
       }
       return this
     },
     date<InputKey extends keyof Input, WhereKey extends keyof Where>(
       key: InputKey,
-
       field: WhereKey | ((date: Input[InputKey]) => Partial<Where>) = key as unknown as WhereKey
     ) {
       const date = input[key]
       if (date) {
         if (typeof field === 'function') {
-          where = { ...where, ...field(date) }
+          merge(where, field(date))
         } else if (Array.isArray(date)) {
           where = { ...where, OR: [...((where as any).OR || []), ...date.map(d => ({ [key]: d }))] }
         } else {
-          where = { ...where, [field]: date }
+          set(where, field, date)
         }
       }
-      // return this
+      return this
+    },
+    boolean<InputKey extends keyof Input, WhereKey extends keyof Where>(
+      key: InputKey,
+      field:
+        | WhereKey
+        | ((value: boolean) => Partial<Where> | undefined) = key as unknown as WhereKey
+    ) {
+      const value = input[key] as boolean | undefined
+      if (typeof value === 'boolean') {
+        if (typeof field === 'function') {
+          merge(where, field(value))
+        } else {
+          set(where, field, value)
+        }
+      }
+      return this
+    },
+    true<InputKey extends keyof Input, WhereKey extends keyof Where>(
+      key: InputKey,
+      field: WhereKey | (() => Partial<Where> | undefined) = key as unknown as WhereKey
+    ) {
+      const value = input[key] as boolean | undefined
+      if (value === true) {
+        if (typeof field === 'function') {
+          merge(where, field())
+        } else {
+          set(where, field, value)
+        }
+      }
+      return this
+    },
+    false<InputKey extends keyof Input, WhereKey extends keyof Where>(
+      key: InputKey,
+      field: WhereKey | (() => Partial<Where> | undefined) = key as unknown as WhereKey
+    ) {
+      const value = input[key] as boolean | undefined
+      if (value === false) {
+        if (typeof field === 'function') {
+          merge(where, field())
+        } else {
+          set(where, field, value)
+        }
+      }
       return this
     },
     extend(and: Where) {
-      where = {
-        ...where,
-        ...and
-      }
+      merge(where, and)
       return this
     },
     scope(cb: (where: Where) => Where) {

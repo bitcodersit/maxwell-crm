@@ -1,0 +1,115 @@
+import type { H3Event } from 'h3'
+import z from 'zod'
+
+export type TZGetUsers = z.infer<typeof zGetUsers>
+export const zGetUsers = z
+  .object({
+    q: z.string().trim().nullish(),
+    id: zIds(),
+    email: z.string().trim().nullish(),
+    roleIds: zIds(),
+    creatorId: zIds(),
+    idsNotIn: zIds(),
+    isMemberOfTeam: zBoolean().nullish(),
+    isCreatorOfTeam: zBoolean().nullish(),
+    createdAt: zDateObject().nullish(),
+    updatedAt: zDateObject().nullish(),
+    options: zBoolean().default(false),
+    orderBy: zOrderByRecord(['id', 'name', 'email', 'phone', 'creatorId', 'createdAt', 'updatedAt'])
+      .default([
+        {
+          id: 'desc'
+        }
+      ] as any)
+      .nullish()
+  })
+  .and(zPagination())
+
+export const getUsers = async (
+  event: H3Event,
+  options?: {
+    query?: TQuery
+    input?: TZGetUsers
+  }
+) => {
+  const user = await getCurrentUser(event)
+  if (!user.readAnyUsers && !user.readOwnUsers) {
+    return err.denied()
+  }
+
+  const input = options?.input ?? (await validate(options?.query ?? getQuery(event), zGetUsers))
+  const orderBy = getOrderBy2(input.orderBy, {
+    creatorId(order) {
+      return {
+        creator: {
+          name: order
+        }
+      }
+    }
+  })
+
+  const where = getWhere2<Prisma.UserWhereInput, TZGetUsers>(input)
+    .id('id')
+    .id('creatorId')
+    .text('q', ['name', 'email', 'phone'])
+    .text('email')
+    .date('createdAt')
+    .date('updatedAt')
+    .id('roleIds', roleId => ({
+      userRoles: {
+        some: {
+          roleId
+        }
+      }
+    }))
+    .id('idsNotIn', ids => {
+      if ('in' in ids) {
+        return {
+          id: {
+            notIn: ids.in
+          }
+        }
+      }
+    })
+    .true('isCreatorOfTeam', () => ({
+      teams: {
+        some: {
+          deletedAt: null
+        }
+      }
+    }))
+    .true('isMemberOfTeam', () => ({
+      teamMembers: {
+        some: {
+          team: {
+            deletedAt: null
+          }
+        }
+      }
+    }))
+    .extend({
+      deletedAt: null,
+      userRoles: {
+        none: {
+          role: {
+            name: CUSTOMER_ROLE_NAME
+          }
+        }
+      }
+    })
+    .get()
+
+  const { take, skip, paginate } = getPagination(input)
+  const [total, users] = await prisma.$transaction([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      skip,
+      take,
+      where,
+      orderBy,
+      ...selectUser(input)
+    })
+  ])
+
+  return paginate(users, total)
+}

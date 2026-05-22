@@ -30,3 +30,42 @@ export const selectUserForSession: Prisma.UserSelect = {
     }
   }
 }
+
+const selectUserForTable = {
+  select: {
+    id: true,
+    name: true,
+    email: true,
+    emailVerifiedAt: true,
+    phone: true,
+    phoneVerifiedAt: true,
+    avatarId: true,
+    createdAt: true,
+    updatedAt: true,
+    creator: {
+      select: {
+        id: true,
+        name: true
+      }
+    },
+    userRoles: {
+      select: {
+        id: true,
+        role: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    }
+  } satisfies Prisma.UserSelect
+}
+
+export const selectUser = (v?: { options?: boolean }) => {
+  return v?.options
+    ? {
+        select: selectUserForOptions
+      }
+    : selectUserForTable
+}

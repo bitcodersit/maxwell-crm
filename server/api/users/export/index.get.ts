@@ -1,13 +1,4 @@
-import { getUsers } from '../index.get'
-import { exportData } from '~~/server/utils/export'
-
-type TUserExportRow = {
-  userRoles?: {
-    role?: {
-      name?: string | null
-    } | null
-  }[]
-}
+const zExportUsers = zGetUsers.and(zExportable())
 
 export default defineEventHandler(async event => {
   const user = await getCurrentUser(event)
@@ -16,16 +7,43 @@ export default defineEventHandler(async event => {
   }
 
   const query = getQuery(event)
-  const selection = query.selection?.toString() ?? ''
-  if (['all', 'selected'].includes(selection) || query.id) {
-    query.paginate = false
+  const input = await validate(query, zExportUsers)
+
+  let usersInput: TZGetUsers = input
+
+  if (input.selection === 'selected') {
+    if (!input.id || ('in' in input.id && !input.id.in.length)) {
+      return createError({
+        statusCode: 400,
+        message: 'No IDs provided'
+      })
+    }
+    usersInput = {
+      id: input.id,
+      options: false,
+      paginate: false,
+      orderBy: input.orderBy
+    }
+  } else if (input.selection === 'current-page') {
+    usersInput = {
+      ...usersInput,
+      options: false,
+      paginate: true
+    }
+  } else if (input.selection === 'all') {
+    usersInput = {
+      ...usersInput,
+      options: false,
+      paginate: false
+    }
   }
 
-  const { error, data } = await getUsers(event, query)
-  if (error) throw error
+  const data = await getUsers(event, {
+    input: usersInput
+  })
 
-  const rows = Array.isArray(data) ? data : data.data
-  return exportData<TUserExportRow>(event, rows as TUserExportRow[], {
+  const rows = (Array.isArray(data) ? data : data.data) as TUser[]
+  return exportData(event, rows, {
     format: query.format,
     filename: `Users ${new Date().toISOString().slice(0, 10)} - ${Date.now()}`,
     columns: {
@@ -35,11 +53,14 @@ export default defineEventHandler(async event => {
       emailVerifiedAt: true,
       createdAt: true,
       updatedAt: true,
-      roles: v =>
-        v.userRoles
-          ?.map(ur => ur.role?.name)
-          .filter(Boolean)
-          .join(',') ?? ''
+      roles: v => {
+        return (
+          v.userRoles
+            ?.map(ur => ur.role?.name)
+            .filter(Boolean)
+            .join(',') ?? ''
+        )
+      }
     }
   })
 })

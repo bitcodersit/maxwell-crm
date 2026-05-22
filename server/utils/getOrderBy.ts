@@ -55,7 +55,7 @@ export const getOrderBy2 = <
   T extends string,
   M extends Partial<Record<T, TModifierFn>> = TEmptyObject
 >(
-  input: Record<T, Prisma.SortOrder>[] | undefined,
+  input: TMaybe<Record<T, Prisma.SortOrder>[]>,
   modifiers?: M & { [K in keyof M]: TValidatedModifier<NonNullable<M[K]>> }
 ):
   | Array<
