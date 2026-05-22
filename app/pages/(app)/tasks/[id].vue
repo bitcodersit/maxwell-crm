@@ -77,13 +77,13 @@ const onChangeTeams = useDebounceFn(() => {
 
 const attachments = computed<TAttachment[]>({
   get() {
-    return task.value.attachables?.map(v => v.attachment).filter(v => !!v) ?? []
+    return task.value.attachable?.attachments ?? []
   },
-  set(value) {
-    task.value.attachables = value.map(attachment => ({
-      ...attachment.attachables?.[0],
-      attachment
-    })) as TAttachable[]
+  set(attachments) {
+    task.value.attachable = {
+      ...((task.value.attachable || {}) as TAttachable),
+      attachments
+    }
   }
 })
 </script>
@@ -193,8 +193,9 @@ const attachments = computed<TAttachment[]>({
         <FormAttachments
           v-model="attachments"
           :folder="'tasks'"
-          :attachable-id="id"
-          :attachable-field="'taskId'"
+          :attachable-id="data?.attachableId"
+          :attachable-model-id="id"
+          :attachable-model-type="'task'"
         />
       </UFormField>
     </div>

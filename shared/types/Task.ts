@@ -28,10 +28,10 @@ export type TTask = Task & {
   creator?: TMaybe<TUser>
   reviewer?: TMaybe<TUser>
   submitter?: TMaybe<TUser>
+  attachable?: TMaybe<TAttachable>
   items?: TTaskItem[]
   users?: TTaskUser[]
   teams?: TTaskTeam[]
-  attachables?: TAttachable[]
 }
 
 export type TTaskStatus = TaskStatus

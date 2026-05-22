@@ -4,8 +4,9 @@ const props = withDefaults(
     accept?: string
     multiple?: boolean
     folder?: string
-    attachableId?: number
-    attachableField?: string
+    attachableId?: TMaybe<number>
+    attachableModelId?: TMaybe<number>
+    attachableModelType?: 'task' | 'lead' | 'followUp' | 'property' | 'visit' | 'comment'
   }>(),
   {
     multiple: true,
@@ -43,7 +44,8 @@ const onInput = (e: Event) => {
           files,
           folder: props.folder,
           attachableId: props.attachableId,
-          attachableField: props.attachableField
+          attachableModelId: props.attachableModelId,
+          attachableModelType: props.attachableModelType
         },
         {
           onError,

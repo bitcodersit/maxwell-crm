@@ -1,12 +1,14 @@
 import type { Attachable, Attachment } from '~~/prisma/client/client'
 
 export type TAttachment = Attachment & {
-  users?: TUser[]
-  teams?: TTeam[]
-  attachables?: TAttachable[]
+  users?: TMaybe<TUser[]>
+  teams?: TMaybe<TTeam[]>
+  attachable?: TMaybe<TAttachable>
 }
 
 export type TAttachable = Attachable & {
-  attachment?: TAttachment
-  task?: TTask
+  task?: TMaybe<TTask>
+  lead?: TMaybe<TLead>
+  property?: TMaybe<TProperty>
+  attachments?: TMaybe<TAttachment[]>
 }

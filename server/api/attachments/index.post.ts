@@ -1,34 +1,47 @@
 import { randomUUID } from 'node:crypto'
 
-const allowedFields = Object.keys(prisma.attachable.fields).filter(
-  field => !['id', 'attachmentId', 'createdAt', 'updatedAt'].includes(field)
-)
+const allowedAttachableModels = [
+  'task',
+  'lead',
+  'followUp',
+  'property',
+  'visit',
+  'comment'
+] as const
 
 const zSchema = z
   .object({
     folder: z.string().nullish(),
     attachableId: z.number().nullish(),
-    attachableField: z.custom<keyof typeof prisma.attachable.fields>(
-      (v: any) => {
-        if (!v) return true
-        return allowedFields.includes(v)
-      },
-      {
-        message: `Attachable field is invalid, allowed fields are: ${allowedFields.join(', ')}`
-      }
-    )
+    attachableModelId: z.number().nullish(),
+    attachableModelType: z.enum(allowedAttachableModels).nullish()
   })
   .superRefine((data, ctx) => {
-    if (
-      (data.attachableId && !data.attachableField) ||
-      (!data.attachableId && data.attachableField)
-    ) {
+    const hasDirectAttachableId = !!data.attachableId
+    const hasModelRef = !!data.attachableModelId || !!data.attachableModelType
+    const hasFullModelRef = !!data.attachableModelId && !!data.attachableModelType
+
+    if (!hasDirectAttachableId && !hasModelRef) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Attachable id and field are required'
+        message: 'Provide either attachableId or (attachableModelId + attachableModelType)'
+      })
+      return
+    }
+
+    if (!hasDirectAttachableId && hasModelRef && !hasFullModelRef) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Both attachableModelId and attachableModelType are required together'
       })
     }
   })
+
+const parseOptionalNumber = (value: FormDataEntryValue | null) => {
+  if (value == null || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : NaN
+}
 
 export default defineEventHandler(async event => {
   const user = await getCurrentUser(event)
@@ -50,8 +63,9 @@ export default defineEventHandler(async event => {
   const input = await validate(
     {
       folder: fd.get('folder'),
-      attachableId: Number(fd.get('attachableId')),
-      attachableField: fd.get('attachableField')
+      attachableId: parseOptionalNumber(fd.get('attachableId')),
+      attachableModelId: parseOptionalNumber(fd.get('attachableModelId')),
+      attachableModelType: fd.get('attachableModelType')
     },
     zSchema
   )
@@ -62,12 +76,17 @@ export default defineEventHandler(async event => {
   for (const file of files) {
     if (file instanceof File) {
       const ext = file.name.split('.').pop()
-      const path = [input.folder, input.attachableId, `${randomUUID()}.${ext}`]
+      const path = [
+        input.folder,
+        input.attachableModelId || input.attachableId,
+        `${randomUUID()}.${ext}`
+      ]
         .filter(v => !!v)
         .join('/')
       const buf = Buffer.from(await file.arrayBuffer())
       await storage.put(path, buf)
-      const attachment = await prisma.attachment.create({
+
+      let attachment = await prisma.attachment.create({
         data: {
           path,
           name: file.name,
@@ -76,20 +95,45 @@ export default defineEventHandler(async event => {
           provider: storage.provider()
         }
       })
-      if (input.attachableId && input.attachableField) {
-        const attachable = await prisma.attachable.create({
+
+      let targetAttachableId = input.attachableId ?? null
+
+      if (!targetAttachableId && input.attachableModelId && input.attachableModelType) {
+        const model = (prisma as any)[input.attachableModelType]
+        const entity = await model.findUnique({
+          where: { id: input.attachableModelId },
+          select: { id: true, attachableId: true }
+        })
+        if (!entity) {
+          throw createError({
+            statusCode: 404,
+            message: `${input.attachableModelType} not found with id ${input.attachableModelId}`
+          })
+        }
+
+        targetAttachableId = entity.attachableId as number | null
+        if (!targetAttachableId) {
+          const created = await prisma.attachable.create({
+            data: {}
+          })
+          await model.update({
+            where: { id: entity.id },
+            data: { attachableId: created.id }
+          })
+          targetAttachableId = created.id
+        }
+      }
+
+      if (targetAttachableId) {
+        attachment = await prisma.attachment.update({
+          where: { id: attachment.id },
           data: {
-            attachmentId: attachment.id,
-            [input.attachableField]: input.attachableId
+            attachableId: targetAttachableId
           }
         })
-        results.push({
-          ...attachment,
-          attachables: [attachable]
-        })
-      } else {
-        results.push(attachment)
       }
+
+      results.push(attachment)
     }
   }
 

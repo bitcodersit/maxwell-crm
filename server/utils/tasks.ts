@@ -1,3 +1,5 @@
+import z from 'zod'
+
 export type TZTaskItem = z.infer<typeof zTaskItems>
 const zTaskItems = z.object({
   id: z.number(),
@@ -104,16 +106,13 @@ export const TaskInclude = {
       }
     }
   },
-  attachables: {
-    where: {
-      attachment: {
-        deletedAt: null
-      }
-    },
+  attachable: {
     select: {
       id: true,
-      attachmentId: true,
-      attachment: {
+      attachments: {
+        where: {
+          deletedAt: null
+        },
         select: {
           id: true,
           name: true,
@@ -121,7 +120,8 @@ export const TaskInclude = {
           mime: true,
           size: true,
           provider: true,
-          createdAt: true
+          createdAt: true,
+          updatedAt: true
         }
       }
     }
