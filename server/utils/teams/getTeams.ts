@@ -1,9 +1,7 @@
+import type { H3Event } from 'h3'
 import z from 'zod'
-import { getWhere2 } from '../getWhere'
-import { selectTeam } from './select'
-import { getTeamScopedWhere } from './where'
 
-export type TGetTeams = z.infer<typeof zGetTeams>
+export type TZGetTeams = z.infer<typeof zGetTeams>
 export const zGetTeams = z
   .object({
     q: z.string().trim().nullish(),
@@ -12,16 +10,37 @@ export const zGetTeams = z
     memberUserIds: zIds(),
     createdAt: zDateObject().nullish(),
     updatedAt: zDateObject().nullish(),
-    options: zBoolean().default(false)
+    options: zBoolean().default(false),
+    orderBy: zOrderByRecord(['id', 'name', 'description', 'createdAt', 'updatedAt', 'creatorId'])
   })
   .and(zPagination())
-  .and(zOrderable())
 
-export const getTeams = async (input: TGetTeams, user: TUser) => {
-  const orderBy = input.orderBy as Prisma.TeamFindManyArgs['orderBy']
+export const getTeams = async (
+  event: H3Event,
+  options?: {
+    query?: TQuery
+    input?: TZGetTeams
+  }
+) => {
+  const user = await getCurrentUser(event)
+  if (!user.readAnyTeams || !user.readOwnTeams) {
+    return err.denied()
+  }
+
+  const input = options?.input ?? (await validate(options?.query ?? getQuery(event), zGetTeams))
+  const orderBy = getOrderBy2(input.orderBy, {
+    creatorId(order) {
+      return {
+        creator: {
+          name: order
+        }
+      }
+    }
+  })
+
   const where = getTeamScopedWhere(
     user,
-    getWhere2<Prisma.TeamWhereInput, TGetTeams>(input, {
+    getWhere2<Prisma.TeamWhereInput, TZGetTeams>(input, {
       deletedAt: null
     })
       .id('id')

@@ -1,5 +1,3 @@
-import type { TZPagination } from './zPagination'
-
 export const getPagination = (query: TZPagination) => {
   const paginate = 'paginate' in query ? isTrue(query.paginate) : true
 

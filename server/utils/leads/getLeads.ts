@@ -1,5 +1,4 @@
 import type { H3Event } from 'h3'
-import type { Prisma } from '~~/prisma/client/client'
 import { endOfDay, startOfDay } from 'date-fns'
 import { z } from 'zod'
 

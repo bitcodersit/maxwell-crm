@@ -1,5 +1,4 @@
 import type { H3Event } from 'h3'
-import type { Prisma } from '~~/prisma/client/client'
 
 const getTaskScopedWhere = (user: TUser, where: Prisma.TaskWhereInput) => {
   if (user.readAnyTasks) return where

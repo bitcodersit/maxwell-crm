@@ -30,3 +30,7 @@ export type TPaginated<T> = {
   fetchedAt?: number
   data: T[]
 }
+
+export type TPrettify<T> = {
+  [K in keyof T]: T[K]
+} & {}

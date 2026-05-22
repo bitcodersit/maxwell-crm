@@ -1,5 +1,4 @@
 import type { H3Event } from 'h3'
-import type { Prisma } from '~~/prisma/client/client'
 
 export const getPermissions = async (event: H3Event, query = getQuery(event)) => {
   const currentUser = await getCurrentUser(event)

@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto'
 import type { H3Event } from 'h3'
+import { randomUUID } from 'node:crypto'
 
 const EMAIL_CHANGE_OLD_PREFIX = 'change-old'
 
@@ -12,8 +12,8 @@ export const createVerifyEmailLink = async (event: H3Event, userId: number) => {
       where: {
         modelId: userId,
         modelType: 'USER',
-        type: 'VERIFY',
-      },
+        type: 'VERIFY'
+      }
     }),
     prisma.token.create({
       data: {
@@ -21,9 +21,9 @@ export const createVerifyEmailLink = async (event: H3Event, userId: number) => {
         modelType: 'USER',
         type: 'VERIFY',
         token,
-        expiresAt,
-      },
-    }),
+        expiresAt
+      }
+    })
   ])
 
   const config = useRuntimeConfig(event)
@@ -44,8 +44,8 @@ export const createEmailChangeConfirmLink = async (
       where: {
         modelId: userId,
         modelType: 'USER',
-        type: 'VERIFY',
-      },
+        type: 'VERIFY'
+      }
     }),
     prisma.token.create({
       data: {
@@ -53,9 +53,9 @@ export const createEmailChangeConfirmLink = async (
         modelType: 'USER',
         type: 'VERIFY',
         token,
-        expiresAt,
-      },
-    }),
+        expiresAt
+      }
+    })
   ])
 
   const config = useRuntimeConfig(event)
@@ -75,7 +75,7 @@ export const getEmailChangeTokenMeta = (token: string) => {
     if (!email || !email.includes('@')) return undefined
     return {
       stage: 'old-confirm',
-      email,
+      email
     } as const
   } catch {
     return undefined

@@ -1,4 +1,4 @@
-import { Prisma } from '~~/prisma/client/client'
+import type { Prisma } from '~~/prisma/client/client'
 
 export const UserSelectForOptions = {
   id: true,

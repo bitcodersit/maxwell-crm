@@ -6,7 +6,7 @@ type TOptions = {
   paginate: boolean
 }
 
-export type TZPagination = z.infer<typeof zPagination>
+export type TZPagination = z.infer<ReturnType<typeof zPagination>>
 export const zPagination = (options?: TOptions) => {
   return z.object({
     page: zId('Invalid page').default(options?.page ?? 1),

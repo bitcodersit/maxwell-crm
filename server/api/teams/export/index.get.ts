@@ -19,13 +19,12 @@ export default defineEventHandler(async event => {
 
   const query = getQuery(event)
   const input = await validate(query, zExportTeams)
-  console.log('input', input)
 
   if (['all', 'selected'].includes(input.selection)) {
     input.paginate = false
   }
 
-  const data = await getTeams(input, user)
+  const data = await getTeams(event, { input })
   const rows = Array.isArray(data) ? data : data.data
 
   return exportData<TTeamExportRow>(event, rows as TTeamExportRow[], {

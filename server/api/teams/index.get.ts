@@ -1,11 +1,3 @@
-export default defineEventHandler(async event => {
-  const query = getQuery(event)
-  const input = await validate(query, zGetTeams)
-
-  const user = await getCurrentUser(event)
-  if (!user.readAnyTeams || !user.readOwnTeams) {
-    return err.denied()
-  }
-
-  return await getTeams(input, user)
+export default defineEventHandler(event => {
+  return getTeams(event)
 })
