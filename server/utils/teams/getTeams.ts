@@ -23,7 +23,7 @@ export const getTeams = async (
   }
 ) => {
   const user = await getCurrentUser(event)
-  if (!user.readAnyTeams || !user.readOwnTeams) {
+  if (!user.readAnyTeams && !user.readOwnTeams) {
     return err.denied()
   }
 
@@ -38,25 +38,24 @@ export const getTeams = async (
     }
   })
 
-  const where = getTeamScopedWhere(
-    user,
-    getWhere2<Prisma.TeamWhereInput, TZGetTeams>(input, {
+  const where = getWhere2<Prisma.TeamWhereInput, TZGetTeams>(input)
+    .id('id')
+    .id('creatorId')
+    .id('memberUserIds', userId => ({
+      members: {
+        some: {
+          userId
+        }
+      }
+    }))
+    .text('q', ['name', 'description'])
+    .date('createdAt')
+    .date('updatedAt')
+    .extend({
       deletedAt: null
     })
-      .id('id')
-      .id('creatorId')
-      .text('q', ['name', 'description'])
-      .id('memberUserIds', userId => ({
-        members: {
-          some: {
-            userId
-          }
-        }
-      }))
-      .date('createdAt')
-      .date('updatedAt')
-      .get()
-  )
+    .scope(v => getScopedTeam(v, user))
+    .get()
 
   const { take, skip, paginate } = getPagination(input)
   const [total, teams] = await prisma.$transaction([

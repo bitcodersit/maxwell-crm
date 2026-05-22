@@ -1,4 +1,4 @@
-export const getTeamScopedWhere = (user: TUser, where: Prisma.TeamWhereInput) => {
+export const getScopedTeam: TScopeFn<Prisma.TeamWhereInput> = (where, user) => {
   if (user.readAnyTeams) return where
   return {
     AND: [

@@ -202,6 +202,7 @@ export const getWhere2 = <Where = any, Input extends TInput = TInput>(
   input: Input,
   where: Where = {} as Where
 ) => {
+  let scope: (where: Where) => Where = v => v
   return {
     id<InputKey extends keyof Input, WhereKey extends keyof Where>(
       key: InputKey,
@@ -274,8 +275,19 @@ export const getWhere2 = <Where = any, Input extends TInput = TInput>(
       // return this
       return this
     },
+    extend(and: Where) {
+      where = {
+        ...where,
+        ...and
+      }
+      return this
+    },
+    scope(cb: (where: Where) => Where) {
+      scope = cb
+      return this
+    },
     get() {
-      return where
+      return scope(where)
     }
   }
 }
