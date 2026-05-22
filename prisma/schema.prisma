@@ -52,11 +52,12 @@ model User {
     assignableUsers           AssignableUser[] @relation("AssignableUser")
     assignableUsersAsAssigner AssignableUser[] @relation("AssignableUserAssigner")
 
-    comments            Comment[]        @relation("CommentAuthor")
-    auditLogs           AuditLog[]
-    visitUsers          VisitUser[]
-    assignableTeams     AssignableTeam[] @relation("AssignableTeamAssigner")
-    propertiesAsCreator Property[]       @relation("PropertyCreator")
+    comments              Comment[]        @relation("CommentAuthor")
+    auditLogs             AuditLog[]
+    visitUsers            VisitUser[]
+    assignableTeams       AssignableTeam[] @relation("AssignableTeamAssigner")
+    propertiesAsCreator   Property[]       @relation("PropertyCreator")
+    attachmentsAsUploader Attachment[]     @relation("AttachmentUploader")
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -206,6 +207,9 @@ model Attachment {
 
     attachableId Int?
     attachable   Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
+
+    uploaderId Int?
+    uploader   User? @relation("AttachmentUploader", fields: [uploaderId], references: [id], onDelete: SetNull)
 
     provider StorageProvider @default(FILESYSTEM)
 

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import z from 'zod'
 
 const allowedAttachableModels = [
   'task',
@@ -9,7 +10,8 @@ const allowedAttachableModels = [
   'comment'
 ] as const
 
-const zSchema = z
+type TZPostAttachmentsSchema = z.infer<typeof zPostAttachmentsSchema>
+const zPostAttachmentsSchema = z
   .object({
     folder: z.string().nullish(),
     attachableId: z.number().nullish(),
@@ -36,6 +38,38 @@ const zSchema = z
       })
     }
   })
+
+const getAttachableId = async (input: TZPostAttachmentsSchema) => {
+  if (input.attachableId) return input.attachableId
+  if (input.attachableModelId && input.attachableModelType) {
+    const model = (prisma as any)[input.attachableModelType]
+    const entity = await model.findUnique({
+      where: { id: input.attachableModelId },
+      select: { id: true, attachableId: true }
+    })
+    if (!entity) {
+      throw createError({
+        statusCode: 404,
+        message: `${input.attachableModelType} not found with id ${input.attachableModelId}`
+      })
+    }
+
+    const attachableId = entity.attachableId as number | null
+    if (attachableId) return attachableId
+
+    const attachable = await prisma.attachable.create({
+      data: {},
+      select: { id: true }
+    })
+
+    await model.update({
+      where: { id: entity.id },
+      data: { attachableId: attachable.id }
+    })
+
+    return attachable.id
+  }
+}
 
 const parseOptionalNumber = (value: FormDataEntryValue | null) => {
   if (value == null || value === '') return null
@@ -67,7 +101,7 @@ export default defineEventHandler(async event => {
       attachableModelId: parseOptionalNumber(fd.get('attachableModelId')),
       attachableModelType: fd.get('attachableModelType')
     },
-    zSchema
+    zPostAttachmentsSchema
   )
 
   const results = []
@@ -86,52 +120,18 @@ export default defineEventHandler(async event => {
       const buf = Buffer.from(await file.arrayBuffer())
       await storage.put(path, buf)
 
-      let attachment = await prisma.attachment.create({
+      const attachableId = await getAttachableId(input)
+      const attachment = await prisma.attachment.create({
         data: {
           path,
           name: file.name,
           mime: file.type,
           size: file.size,
+          uploaderId: user.id,
+          attachableId,
           provider: storage.provider()
         }
       })
-
-      let targetAttachableId = input.attachableId ?? null
-
-      if (!targetAttachableId && input.attachableModelId && input.attachableModelType) {
-        const model = (prisma as any)[input.attachableModelType]
-        const entity = await model.findUnique({
-          where: { id: input.attachableModelId },
-          select: { id: true, attachableId: true }
-        })
-        if (!entity) {
-          throw createError({
-            statusCode: 404,
-            message: `${input.attachableModelType} not found with id ${input.attachableModelId}`
-          })
-        }
-
-        targetAttachableId = entity.attachableId as number | null
-        if (!targetAttachableId) {
-          const created = await prisma.attachable.create({
-            data: {}
-          })
-          await model.update({
-            where: { id: entity.id },
-            data: { attachableId: created.id }
-          })
-          targetAttachableId = created.id
-        }
-      }
-
-      if (targetAttachableId) {
-        attachment = await prisma.attachment.update({
-          where: { id: attachment.id },
-          data: {
-            attachableId: targetAttachableId
-          }
-        })
-      }
 
       results.push(attachment)
     }

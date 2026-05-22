@@ -79,7 +79,8 @@ export default defineNuxtConfig({
         '@vue/devtools-core',
         '@vue/devtools-kit',
         '@vueuse/integrations/useSortable',
-        'date-fns'
+        'date-fns',
+        'zod'
       ]
     }
   },
