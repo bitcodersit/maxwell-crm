@@ -1,71 +1,73 @@
-export const selectUserForOptions: Prisma.UserSelect = {
-  id: true,
-  name: true
+import type { TSelectParams } from '../types'
+
+export const selectUserAvatar = {
+  select: {
+    path: true
+  }
 }
 
-export const selectUserForEmail: Prisma.UserSelect = {
-  name: true,
-  email: true
-}
-
-export const selectUserForDisplay: Prisma.UserSelect = {
+export const selectUserBase = {
   id: true,
   name: true,
   email: true,
   phone: true,
-  avatar: {
-    select: {
-      path: true
-    }
+  avatar: selectUserAvatar
+}
+
+export const selectUserVerifiedAt = {
+  emailVerifiedAt: true,
+  phoneVerifiedAt: true
+}
+
+export const selectUserForDisplay = {
+  select: selectUserBase
+}
+
+export const selectUserForOptions = {
+  select: {
+    id: true,
+    name: true
   }
 }
 
-export const selectUserForSession: Prisma.UserSelect = {
-  id: true,
-  name: true,
-  email: true,
-  avatar: {
-    select: {
-      path: true
-    }
+export const selectUserForEmail = {
+  select: {
+    name: true,
+    email: true
   }
 }
 
-const selectUserForTable = {
+export const selectUserForSession = {
   select: {
     id: true,
     name: true,
     email: true,
-    emailVerifiedAt: true,
-    phone: true,
-    phoneVerifiedAt: true,
-    avatarId: true,
-    createdAt: true,
-    updatedAt: true,
-    creator: {
-      select: {
-        id: true,
-        name: true
-      }
-    },
-    userRoles: {
-      select: {
-        id: true,
-        role: {
+    avatar: selectUserAvatar
+  }
+}
+
+const selectUserForTable = (user?: TUser) => ({
+  select: user?.readAnyUsers
+    ? {
+        ...selectUserBase,
+        ...selectTimestamp,
+        ...selectUserVerifiedAt,
+        creator: selectUserForDisplay,
+        userRoles: {
           select: {
             id: true,
-            name: true
+            role: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
           }
         }
       }
-    }
-  } satisfies Prisma.UserSelect
-}
+    : selectUserBase
+})
 
-export const selectUser = (v?: { options?: boolean }) => {
-  return v?.options
-    ? {
-        select: selectUserForOptions
-      }
-    : selectUserForTable
+export const selectUser = ({ user, options }: TSelectParams) => {
+  return options ? selectUserForOptions : selectUserForTable(user)
 }

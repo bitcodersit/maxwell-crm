@@ -1,7 +1,5 @@
 import { render } from '@vue-email/render'
 import EmailVerifyEmail from '@/components/emails/EmailVerifyEmail.vue'
-import { isCustomerRoleName } from '~~/server/utils/customerRole'
-import { createVerifyEmailLink } from '~~/server/utils/emailVerification'
 
 export default defineEventHandler(async event => {
   const sessionUser = await getCurrentUser(event)
@@ -55,7 +53,7 @@ export default defineEventHandler(async event => {
   })
 
   await queueEmail({
-    to: target.email,
+    to: target.email!,
     subject: 'Verify your email address',
     html,
     action: {

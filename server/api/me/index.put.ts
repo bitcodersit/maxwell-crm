@@ -1,7 +1,5 @@
 import { render } from '@vue-email/render'
 import EmailConfirmEmailChange from '@/components/emails/EmailConfirmEmailChange.vue'
-import { createEmailChangeConfirmLink } from '~~/server/utils/emailVerification'
-import { selectUserForSession } from '~~/server/utils/users'
 
 const zMeUpdate = z.object({
   name: z.string().min(2).optional(),
@@ -87,7 +85,7 @@ export default defineEventHandler(async event => {
       ...(input.name ? { name: input.name } : {}),
       ...(input.avatarId ? { avatarId: input.avatarId } : {})
     },
-    select: selectUserForSession
+    ...selectUserForSession
   })
 
   if (isEmailChangeRequested && requestedEmail) {

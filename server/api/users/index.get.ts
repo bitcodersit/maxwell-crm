@@ -1,3 +1,1 @@
-export default defineEventHandler(event => {
-  return getUsers(event)
-})
+export default defineEventHandler(getUsers)

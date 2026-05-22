@@ -207,8 +207,12 @@ const { data, error, isFetching, refetch } = useQuerySSR<TPaginated<T>>({
 
 watch(error, v => {
   if (!v) return
-  const { title, description } = parseError(v)
-  toast.add({ color: 'error', title, description })
+  const { description } = parseError(v)
+  toast.add({
+    color: 'error',
+    title: 'Error while fetching data!',
+    description
+  })
 })
 
 const UButton = resolveComponent('UButton')

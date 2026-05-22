@@ -1,15 +1,11 @@
-import EmailVerifyEmail from '@/components/emails/EmailVerifyEmail.vue'
 import { render } from '@vue-email/render'
-import {
-  createVerifyEmailLink,
-  getEmailChangeTokenMeta,
-} from '~~/server/utils/emailVerification'
+import EmailVerifyEmail from '@/components/emails/EmailVerifyEmail.vue'
 
 const zVerifyEmail = z.object({
-  token: z.string().min(1),
+  token: z.string().min(1)
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const input = await validate(getQuery(event), zVerifyEmail)
 
   const verificationToken = await prisma.token.findFirst({
@@ -18,35 +14,35 @@ export default defineEventHandler(async (event) => {
       modelType: 'USER',
       type: 'VERIFY',
       usedAt: null,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
     },
     select: {
       id: true,
-      modelId: true,
-    },
+      modelId: true
+    }
   })
   if (!verificationToken) {
     throw createError({
       statusCode: 400,
-      message: 'Invalid or expired verification link',
+      message: 'Invalid or expired verification link'
     })
   }
 
   const user = await prisma.user.findFirst({
     where: {
       id: verificationToken.modelId,
-      deletedAt: null,
+      deletedAt: null
     },
     select: {
       id: true,
       name: true,
-      email: true,
-    },
+      email: true
+    }
   })
   if (!user) {
     throw createError({
       statusCode: 400,
-      message: 'Invalid or expired verification link',
+      message: 'Invalid or expired verification link'
     })
   }
 
@@ -58,15 +54,15 @@ export default defineEventHandler(async (event) => {
         email: nextEmail,
         deletedAt: null,
         id: {
-          not: user.id,
-        },
+          not: user.id
+        }
       },
-      select: { id: true },
+      select: { id: true }
     })
     if (taken) {
       throw createError({
         statusCode: 400,
-        message: 'Email is already taken',
+        message: 'Email is already taken'
       })
     }
   }
@@ -75,33 +71,33 @@ export default defineEventHandler(async (event) => {
     await prisma.$transaction([
       prisma.user.update({
         where: {
-          id: user.id,
+          id: user.id
         },
         data: {
           email: nextEmail,
-          emailVerifiedAt: null,
-        },
+          emailVerifiedAt: null
+        }
       }),
       prisma.token.update({
         where: {
-          id: verificationToken.id,
+          id: verificationToken.id
         },
         data: {
-          usedAt: new Date(),
-        },
-      }),
+          usedAt: new Date()
+        }
+      })
     ])
 
     const verifyLink = await createVerifyEmailLink(event, user.id)
     const html = await render(EmailVerifyEmail, {
       verifyLink,
-      name: user.name,
+      name: user.name
     })
 
     await queueEmail({
       to: nextEmail,
       subject: 'Verify your new email address',
-      html,
+      html
     })
 
     const session = await getUserSession(event)
@@ -114,34 +110,34 @@ export default defineEventHandler(async (event) => {
       email: nextEmail,
       nextEmail,
       flow: 'email-change',
-      forceLogout: true,
+      forceLogout: true
     }
   }
 
   await prisma.$transaction([
     prisma.user.update({
       where: {
-        id: user.id,
+        id: user.id
       },
       data: {
         ...(nextEmail ? { email: nextEmail } : {}),
-        emailVerifiedAt: new Date(),
-      },
+        emailVerifiedAt: new Date()
+      }
     }),
     prisma.token.update({
       where: {
-        id: verificationToken.id,
+        id: verificationToken.id
       },
       data: {
-        usedAt: new Date(),
-      },
-    }),
+        usedAt: new Date()
+      }
+    })
   ])
 
   return {
     message: 'Email has been verified. You can now close this window.',
     email: user.email,
     flow: 'normal',
-    forceLogout: false,
+    forceLogout: false
   }
 })

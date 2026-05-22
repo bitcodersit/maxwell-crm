@@ -8,14 +8,7 @@ export const getCurrentUserCached = defineCachedFunction(
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: {
-          select: {
-            path: true
-          }
-        },
+        ...selectUserBase,
         userRoles: {
           select: {
             role: {

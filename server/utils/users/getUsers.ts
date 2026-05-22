@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import z from 'zod'
+import { getScopedUser } from './utils'
 
 export type TZGetUsers = z.infer<typeof zGetUsers>
 export const zGetUsers = z
@@ -28,7 +29,6 @@ export const zGetUsers = z
 export const getUsers = async (
   event: H3Event,
   options?: {
-    query?: TQuery
     input?: TZGetUsers
   }
 ) => {
@@ -37,7 +37,7 @@ export const getUsers = async (
     return err.denied()
   }
 
-  const input = options?.input ?? (await validate(options?.query ?? getQuery(event), zGetUsers))
+  const input = options?.input ?? (await validate(getQuery(event), zGetUsers))
   const orderBy = getOrderBy2(input.orderBy, {
     creatorId(order) {
       return {
@@ -97,6 +97,7 @@ export const getUsers = async (
         }
       }
     })
+    .scope(v => getScopedUser(v, user))
     .get()
 
   const { take, skip, paginate } = getPagination(input)
@@ -107,7 +108,10 @@ export const getUsers = async (
       take,
       where,
       orderBy,
-      ...selectUser(input)
+      ...selectUser({
+        user,
+        options: input.options
+      })
     })
   ])
 

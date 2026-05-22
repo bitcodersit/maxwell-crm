@@ -21,7 +21,7 @@ export const getPermissions = async (event: H3Event, query = getQuery(event)) =>
       OR: [
         {
           name: {
-            contains: text
+            contains: text.toLowerCase().split(' ').join('-')
           }
         },
         {

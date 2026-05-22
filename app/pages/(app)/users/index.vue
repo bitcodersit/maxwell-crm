@@ -238,6 +238,7 @@ const getActions: TGetActions<TUser> = (item, v) => [
     },
     {
       ...actions.update,
+      hidden: false,
       onSelect() {
         crudRef.value?.onUpdate(item)
       }
@@ -276,7 +277,7 @@ const getActions: TGetActions<TUser> = (item, v) => [
         )
       }
     }
-  ].filter(v => 'hidden' in v && !v.hidden),
+  ].filter(v => !v.hidden),
   [
     {
       ...actions.delete,

@@ -15,12 +15,14 @@ export const zColor = (message = 'Invalid color') =>
     .trim()
 
 type TUniqueOptions = {
+  except?: number
   unique?: boolean
   message?: string
   uniqueMessage?: string
 }
 export const zEmail = (options?: TUniqueOptions) => {
   const {
+    except,
     unique = false,
     message = 'Invalid email address',
     uniqueMessage = 'Email already in use'
@@ -28,13 +30,19 @@ export const zEmail = (options?: TUniqueOptions) => {
   return z.email(message).refine(async email => {
     if (!unique) return true
     return !(await prisma.user.findFirst({
-      where: { email }
+      where: {
+        email,
+        id: {
+          not: except
+        }
+      }
     }))
   }, uniqueMessage)
 }
 
 export const zPhone = (options?: TUniqueOptions) => {
   const {
+    except,
     unique = false,
     message = 'Invalid phone number',
     uniqueMessage = 'Phone number already in use'
@@ -53,7 +61,10 @@ export const zPhone = (options?: TUniqueOptions) => {
         unique &&
         (await prisma.user.findFirst({
           where: {
-            phone: phone.number
+            phone: phone.number,
+            id: {
+              not: except
+            }
           }
         }))
       ) {

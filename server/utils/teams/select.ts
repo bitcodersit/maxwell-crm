@@ -4,21 +4,15 @@ export const selectTeamForOptions: Prisma.TeamSelect = {
 }
 
 export const selectTeamForTable: Prisma.TeamInclude = {
-  creator: {
-    select: selectUserForDisplay
-  },
+  creator: selectUserForDisplay,
   members: {
     orderBy: {
       role: 'asc'
     },
     select: {
       role: true,
-      user: {
-        select: selectUserForDisplay
-      },
-      assigner: {
-        select: selectUserForDisplay
-      }
+      user: selectUserForDisplay,
+      assigner: selectUserForDisplay
     }
   }
 }

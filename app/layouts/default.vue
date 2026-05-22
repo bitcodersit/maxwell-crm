@@ -36,7 +36,8 @@ const links = computed(() => {
         label: 'Leads',
         icon: 'i-lucide-contact',
         to: '/leads',
-        badge: '12',
+        // badge: '12',
+        visible: !!(user.value?.readAnyLeads || user.value?.readOwnLeads),
         onSelect: () => {
           open.value = false
         }
@@ -45,6 +46,7 @@ const links = computed(() => {
         label: 'Properties',
         icon: 'i-lucide-building-2',
         to: '/properties',
+        visible: !!(user.value?.readAnyProperties || user.value?.readOwnProperties),
         onSelect: () => {
           open.value = false
         }
@@ -97,7 +99,7 @@ const links = computed(() => {
         label: 'Users',
         icon: 'i-lucide-users',
         to: '/users',
-        visible: !!user.value?.readAnyUsers,
+        visible: !!(user.value?.readAnyUsers || user.value?.readOwnUsers),
         onSelect: () => {
           open.value = false
         }

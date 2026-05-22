@@ -18,7 +18,6 @@ export const zGetTeams = z
 export const getTeams = async (
   event: H3Event,
   options?: {
-    query?: TQuery
     input?: TZGetTeams
   }
 ) => {
@@ -27,7 +26,7 @@ export const getTeams = async (
     return err.denied()
   }
 
-  const input = options?.input ?? (await validate(options?.query ?? getQuery(event), zGetTeams))
+  const input = options?.input ?? (await validate(getQuery(event), zGetTeams))
   const orderBy = getOrderBy2(input.orderBy, {
     creatorId(order) {
       return {
@@ -51,9 +50,7 @@ export const getTeams = async (
     .text('q', ['name', 'description'])
     .date('createdAt')
     .date('updatedAt')
-    .extend({
-      deletedAt: null
-    })
+    .extend({ deletedAt: null })
     .scope(v => getScopedTeam(v, user))
     .get()
 

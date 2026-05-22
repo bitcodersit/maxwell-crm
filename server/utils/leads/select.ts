@@ -5,9 +5,7 @@ export const selectLeadForUpdate: Prisma.LeadSelect = {
     select: {
       assignedUsers: {
         select: {
-          user: {
-            select: selectUserForEmail
-          }
+          user: selectUserForEmail
         }
       },
       assignedTeams: {
@@ -16,9 +14,7 @@ export const selectLeadForUpdate: Prisma.LeadSelect = {
             select: {
               members: {
                 select: {
-                  user: {
-                    select: selectUserForEmail
-                  }
+                  user: selectUserForEmail
                 }
               }
             }
@@ -30,12 +26,8 @@ export const selectLeadForUpdate: Prisma.LeadSelect = {
 }
 
 export const selectLeadForDisplay: Prisma.LeadInclude = {
-  creator: {
-    select: selectUserForDisplay
-  },
-  customer: {
-    select: selectUserForDisplay
-  },
+  creator: selectUserForDisplay,
+  customer: selectUserForDisplay,
   source: true,
   address: true,
   propertyTypeMain: true,
@@ -44,9 +36,7 @@ export const selectLeadForDisplay: Prisma.LeadInclude = {
     include: {
       assignedUsers: {
         include: {
-          user: {
-            select: selectUserForDisplay
-          }
+          user: selectUserForDisplay
         }
       },
       assignedTeams: {
@@ -55,9 +45,7 @@ export const selectLeadForDisplay: Prisma.LeadInclude = {
             include: {
               members: {
                 include: {
-                  user: {
-                    select: selectUserForDisplay
-                  }
+                  user: selectUserForDisplay
                 }
               }
             }

@@ -1,6 +1,6 @@
 export const actions = {
   view: {
-    label: 'View Details',
+    label: 'View',
     icon: 'i-lucide-eye'
   },
   update: {
