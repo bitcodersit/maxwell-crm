@@ -20,11 +20,13 @@ const getItem = (item: TBoardItem) => {
     :get-item="getItem"
   >
     <template #item="{ item }">
-      <UCard :title="`#${item.id}`">
-        <div class="text-sm text-muted">
-          {{ item.sid }}, {{ item.createdAt }}, {{ item.updatedAt }}
-        </div>
-      </UCard>
+      <NuxtLink :to="`/leads/${item.sid}`">
+        <UCard :title="`#${item.id}`">
+          <div class="text-sm text-muted">
+            {{ item.sid }}, {{ item.createdAt }}, {{ item.updatedAt }}
+          </div>
+        </UCard>
+      </NuxtLink>
     </template>
   </BaseKanban>
 </template>

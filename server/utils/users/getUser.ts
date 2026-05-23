@@ -3,8 +3,7 @@ import z from 'zod'
 
 export type TZGetUser = z.infer<typeof zGetUser>
 export const zGetUser = z.object({
-  id: zId().nullish(),
-  options: zBoolean().nullish()
+  id: zId().nullish()
 })
 
 export const getUser = async (
@@ -28,8 +27,7 @@ export const getUser = async (
   const data = await prisma.user.findFirst({
     where,
     ...selectUser({
-      user,
-      options: input.options
+      user
     })
   })
 

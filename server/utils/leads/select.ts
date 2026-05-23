@@ -25,7 +25,7 @@ export const selectLeadForUpdate: Prisma.LeadSelect = {
   }
 }
 
-export const selectLeadForDisplay: Prisma.LeadInclude = {
+export const selectLeadForDisplay = {
   creator: selectUserForDisplay,
   customer: selectUserForDisplay,
   source: true,
@@ -53,5 +53,11 @@ export const selectLeadForDisplay: Prisma.LeadInclude = {
         }
       }
     }
+  }
+}
+
+export const selectLead = (_: TSelectParams) => {
+  return {
+    include: selectLeadForDisplay
   }
 }
