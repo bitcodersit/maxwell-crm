@@ -14,6 +14,10 @@ type TModule =
   | 'Properties'
   | 'Permissions'
   | 'Attachments'
+  | 'Comments'
+  | 'Bills'
+  | 'Visits'
+  | 'FollowUps'
 
 type TRoleName = 'SuperAdmin' | 'Admin' | 'Manager' | 'Salesman' | 'Accountant' | 'Customer'
 

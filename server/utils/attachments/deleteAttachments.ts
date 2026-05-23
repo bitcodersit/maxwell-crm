@@ -22,8 +22,7 @@ export const deleteAttachments = async (event: H3Event, ids: number[]) => {
   })
 
   if (!attachments.length) throw err.notFound()
-  if (!canDeleteAny) {
-    // if (!canDeleteAny && !(attachment as any).users?.length) {
+  if (!canDeleteAny && attachments.some(v => v.uploaderId !== user.id)) {
     throw err.denied()
   }
 
@@ -32,14 +31,14 @@ export const deleteAttachments = async (event: H3Event, ids: number[]) => {
     await storage.delete(attachment.path)
   }
 
-  const data = await prisma.attachment.updateMany({
+  await prisma.attachment.updateMany({
     where,
     data: {
       deletedAt: new Date()
     }
   })
+
   return {
-    message: 'Attachments deleted successfully',
-    data
+    message: 'Attachments deleted successfully'
   }
 }

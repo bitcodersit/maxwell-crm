@@ -23,6 +23,14 @@ export const selectUserForDisplay = {
   select: selectUserBase
 }
 
+export const selectUserForBadge = {
+  select: {
+    id: true,
+    name: true,
+    avatar: selectUserAvatar
+  }
+}
+
 export const selectUserForOptions = {
   select: {
     id: true,

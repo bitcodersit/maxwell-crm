@@ -1,6 +1,6 @@
 import { selectUserForDisplay, selectUserForEmail } from '../users/select'
 
-export const selectLeadForUpdate: Prisma.LeadSelect = {
+export const selectLeadForUpdate = {
   assignable: {
     select: {
       assignedUsers: {
