@@ -236,11 +236,11 @@ model Attachable {
 
     task     Task?
     lead     Lead?
-    followUp FollowUp?
     visit    Visit?
+    comment  Comment?
+    followUp FollowUp?
     property Property?
 
-    comments    Comment[]
     attachments Attachment[]
 
     createdAt DateTime @default(now())
@@ -274,7 +274,7 @@ model Comment {
     commentableId Int?
     commentable   Commentable? @relation(fields: [commentableId], references: [id], onDelete: SetNull)
 
-    attachableId Int?
+    attachableId Int?        @unique
     attachable   Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
 
     authorId Int?
