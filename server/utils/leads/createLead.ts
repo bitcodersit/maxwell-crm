@@ -29,47 +29,89 @@ export const zCreateLead = z.object({
 })
 
 export const createLead = async (input: TZCreateLead, user: TUser) => {
-  const assignable = await prisma.assignable.create({
-    data: {
-      assignedUsers: {
-        create: input.userIds.map(userId => ({
-          userId,
-          assignerId: user.id
-        }))
-      },
-      assignedTeams: {
-        create: input.teamIds.map(teamId => ({
-          teamId,
-          assignerId: user.id
-        }))
-      }
-    }
-  })
-
-  let addressId: number | undefined
   if (!input.addressId && input.address) {
-    addressId = (await upsertAddress(input.address)).id
+    input.addressId = (await upsertAddress(input.address)).id
   }
 
-  let customerId: number | undefined
   if (!input.customerId && input.customer) {
-    customerId = (await upsertCustomer(input.customer)).id
+    input.customerId = (await upsertCustomer(input.customer)).id
   }
 
   const lead = await prisma.lead.create({
     include: selectLeadForDisplay,
     data: {
-      addressId,
-      customerId,
       sid: await generateLeadSid(),
       status: input.status,
-      creatorId: user.id,
-      assignableId: assignable.id,
       budgetMin: input.budgetMin,
       budgetMax: input.budgetMax,
-      sourceId: input.sourceId,
-      propertyTypeMainId: input.propertyTypeMainId,
-      propertyTypeSubId: input.propertyTypeSubId
+      propertyTypeMain: input.propertyTypeMainId
+        ? {
+            connect: {
+              id: input.propertyTypeMainId
+            }
+          }
+        : undefined,
+      propertyTypeSub: input.propertyTypeSubId
+        ? {
+            connect: {
+              id: input.propertyTypeSubId
+            }
+          }
+        : undefined,
+      source: input.sourceId
+        ? {
+            connect: {
+              id: input.sourceId
+            }
+          }
+        : undefined,
+      creator: {
+        connect: {
+          id: user.id
+        }
+      },
+      address: input.addressId
+        ? {
+            connect: {
+              id: input.addressId
+            }
+          }
+        : undefined,
+      customer: input.customerId
+        ? {
+            connect: {
+              id: input.customerId
+            }
+          }
+        : undefined,
+      assignable: {
+        create: {
+          assignedUsers:
+            input.userIds.length > 0
+              ? {
+                  create: input.userIds.map(userId => ({
+                    userId,
+                    assignerId: user.id
+                  }))
+                }
+              : undefined,
+          assignedTeams:
+            input.teamIds.length > 0
+              ? {
+                  create: input.teamIds.map(teamId => ({
+                    teamId,
+                    assignerId: user.id
+                  }))
+                }
+              : undefined
+        }
+      },
+      attachable: {
+        create: {}
+      },
+      commentable: {
+        create: {}
+      }
     }
   })
 

@@ -30,8 +30,41 @@ export const selectLeadForDisplay = {
   customer: selectUserForDisplay,
   source: true,
   address: true,
+  boardItems: true,
   propertyTypeMain: true,
   propertyTypeSub: true,
+  attachable: {
+    select: {
+      attachments: {
+        select: {
+          id: true,
+          name: true,
+          path: true
+        }
+      }
+    }
+  },
+  commentable: {
+    select: {
+      comments: {
+        select: {
+          id: true,
+          text: true,
+          attachable: {
+            select: {
+              attachments: {
+                select: {
+                  id: true,
+                  name: true,
+                  path: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   assignable: {
     include: {
       assignedUsers: {
