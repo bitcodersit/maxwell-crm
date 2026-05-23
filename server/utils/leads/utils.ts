@@ -10,7 +10,7 @@ export const getScopedLead: TScopeFn<Prisma.LeadWhereInput> = (where, user) => {
           },
           {
             assignable: {
-              assignedUsers: {
+              users: {
                 some: {
                   userId: user.id
                 }
@@ -19,7 +19,7 @@ export const getScopedLead: TScopeFn<Prisma.LeadWhereInput> = (where, user) => {
           },
           {
             assignable: {
-              assignedTeams: {
+              teams: {
                 some: {
                   team: {
                     members: {

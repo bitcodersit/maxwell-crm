@@ -10,7 +10,7 @@ export const getLeadScopedWhere = (user: TUser, where: Prisma.LeadWhereInput) =>
           { creatorId: user.id },
           {
             assignable: {
-              assignedUsers: {
+              users: {
                 some: {
                   userId: user.id
                 }
@@ -19,7 +19,7 @@ export const getLeadScopedWhere = (user: TUser, where: Prisma.LeadWhereInput) =>
           },
           {
             assignable: {
-              assignedTeams: {
+              teams: {
                 some: {
                   team: {
                     members: {

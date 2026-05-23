@@ -7,11 +7,13 @@ export type TZGetComments = z.infer<typeof zGetComments>
 export const zGetComments = z
   .object({
     authorId: zId().nullish(),
-    orderBy: zOrderByRecord(['createdAt']).default([
-      {
-        createdAt: 'desc'
-      }
-    ])
+    orderBy: zOrderByRecord(['createdAt'])
+      .default([
+        {
+          createdAt: 'desc'
+        }
+      ])
+      .nullish()
   })
   .and(zPagination())
   .and(zGetCommentable)

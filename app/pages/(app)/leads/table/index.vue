@@ -39,9 +39,9 @@ const formatBudget = (lead: TLead) => {
 }
 
 const getSalesman = (lead: TLead) => {
-  const direct = lead.assignable?.assignedUsers?.[0]?.user?.name
+  const direct = lead.assignable?.users?.[0]?.user?.name
   if (direct) return direct
-  const teamMember = lead.assignable?.assignedTeams?.[0]?.team?.members?.[0]?.user?.name
+  const teamMember = lead.assignable?.teams?.[0]?.team?.members?.[0]?.user?.name
   return teamMember || '—'
 }
 

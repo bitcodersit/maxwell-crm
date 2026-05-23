@@ -52,7 +52,7 @@ export const updateLead = async (id: number, input: TZUpdateLead, user: TUser) =
     if (input.userIds) {
       data.assignable = {
         update: {
-          assignedUsers: {
+          users: {
             deleteMany: {
               userId: {
                 notIn: input.userIds
@@ -71,7 +71,7 @@ export const updateLead = async (id: number, input: TZUpdateLead, user: TUser) =
     } else if (input.userIds === null) {
       data.assignable = {
         update: {
-          assignedUsers: {
+          users: {
             deleteMany: {}
           }
         }
@@ -81,7 +81,7 @@ export const updateLead = async (id: number, input: TZUpdateLead, user: TUser) =
     if (input.teamIds) {
       data.assignable = {
         update: {
-          assignedTeams: {
+          teams: {
             deleteMany: {
               teamId: {
                 notIn: input.teamIds
@@ -100,7 +100,7 @@ export const updateLead = async (id: number, input: TZUpdateLead, user: TUser) =
     } else if (input.teamIds === null) {
       data.assignable = {
         update: {
-          assignedTeams: {
+          teams: {
             deleteMany: {}
           }
         }

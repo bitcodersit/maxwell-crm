@@ -53,7 +53,7 @@ export const createLead = async (input: TZCreateLead, user: TUser) => {
       propertyTypeMain: getConnect(input.propertyTypeMainId),
       assignable: {
         create: {
-          assignedUsers:
+          users:
             input.userIds.length > 0
               ? {
                   create: input.userIds.map(userId => ({
@@ -62,7 +62,7 @@ export const createLead = async (input: TZCreateLead, user: TUser) => {
                   }))
                 }
               : undefined,
-          assignedTeams:
+          teams:
             input.teamIds.length > 0
               ? {
                   create: input.teamIds.map(teamId => ({

@@ -54,7 +54,7 @@ model User {
 
     comments              Comment[]        @relation("CommentAuthor")
     auditLogs             AuditLog[]
-    visitUsers            VisitUser[]
+    visitsAsAuthor        Visit[]          @relation("VisitAuthor")
     assignableTeams       AssignableTeam[] @relation("AssignableTeamAssigner")
     propertiesAsCreator   Property[]       @relation("PropertyCreator")
     attachmentsAsUploader Attachment[]     @relation("AttachmentUploader")
@@ -668,12 +668,6 @@ model FollowUp {
 model Visit {
     id Int @id @default(autoincrement())
 
-    leadId Int?
-    lead   Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
-
-    propertyId Int?
-    property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
-
     date   DateTime
     status VisitStatus @default(PENDING)
 
@@ -681,13 +675,23 @@ model Visit {
     nextAction       String? @db.Text
     customerPresence String? @db.Text
 
+    authorId Int?
+    author   User? @relation("VisitAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+    leadId Int?
+    lead   Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+    propertyId Int?
+    property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
     attachableId Int?        @unique
     attachable   Attachable? @relation(fields: [attachableId], references: [id], onDelete: SetNull)
 
     commentableId Int?         @unique
     commentable   Commentable? @relation("VisitCommentable", fields: [commentableId], references: [id], onDelete: SetNull)
 
-    visitUsers VisitUser[]
+    assignableId Int?
+    assignable   Assignable? @relation(fields: [assignableId], references: [id], onDelete: SetNull)
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -697,27 +701,10 @@ model Visit {
     @@index([propertyId, date])
     @@index([status])
     @@index([attachableId])
+    @@index([assignableId])
     @@index([commentableId])
+    @@index([authorId])
     @@map("visits")
-}
-
-model VisitUser {
-    id Int @id @default(autoincrement())
-
-    visitId Int
-    visit   Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
-
-    userId Int
-    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @default(now()) @updatedAt
-    deletedAt DateTime?
-
-    @@unique([visitId, userId])
-    @@index([visitId])
-    @@index([userId])
-    @@map("visit_users")
 }
 
 model Bill {
@@ -726,8 +713,8 @@ model Bill {
     userId Int
     user   User @relation("BillUser", fields: [userId], references: [id], onDelete: Cascade)
 
-    authorId Int
-    author   User @relation("BillAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+    authorId Int?
+    author   User? @relation("BillAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
     approverId Int?
     approver   User? @relation("BillApprover", fields: [approverId], references: [id], onDelete: SetNull)
@@ -873,10 +860,11 @@ model Assignable {
     id Int @id @default(autoincrement())
 
     leads      Lead[]
+    visits     Visit[]
     properties Property[]
 
-    assignedUsers AssignableUser[]
-    assignedTeams AssignableTeam[]
+    users AssignableUser[]
+    teams AssignableTeam[]
 
     @@map("assignables")
 }

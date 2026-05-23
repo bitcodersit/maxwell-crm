@@ -3,12 +3,12 @@ import { selectUserForDisplay, selectUserForEmail } from '../users/select'
 export const selectLeadForUpdate = {
   assignable: {
     select: {
-      assignedUsers: {
+      users: {
         select: {
           user: selectUserForEmail
         }
       },
-      assignedTeams: {
+      teams: {
         select: {
           team: {
             select: {
@@ -67,12 +67,12 @@ export const selectLeadForDisplay = {
   },
   assignable: {
     include: {
-      assignedUsers: {
+      users: {
         include: {
           user: selectUserForDisplay
         }
       },
-      assignedTeams: {
+      teams: {
         include: {
           team: {
             include: {

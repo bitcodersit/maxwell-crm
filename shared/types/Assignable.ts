@@ -3,8 +3,8 @@ import type { Assignable, AssignableUser, AssignableTeam } from '~~/prisma/clien
 export type TAssignable = Assignable & {
   leads: TMaybe<TLead[]>
   properties: TMaybe<TProperty[]>
-  assignedUsers: TMaybe<TAssignableUser[]>
-  assignedTeams: TMaybe<TAssignableTeam[]>
+  users: TMaybe<TAssignableUser[]>
+  teams: TMaybe<TAssignableTeam[]>
 }
 
 export type TAssignableUser = AssignableUser & {

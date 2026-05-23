@@ -167,7 +167,7 @@ const getLeadWhere = (input: TZGetLeads): Prisma.LeadWhereInput => {
   if (input.users?.length) {
     and.push({
       assignable: {
-        assignedUsers: {
+        users: {
           some: {
             userId: { in: input.users }
           }
@@ -178,7 +178,7 @@ const getLeadWhere = (input: TZGetLeads): Prisma.LeadWhereInput => {
   if (input.teams?.length) {
     and.push({
       assignable: {
-        assignedTeams: {
+        teams: {
           some: {
             teamId: { in: input.teams }
           }
@@ -213,7 +213,7 @@ const getLeadWhere = (input: TZGetLeads): Prisma.LeadWhereInput => {
       assignable: {
         OR: [
           {
-            assignedUsers: {
+            users: {
               some: {
                 user: {
                   name: nameFilter
@@ -222,7 +222,7 @@ const getLeadWhere = (input: TZGetLeads): Prisma.LeadWhereInput => {
             }
           },
           {
-            assignedTeams: {
+            teams: {
               some: {
                 team: {
                   members: {
