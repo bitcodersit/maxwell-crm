@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { upsertAddress, zUpsertAddress } from '../address'
 import { upsertCustomer, zUpsertCustomer } from '../customer'
+import { getConnect } from '../getConnect'
 
 export type TZCreateLead = z.infer<typeof zCreateLead>
 export const zCreateLead = z.object({
@@ -44,46 +45,12 @@ export const createLead = async (input: TZCreateLead, user: TUser) => {
       status: input.status,
       budgetMin: input.budgetMin,
       budgetMax: input.budgetMax,
-      propertyTypeMain: input.propertyTypeMainId
-        ? {
-            connect: {
-              id: input.propertyTypeMainId
-            }
-          }
-        : undefined,
-      propertyTypeSub: input.propertyTypeSubId
-        ? {
-            connect: {
-              id: input.propertyTypeSubId
-            }
-          }
-        : undefined,
-      source: input.sourceId
-        ? {
-            connect: {
-              id: input.sourceId
-            }
-          }
-        : undefined,
-      creator: {
-        connect: {
-          id: user.id
-        }
-      },
-      address: input.addressId
-        ? {
-            connect: {
-              id: input.addressId
-            }
-          }
-        : undefined,
-      customer: input.customerId
-        ? {
-            connect: {
-              id: input.customerId
-            }
-          }
-        : undefined,
+      source: getConnect(input.sourceId),
+      creator: getConnect(user.id),
+      address: getConnect(input.addressId),
+      customer: getConnect(input.customerId),
+      propertyTypeSub: getConnect(input.propertyTypeSubId),
+      propertyTypeMain: getConnect(input.propertyTypeMainId),
       assignable: {
         create: {
           assignedUsers:
