@@ -3,7 +3,8 @@ import {
   TaskPriority,
   TaskStatus,
   TaskItemStatus,
-  BoardModule
+  BoardModule,
+  VisitStatus
 } from '~~/prisma/client/enums'
 
-export { LeadStatus, TaskPriority, TaskStatus, TaskItemStatus, BoardModule }
+export { LeadStatus, TaskPriority, TaskStatus, TaskItemStatus, BoardModule, VisitStatus }
