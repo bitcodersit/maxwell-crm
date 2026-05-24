@@ -47,7 +47,7 @@ model User {
 
     bills           Bill[] @relation("BillUser")
     billsAsAuthor   Bill[] @relation("BillAuthor")
-    billsAsApprover Bill[] @relation("BillApprover")
+    billsAsReviewer Bill[] @relation("BillReviewer")
 
     assignableUsers           AssignableUser[] @relation("AssignableUser")
     assignableUsersAsAssigner AssignableUser[] @relation("AssignableUserAssigner")
@@ -546,33 +546,35 @@ enum LeadStatus {
 }
 
 enum FollowUpType {
-    CALL
-    VISIT
-    EMAIL
-    MESSAGE
-    WHATSAPP
+    Call
+    Visit
+    Email
+    Message
+    Whatsapp
 }
 
 enum FollowUpStatus {
-    PENDING
-    COMPLETED
-    RESCHEDULED
-    CANCELLED
-    FAILED
+    Pending
+    Completed
+    Rescheduled
+    Cancelled
+    Failed
 }
 
 enum VisitStatus {
-    PENDING
-    COMPLETED
-    RESCHEDULED
-    CANCELLED
-    NO_SHOW
+    Pending
+    Completed
+    Rescheduled
+    Cancelled
+    No_Show
 }
 
 enum BillStatus {
-    PENDING
-    APPROVED
-    REJECTED
+    New
+    Pending
+    Approved
+    Cancelled
+    Rejected
 }
 
 model Lead {
@@ -645,7 +647,7 @@ model FollowUp {
 
     date   DateTime
     type   FollowUpType
-    status FollowUpStatus @default(PENDING)
+    status FollowUpStatus @default(Pending)
 
     outcome  String?   @db.Text
     nextDate DateTime?
@@ -673,7 +675,7 @@ model Visit {
     id Int @id @default(autoincrement())
 
     date   DateTime
-    status VisitStatus @default(PENDING)
+    status VisitStatus @default(Pending)
 
     checkIn          Json?
     nextAction       String? @db.Text
@@ -718,18 +720,20 @@ model Bill {
     user   User @relation("BillUser", fields: [userId], references: [id], onDelete: Cascade)
 
     authorId Int?
-    author   User? @relation("BillAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+    author   User? @relation("BillAuthor", fields: [authorId], references: [id], onDelete: SetNull)
 
-    approverId Int?
-    approver   User? @relation("BillApprover", fields: [approverId], references: [id], onDelete: SetNull)
+    reviewerId Int?
+    reviewer   User? @relation("BillReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
 
     typeId Int
     type   Option @relation("BillTypeOption", fields: [typeId], references: [id], onDelete: Restrict)
 
     date    DateTime
     amount  Decimal    @db.Decimal(18, 2)
-    status  BillStatus @default(PENDING)
+    status  BillStatus @default(New)
     purpose String?    @db.Text
+
+    reviewedAt DateTime?
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
@@ -737,7 +741,7 @@ model Bill {
 
     @@index([userId, date])
     @@index([authorId, date])
-    @@index([approverId])
+    @@index([reviewerId])
     @@index([typeId])
     @@index([status])
     @@map("bills")

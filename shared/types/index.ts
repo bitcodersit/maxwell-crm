@@ -13,6 +13,7 @@ export * from './Board'
 export * from './Assignable'
 export * from './Address'
 export * from './Option'
+export * from './Bill'
 
 export type TMaybe<T> = T | null | undefined
 

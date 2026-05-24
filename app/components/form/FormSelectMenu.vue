@@ -67,18 +67,8 @@ const searchInput = computed(() => {
   return s.value || data.value.totalPages > 1 ? props.searchInput || true : false
 })
 
-const rest = computed(() => {
-  const {
-    api,
-    query,
-    open,
-    modelValue,
-    searchInput,
-    ignoreFilter,
-    resetModelValueOnClear,
-    ...rest
-  } = props
-  return rest as any
+watchEffect(() => {
+  console.log(props)
 })
 </script>
 
@@ -87,11 +77,15 @@ const rest = computed(() => {
     v-model="model"
     v-model:open="open"
     v-model:search-term="s"
-    v-bind="rest"
     :items="items"
     :loading="isFetching"
-    :search-input="searchInput"
+    :clear="clear"
+    :size="size"
+    :class="props.class"
+    :label-key="labelKey"
     :ignore-filter="true"
+    :search-input="searchInput"
+    :placeholder="placeholder"
     :reset-model-value-on-clear="true"
   />
 </template>

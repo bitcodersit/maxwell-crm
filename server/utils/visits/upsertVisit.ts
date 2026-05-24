@@ -5,7 +5,7 @@ export type TZCreateVisit = z.infer<typeof zCreateVisit>
 export const zCreateVisit = z
   .object({
     date: zDate().nullish(),
-    status: z.enum(VisitStatus).default('PENDING'),
+    status: z.enum(VisitStatus).default('Pending' as any),
     checkIn: z.record(z.string(), z.any()).nullish(),
     nextAction: zString().nullish(),
     customerPresence: zString().nullish(),

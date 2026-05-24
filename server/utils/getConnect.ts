@@ -1,8 +1,19 @@
-export const getConnect = (id?: TMaybe<number>) => {
-  if (!id) return undefined
-  return {
-    connect: {
-      id
+export const getConnect = <T extends TMaybe<number>>(
+  id?: T
+): T extends number
+  ? {
+      connect: {
+        id: T
+      }
     }
-  }
+  : undefined => {
+  return (
+    id
+      ? {
+          connect: {
+            id
+          }
+        }
+      : undefined
+  ) as any
 }

@@ -1,10 +1,8 @@
-import { BoardModule } from './client/enums'
-
 import 'dotenv/config'
-
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
 import { generateKeyBetween } from 'fractional-indexing'
 import { PrismaClient } from './client/client'
+import { BoardModule } from './client/enums'
 
 const prisma = new PrismaClient({
   adapter: new PrismaMariaDb({
@@ -220,6 +218,10 @@ const seedOptions = async () => {
     {
       type: 'PROPERTY_PURCHASE_TYPE',
       options: ['Contracted for sale', 'Power Registration', 'Sab Kobla', 'Ongoing']
+    },
+    {
+      type: 'BILL_TYPE',
+      options: ['Conveyance', 'Advance', 'Other']
     }
   ]
   await prisma.option.createMany({
@@ -248,7 +250,16 @@ async function main() {
   }
 
   const operations = ['create', 'read', 'update', 'delete', 'export']
-  const modules = ['users', 'roles', 'permissions', 'teams', 'attachments', 'tasks', 'leads']
+  const modules = [
+    'users',
+    'roles',
+    'permissions',
+    'teams',
+    'attachments',
+    'tasks',
+    'leads',
+    'bills'
+  ]
   const subjects = ['any', 'own']
 
   const permissionsData = operations.flatMap(operation =>

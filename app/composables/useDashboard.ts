@@ -14,6 +14,7 @@ const _useDashboard = () => {
     'g-h': () => router.push('/'),
     'g-i': () => router.push('/inbox'),
     'g-t': () => router.push('/tasks'),
+    'g-b': () => router.push('/bills'),
     'g-c': () => router.push('/customers'),
     'g-s': () => router.push('/settings'),
     'n': () => (isNotificationsOpen.value = !isNotificationsOpen.value)
@@ -76,6 +77,10 @@ const titlesMap = [
   {
     path: '/tasks',
     title: 'Tasks',
+  },
+  {
+    path: '/bills',
+    title: 'Conveyance Bills'
   },
   {
     path: '/users',

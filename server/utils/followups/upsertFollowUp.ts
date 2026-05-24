@@ -7,7 +7,7 @@ export const zCreateFollowUp = z
     leadId: zId(),
     date: zDate().nullish(),
     type: z.enum(FollowUpType),
-    status: z.enum(FollowUpStatus).default('PENDING'),
+    status: z.enum(FollowUpStatus).default('Pending' as any),
     outcome: zString().nullish(),
     nextDate: zDate().nullish()
   })

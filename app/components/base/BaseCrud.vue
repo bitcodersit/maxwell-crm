@@ -38,7 +38,7 @@ type TInfoPopup = {
 type TDisplay = TTextDisplay | TArrayDisplay
 type TFormMode = 'create' | 'update'
 type TFormState = Record<string, any>
-type TFormBodyGetter = (state: TFormState) => object | FormData
+type TFormBodyGetter = (state: TFormState) => Record<string, any> | FormData
 
 export type TColumn<T extends TableData, D = unknown> = TableColumn<T, D> & {
   pinned?: 'left' | 'right'
@@ -408,7 +408,15 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
     .catch(e => {
       const { message, errors } = parseError(e)
       if (errors?.length) formRef.value?.setErrors(errors)
-      else formRef.value?.setErrors([{ name: 'name', message }])
+      else {
+        const field = props.fields?.[0]
+        formRef.value?.setErrors([
+          {
+            name: field && 'name' in field ? field.name : 'name',
+            message
+          }
+        ])
+      }
     })
     .finally(() => {
       isSubmitting.value = false

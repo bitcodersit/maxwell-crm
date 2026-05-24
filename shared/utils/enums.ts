@@ -5,6 +5,7 @@ import {
   TaskItemStatus,
   BoardModule,
   VisitStatus,
+  BillStatus,
   FollowUpType,
   FollowUpStatus
 } from '~~/prisma/client/enums'
@@ -16,6 +17,7 @@ export {
   TaskItemStatus,
   BoardModule,
   VisitStatus,
+  BillStatus,
   FollowUpType,
   FollowUpStatus
 }
