@@ -27,5 +27,13 @@ export const getBill = async (event: H3Event, options?: { input?: TZGetBill }) =
   })
 
   if (!data) throw err.notFound()
-  return data
+  const bill = data as any
+  return {
+    ...bill,
+    workflow: getBillWorkflow({
+      status: bill.status,
+      isAdmin: !!user.updateAnyBills,
+      isAuthor: bill.author?.id === user.id
+    })
+  }
 }

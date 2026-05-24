@@ -116,5 +116,18 @@ export const getBills = async (event: H3Event, options?: { input?: TZGetBills })
     })
   ])
 
-  return paginate(bills, total)
+  if (input.options) {
+    return paginate(bills, total)
+  }
+
+  const data = bills.map((bill: any) => ({
+    ...bill,
+    workflow: getBillWorkflow({
+      status: bill.status,
+      isAdmin: !!user.updateAnyBills,
+      isAuthor: bill.author?.id === user.id
+    })
+  }))
+
+  return paginate(data, total)
 }

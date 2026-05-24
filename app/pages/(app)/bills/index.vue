@@ -99,6 +99,7 @@ const updateBillStatus = async (
       description: `Bill #${item.id} has been ${actionLabelMap[action]} successfully`
     })
     await crudRef.value?.refetch()
+    return true
   } catch (error) {
     const { message } = parseError(error)
     toast.add({
@@ -106,35 +107,110 @@ const updateBillStatus = async (
       title: 'Status update failed',
       description: message
     })
+    return false
   }
 }
 
+type TWorkflowMeta = {
+  canUpdate?: boolean
+  canDelete?: boolean
+  availableActions?: string[]
+  availableTransitions?: Array<{
+    event: string
+    to: string
+  }>
+}
+
+const getWorkflowMeta = (item: TBill): TWorkflowMeta => {
+  return (item as any)?.workflow ?? {}
+}
+
+const hasAction = (item: TBill, action: string) => {
+  return !!getWorkflowMeta(item).availableActions?.includes(action)
+}
+
 const canUpdateBill = (item: TBill) => {
+  const workflowCanUpdate = getWorkflowMeta(item).canUpdate
+  if (typeof workflowCanUpdate === 'boolean') return workflowCanUpdate
   const status = String(item.status || '')
-  if (isAdmin.value) return true
-  return item.author?.id === user.value?.id && ['New', 'Cancelled', 'Rejected'].includes(status)
+  return isAdmin.value || (item.author?.id === user.value?.id && ['New', 'Cancelled', 'Rejected'].includes(status))
 }
 
 const canDeleteBill = (item: TBill) => {
+  const workflowCanDelete = getWorkflowMeta(item).canDelete
+  if (typeof workflowCanDelete === 'boolean') return workflowCanDelete
   const status = String(item.status || '')
-  if (isAdmin.value) return true
-  return item.author?.id === user.value?.id && ['New', 'Cancelled'].includes(status)
+  return isAdmin.value || (item.author?.id === user.value?.id && ['New', 'Cancelled'].includes(status))
 }
 
-const canSubmitBill = (item: TBill) => {
+const getStatusTransitions = (item: TBill) => {
+  const workflow = getWorkflowMeta(item)
+  if (workflow.availableTransitions?.length) {
+    return workflow.availableTransitions.filter(v =>
+      ['submit', 'approve', 'reject', 'cancel'].includes(v.event)
+    )
+  }
+
   const status = String(item.status || '')
-  if (isAdmin.value) return true
-  return item.author?.id === user.value?.id && ['New', 'Rejected'].includes(status)
+  const isAuthor = item.author?.id === user.value?.id
+  const transitions: Array<{ event: string; to: string }> = []
+  if (isAdmin.value || (isAuthor && ['New', 'Rejected'].includes(status))) {
+    transitions.push({ event: 'submit', to: 'Pending' })
+  }
+  if (isAdmin.value && status === 'Pending') {
+    transitions.push({ event: 'approve', to: 'Approved' })
+    transitions.push({ event: 'reject', to: 'Rejected' })
+  }
+  if (isAdmin.value || (isAuthor && status === 'Pending')) {
+    transitions.push({ event: 'cancel', to: 'Cancelled' })
+  }
+  return transitions
 }
 
-const canCancelBill = (item: TBill) => {
-  const status = String(item.status || '')
-  if (isAdmin.value) return true
-  return item.author?.id === user.value?.id && status === 'Pending'
+const canChangeStatus = (item: TBill) => getStatusTransitions(item).length > 0
+
+const statusActionLabelMap: Record<string, string> = {
+  submit: 'Submit For Review',
+  approve: 'Approve',
+  reject: 'Reject',
+  cancel: 'Cancel'
 }
 
-const canApproveOrRejectBill = (item: TBill) => {
-  return isAdmin.value && String(item.status || '') === 'Pending'
+const statusActionConfirmMap: Record<string, (id: number) => string> = {
+  submit: id => `Submit bill #${id} for admin approval?`,
+  approve: id => `Approve bill #${id}?`,
+  reject: id => `Reject bill #${id}?`,
+  cancel: id => `Cancel bill #${id}?`
+}
+
+const statusActionColorMap: Record<string, 'primary' | 'success' | 'warning' | 'error' | 'neutral'> = {
+  submit: 'primary',
+  approve: 'success',
+  reject: 'error',
+  cancel: 'warning'
+}
+
+const statusModalOpen = ref(false)
+const statusModalBill = ref<TMaybe<TBill>>()
+const statusTransitions = computed(() => {
+  if (!statusModalBill.value) return []
+  return getStatusTransitions(statusModalBill.value)
+})
+
+const onOpenStatusModal = (item: TBill) => {
+  statusModalBill.value = item
+  statusModalOpen.value = true
+}
+
+const onChangeStatusFromModal = async (event: string) => {
+  const item = statusModalBill.value
+  if (!item) return
+  const submitEvent = event as 'submit' | 'approve' | 'reject' | 'cancel'
+  const confirmMessage = statusActionConfirmMap[event]?.(item.id) || `Change status for bill #${item.id}?`
+  const ok = await updateBillStatus(item, submitEvent, confirmMessage)
+  if (ok) {
+    statusModalOpen.value = false
+  }
 }
 
 const fields: TField[] = [
@@ -384,35 +460,11 @@ const getActions: TGetActions<TBill> = (item, v) => [
       }
     },
     {
-      label: 'Submit',
-      icon: 'i-lucide-send',
-      hidden: !canSubmitBill(item),
-      async onSelect() {
-        await updateBillStatus(item, 'submit', `Submit bill #${item.id} for admin approval?`)
-      }
-    },
-    {
-      label: 'Approve',
-      icon: 'i-lucide-check-check',
-      hidden: !canApproveOrRejectBill(item),
-      async onSelect() {
-        await updateBillStatus(item, 'approve', `Approve bill #${item.id}?`)
-      }
-    },
-    {
-      label: 'Reject',
-      icon: 'i-lucide-x-circle',
-      hidden: !canApproveOrRejectBill(item),
-      async onSelect() {
-        await updateBillStatus(item, 'reject', `Reject bill #${item.id}?`)
-      }
-    },
-    {
-      label: 'Cancel',
-      icon: 'i-lucide-ban',
-      hidden: !canCancelBill(item),
-      async onSelect() {
-        await updateBillStatus(item, 'cancel', `Cancel bill #${item.id}?`)
+      label: 'Change Status',
+      icon: 'i-lucide-repeat',
+      hidden: !canChangeStatus(item),
+      onSelect() {
+        onOpenStatusModal(item)
       }
     },
     {
@@ -484,4 +536,49 @@ const getPostBody = (v: Record<string, any>) => ({
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
   />
+  <UModal
+    v-model:open="statusModalOpen"
+    title="Change Bill Status"
+    :description="
+      statusModalBill ? `Choose next status for bill #${statusModalBill.id}.` : 'Choose next status.'
+    "
+    :ui="{ content: 'max-w-xl' }"
+  >
+    <template #body>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <UButton
+          v-for="transition in statusTransitions"
+          :key="transition.event"
+          block
+          size="xl"
+          :color="statusActionColorMap[transition.event] || 'neutral'"
+          variant="soft"
+          class="h-20 justify-center text-base font-semibold"
+          @click="onChangeStatusFromModal(transition.event)"
+        >
+          <div class="text-center">
+            <div>{{ statusActionLabelMap[transition.event] || transition.event }}</div>
+            <div class="text-xs opacity-70 mt-1">to {{ transition.to }}</div>
+          </div>
+        </UButton>
+      </div>
+      <p
+        v-if="!statusTransitions.length"
+        class="text-sm text-muted text-center py-6"
+      >
+        No transitions available for current status.
+      </p>
+    </template>
+    <template #footer>
+      <div class="flex justify-end w-full">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          @click="statusModalOpen = false"
+        >
+          Close
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>

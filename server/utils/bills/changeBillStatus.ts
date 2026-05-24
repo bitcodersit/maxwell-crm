@@ -1,5 +1,7 @@
 import type { H3Event } from 'h3'
 import z from 'zod'
+import { BillStatusLabel } from './status'
+import { applyBillTransition, getBillTransitionMessage, getBillWorkflow } from './workflow'
 
 const BillActions = ['submit', 'approve', 'reject', 'cancel'] as const
 type TBillAction = (typeof BillActions)[number]
@@ -34,20 +36,6 @@ const getStatusUpdateData = (action: TBillAction, userId: number): Record<string
   return {
     status: 'Cancelled' as any
   }
-}
-
-const isActionAllowed = (action: TBillAction, status: string) => {
-  if (action === 'submit') return ['New', 'Rejected'].includes(status)
-  if (action === 'approve') return status === 'Pending'
-  if (action === 'reject') return status === 'Pending'
-  return status === 'Pending'
-}
-
-const getActionMessage = (action: TBillAction) => {
-  if (action === 'submit') return 'Bill submitted for approval'
-  if (action === 'approve') return 'Bill approved successfully'
-  if (action === 'reject') return 'Bill rejected successfully'
-  return 'Bill cancelled successfully'
 }
 
 const notifyBillStatusChange = async (
@@ -100,13 +88,14 @@ const notifyBillStatusChange = async (
 
   if (!recipients.length) return
 
+  const statusLabel = BillStatusLabel[bill.status as keyof typeof BillStatusLabel] || bill.status
   const amount = Number(bill.amount || 0).toFixed(2)
-  const subject = `Conveyance Bill #${bill.id} is now ${bill.status}`
+  const subject = `Conveyance Bill #${bill.id} is now ${statusLabel}`
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
       <h2 style="margin: 0 0 10px;">Conveyance Bill Status Updated</h2>
       <p style="margin: 0 0 12px;">
-        Bill <b>#${bill.id}</b> has been marked as <b>${bill.status}</b> by <b>${actor.name || 'System'}</b>.
+        Bill <b>#${bill.id}</b> has been marked as <b>${statusLabel}</b> by <b>${actor.name || 'System'}</b>.
       </p>
       <table style="border-collapse: collapse; width: 100%; max-width: 560px;">
         <tr><td style="padding: 6px 8px; border: 1px solid #e5e7eb;">Employee</td><td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${bill.user?.name || '—'}</td></tr>
@@ -166,16 +155,13 @@ export const changeBillStatus = async (
   })
   if (!bill) throw err.notFound()
 
-  const isAdmin = !!user.updateAnyBills
-  const isAuthor = bill.authorId === user.id
-
-  if (input.action === 'approve' || input.action === 'reject') {
-    if (!isAdmin) throw err.denied()
-  } else if (!isAdmin && !isAuthor) {
-    throw err.denied()
-  }
-
-  if (!isActionAllowed(input.action, bill.status)) {
+  const transition = applyBillTransition({
+    status: bill.status,
+    event: input.action,
+    isAdmin: !!user.updateAnyBills,
+    isAuthor: bill.authorId === user.id
+  })
+  if (!transition.ok) {
     throw err.unprocessable({
       status: {
         errors: [`Cannot ${input.action} a bill in ${bill.status} status`]
@@ -201,7 +187,14 @@ export const changeBillStatus = async (
   )
 
   return {
-    message: getActionMessage(input.action),
-    data: updated
+    message: getBillTransitionMessage(input.action),
+    data: {
+      ...updated,
+      workflow: getBillWorkflow({
+        status: updated.status,
+        isAdmin: !!user.updateAnyBills,
+        isAuthor: updated.author?.id === user.id
+      })
+    }
   }
 }

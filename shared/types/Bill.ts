@@ -5,4 +5,15 @@ export type TBill = Bill & {
   author?: TMaybe<TUser>
   reviewer?: TMaybe<TUser>
   type?: TMaybe<TOption>
+  workflow?: {
+    status: string
+    label: string
+    availableTransitions: Array<{
+      event: string
+      to: string
+    }>
+    availableActions: string[]
+    canUpdate: boolean
+    canDelete: boolean
+  }
 }

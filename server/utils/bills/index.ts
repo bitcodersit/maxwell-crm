@@ -1,5 +1,6 @@
 export * from './utils'
 export * from './status'
+export * from './workflow'
 export * from './select'
 export * from './getBill'
 export * from './getBills'
