@@ -10,7 +10,7 @@ export const zGetBills = z
     authorId: zIds(),
     reviewerId: zIds(),
     typeId: zIds(),
-    status: z.array(z.enum(BillStatus)).nullish(),
+    status: zArray(z.array(z.enum(BillStatus)).nullish()),
     date: zDateObject().nullish(),
     createdAt: zDateObject().nullish(),
     updatedAt: zDateObject().nullish(),

@@ -333,9 +333,9 @@ const filters: TFilter[] = [
     type: 'checkbox-api',
     props: {
       label: 'Status',
-      api: '/api/bills/statuses',
+      api: '/api/enums',
       query: {
-        options: true
+        type: 'BillStatus'
       }
     }
   },

@@ -147,7 +147,6 @@ export const billTransitions = createTransitions<TBillStatus, TBillTransition, T
     if (payload.reviewerId !== undefined) {
       data.reviewerId = payload.reviewerId
     }
-    console.log('onMutate', data)
     return prisma.bill.update({
       where: { id: payload.bill.id },
       data
