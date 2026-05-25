@@ -55,7 +55,7 @@ export type TFilter = { name: string } & (
 )
 
 export type TField =
-  | ({ name: string; label: string; col?: string } & (
+  | ({ name: string; label: string; col?: string; hidden?: boolean } & (
       | { type: 'input'; props?: InputProps }
       | { type: 'select'; props?: SelectProps }
       | { type: 'textarea'; props?: TextareaProps }
@@ -899,7 +899,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             class="grid grid-cols-1 gap-4"
           >
             <template
-              v-for="(row, index) in fields"
+              v-for="(row, index) in fields.filter(row => ('hidden' in row ? !row.hidden : true))"
               :key="`separator-${index}`"
             >
               <div

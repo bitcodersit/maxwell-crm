@@ -149,11 +149,12 @@ const onChangeStatusFromModal = async (transition: any) => {
   })
 }
 
-const fields: TField[] = [
+const fields = computed<TField[]>(() => [
   {
     name: 'userId',
     type: 'select-menu',
     label: 'Employee',
+    hidden: !user.value.createAnyBills,
     props: {
       api: '/api/users',
       query: {
@@ -201,7 +202,7 @@ const fields: TField[] = [
       placeholder: 'What was this conveyance bill for?'
     }
   }
-]
+])
 
 const columns = computed<TColumn<TBill>[]>(() => [
   {
@@ -247,7 +248,11 @@ const columns = computed<TColumn<TBill>[]>(() => [
       h(UBadge, {
         label: row.original.status,
         color: statusColorMap[row.original.status] || 'neutral',
-        variant: 'soft'
+        variant: 'soft',
+        class: 'cursor-pointer',
+        onClick: (() => {
+          onOpenStatusModal(row.original)
+        }) as any
       })
   },
   {
@@ -439,7 +444,7 @@ const getActions: TGetActions<TBill> = (item, v) => [
 
 const getFormState = (v?: TBill) => ({
   id: v?.id,
-  userId: v?.user,
+  userId: user.value.createAnyBills ? v?.user?.id : user.value.id,
   typeId: v?.type,
   date: toYmd(v?.date || new Date()),
   amount: v?.amount != null ? Number(v.amount) : undefined,
@@ -448,7 +453,7 @@ const getFormState = (v?: TBill) => ({
 
 const getPostBody = (v: Record<string, any>) => ({
   id: v.id,
-  userId: v.userId?.id,
+  userId: user.value.createAnyBills ? v.userId?.id : user.value.id,
   typeId: v.typeId?.id,
   date: toDate(v.date),
   amount: Number(v.amount || 0),
@@ -473,11 +478,11 @@ const getPostBody = (v: Record<string, any>) => ({
   />
   <UModal
     v-model:open="statusModalOpen"
-    title="Change Bill Status"
+    title="Apply Bill Transition"
     :description="
       statusModalBill
-        ? `Choose next status for bill #${statusModalBill.id}.`
-        : 'Choose next status.'
+        ? `Please choose a transition to change the status. If no transition is available, the status is not changeable.`
+        : ''
     "
     :ui="{ content: 'max-w-xl' }"
   >
@@ -486,16 +491,21 @@ const getPostBody = (v: Record<string, any>) => ({
         <UButton
           v-for="transition in transitions"
           :key="transition.name"
-          :color="transition.color || 'neutral'"
+          :color="transition.meta?.color || 'neutral'"
           block
           size="xl"
           variant="soft"
-          class="h-20 justify-center text-base font-semibold"
+          class="justify-center text-base font-semibold py-4"
           @click="onChangeStatusFromModal(transition)"
         >
           <div class="text-center">
             <div>{{ transition.meta?.title || transition.name }}</div>
-            <div class="text-xs opacity-70 mt-1">to {{ transition.to }}</div>
+            <div
+              v-if="transition.meta?.description"
+              class="text-xs opacity-70 mt-1"
+            >
+              {{ transition.meta.description }}
+            </div>
           </div>
         </UButton>
       </div>

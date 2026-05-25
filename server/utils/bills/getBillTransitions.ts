@@ -19,12 +19,19 @@ export const getBillTransitions = async (
       id: input.id
     },
     select: {
-      status: true
+      status: true,
+      userId: true
     }
   })
 
   if (!bill) throw err.notFound()
 
   const user = await getCurrentUser(event)
-  return billTransitions.list({ user }, bill.status)
+  return billTransitions.list(
+    {
+      user,
+      bill: bill as TBill
+    },
+    bill.status
+  )
 }

@@ -95,15 +95,7 @@ const links = computed(() => {
           open.value = false
         }
       },
-      {
-        label: 'Conveyance Bills',
-        icon: 'i-lucide-receipt-text',
-        to: '/bills',
-        visible: !!(user.value?.readAnyBills || user.value?.readOwnBills),
-        onSelect: () => {
-          open.value = false
-        }
-      },
+
       {
         label: 'Users',
         icon: 'i-lucide-users',
@@ -140,6 +132,15 @@ const links = computed(() => {
       //     open.value = false
       //   }
       // },
+      {
+        label: 'Conveyance Bills',
+        icon: 'i-lucide-receipt-text',
+        to: '/bills',
+        visible: !!(user.value?.readAnyBills || user.value?.readOwnBills),
+        onSelect: () => {
+          open.value = false
+        }
+      },
       {
         label: 'Settings',
         to: '/settings',

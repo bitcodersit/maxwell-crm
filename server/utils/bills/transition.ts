@@ -80,7 +80,7 @@ export const billTransitions = createTransitions<TBillStatus, TBillTransition, T
       meta: {
         title: 'Submit for review',
         color: 'primary',
-        description: 'Submit the bill for review by the admin'
+        description: 'Submit the bill for review. You will be notified when the bill is reviewed.'
       },
       payload: () => {
         return {
@@ -96,7 +96,7 @@ export const billTransitions = createTransitions<TBillStatus, TBillTransition, T
       meta: {
         title: 'Approve the bill',
         color: 'success',
-        description: 'Approve the bill by the admin'
+        description: 'Bill will be marked as approved and the employee will be notified.'
       },
       hidden: v => {
         return !v?.user?.updateAnyBills
@@ -114,7 +114,8 @@ export const billTransitions = createTransitions<TBillStatus, TBillTransition, T
       to: BillStatus.Rejected,
       meta: {
         title: 'Reject the bill',
-        description: 'Reject the bill by the admin'
+        color: 'error',
+        description: 'Bill will be marked as rejected and the to user will be notified.'
       },
       hidden: v => {
         return !v?.user?.updateAnyBills
@@ -129,7 +130,17 @@ export const billTransitions = createTransitions<TBillStatus, TBillTransition, T
     {
       name: 'cancel',
       from: [BillStatus.New, BillStatus.Pending],
-      to: BillStatus.Cancelled
+      to: BillStatus.Cancelled,
+      meta: {
+        title: 'Cancel the bill',
+        color: 'error',
+        description: 'Bill will be marked as cancelled and the to user will be notified.'
+      },
+      hidden: v => {
+        // if (v?.user?.updateAnyBills) return false
+        if (v?.user?.updateOwnBills && v?.bill?.userId === v?.user.id) return false
+        return true
+      }
     }
   ],
   onCheck({ payload }) {
