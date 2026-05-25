@@ -1,4 +1,5 @@
 import type { Bill } from '~~/prisma/client/client'
+import type { BillStatus } from '~~/prisma/client/enums'
 
 export type TBill = Bill & {
   user?: TMaybe<TUser>
@@ -17,3 +18,5 @@ export type TBill = Bill & {
     canDelete: boolean
   }
 }
+
+export type TBillStatus = BillStatus

@@ -10,10 +10,7 @@ export const zGetBills = z
     authorId: zIds(),
     reviewerId: zIds(),
     typeId: zIds(),
-    status: z
-      .union([zBillStatus, z.array(zBillStatus)])
-      .transform(v => (Array.isArray(v) ? v : v ? [v] : undefined))
-      .nullish(),
+    status: z.array(z.enum(BillStatus)).nullish(),
     date: zDateObject().nullish(),
     createdAt: zDateObject().nullish(),
     updatedAt: zDateObject().nullish(),
@@ -116,18 +113,5 @@ export const getBills = async (event: H3Event, options?: { input?: TZGetBills })
     })
   ])
 
-  if (input.options) {
-    return paginate(bills, total)
-  }
-
-  const data = bills.map((bill: any) => ({
-    ...bill,
-    workflow: getBillWorkflow({
-      status: bill.status,
-      isAdmin: !!user.updateAnyBills,
-      isAuthor: bill.author?.id === user.id
-    })
-  }))
-
-  return paginate(data, total)
+  return paginate(bills, total)
 }

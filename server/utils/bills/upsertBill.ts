@@ -38,19 +38,11 @@ export const upsertBill = async (event: H3Event, options?: { input?: TZUpsertBil
         typeId: true,
         date: true,
         amount: true,
-        status: true,
         purpose: true,
         authorId: true
       }
     })
     if (!bill) throw err.notFound()
-
-    const isAdmin = !!user.updateAnyBills
-    const canAuthorEdit =
-      bill.authorId === user.id && ['New', 'Cancelled', 'Rejected'].includes(bill.status)
-    if (!isAdmin && !canAuthorEdit) {
-      throw err.denied()
-    }
 
     const data: Prisma.BillUpdateInput = {}
 
