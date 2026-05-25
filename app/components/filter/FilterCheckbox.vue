@@ -35,18 +35,23 @@ const defaultPerPage = query.value?.perPage ?? 10
 const perPage = ref(defaultPerPage)
 const orderBy = ref<Record<string, 'asc' | 'desc'>>({})
 
-const { data, status, refetch } = useFetchApi({
-  api,
-  staleTime: 10 * 1000,
-  immediate: false,
-  query: computed(() => ({
-    ...query.value,
-    q: searchTermD.value,
-    perPage: perPage.value,
-    orderBy: orderBy.value
-  })),
-  getDefault() {
-    return toPaginated<Item>()
+const queryKey = computed(() => {
+  return [
+    api.value,
+    {
+      ...query.value,
+      q: searchTermD.value,
+      perPage: perPage.value,
+      orderBy: orderBy.value
+    }
+  ] as const
+})
+
+const { data, isFetching, isFetched, refetch } = useQuery({
+  queryKey,
+  initialData: () => toPaginated<Item>(),
+  queryFn: ({ queryKey: [api, query] }) => {
+    return $fetch<TPaginated<Item>>(api, { query })
   }
 })
 
@@ -83,13 +88,13 @@ watch(modelValue, v => {
     :content="{ align: 'start', side: 'bottom' }"
   >
     <UChip
-      :size="dense ? 'xs' : 'md'"
+      :size="dense ? 'xs' : 'sm'"
       :inset="dense"
       :show="!!modelValue"
     >
       <UButton
         :icon="!dense ? 'i-lucide-filter' : undefined"
-        :size="dense ? 'xs' : 'md'"
+        :size="dense ? 'xs' : 'sm'"
         :ui="{
           base: dense ? 'rounded-full' : '',
           leadingIcon: dense ? 'size-3.5' : 'size-4'
@@ -132,7 +137,7 @@ watch(modelValue, v => {
           @keyup.enter="onApply"
         />
         <UProgress
-          v-if="status === 'pending'"
+          v-if="isFetching"
           size="sm"
           animation="swing"
         />
@@ -166,7 +171,7 @@ watch(modelValue, v => {
         </div>
       </div>
       <div
-        v-if="status !== 'pending' && !data.data.length"
+        v-if="isFetched && !data.data.length"
         class="text-muted py-1 text-sm mt-1"
       >
         No results found
@@ -189,7 +194,7 @@ watch(modelValue, v => {
       </UCheckboxGroup>
       <UButton
         v-if="perPage < data.total"
-        :disabled="status === 'pending'"
+        :disabled="isFetching"
         size="xs"
         label="Load More"
         variant="link"

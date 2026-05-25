@@ -296,26 +296,47 @@ const columns = computed<TColumn<TBill>[]>(() => [
 ])
 
 const filters: TFilter[] = [
+  // {
+  //   name: 'q',
+  //   type: 'inline-input',
+  //   props: {
+  //     placeholder: 'Search purpose...'
+  //   }
+  // },
+  // {
+  //   name: 'id',
+  //   type: 'input',
+  //   props: {
+  //     label: 'ID',
+  //     placeholder: 'eg 1 or 1,2,3 or 1-10'
+  //   }
+  // },
+  // {
+  //   name: 'status',
+  //   type: 'checkbox-api',
+  //   props: {
+  //     label: 'Status',
+  //     api: '/api/enums',
+  //     query: {
+  //       type: 'BillStatus'
+  //     }
+  //   }
+  // },
   {
-    name: 'q',
-    type: 'inline-input',
+    name: 'status',
+    type: 'tabs',
     props: {
-      placeholder: 'Search purpose...'
-    }
-  },
-  {
-    name: 'id',
-    type: 'input',
-    props: {
-      label: 'ID',
-      placeholder: 'eg 1 or 1,2,3 or 1-10'
+      api: '/api/enums',
+      query: {
+        type: 'BillStatus'
+      }
     }
   },
   {
     name: 'userId',
     type: 'checkbox-api',
     props: {
-      label: 'Employee',
+      label: 'User',
       api: '/api/users',
       query: {
         options: true
@@ -326,45 +347,35 @@ const filters: TFilter[] = [
     name: 'typeId',
     type: 'checkbox-api',
     props: {
-      label: 'Bill Type',
+      label: 'Type',
       api: '/api/options',
       query: {
         type: 'BILL_TYPE'
       }
     }
   },
-  {
-    name: 'status',
-    type: 'checkbox-api',
-    props: {
-      label: 'Status',
-      api: '/api/enums',
-      query: {
-        type: 'BillStatus'
-      }
-    }
-  },
+
   {
     name: 'date',
     type: 'date',
     props: {
-      label: 'Bill Date'
-    }
-  },
-  {
-    name: 'createdAt',
-    type: 'date',
-    props: {
-      label: 'Created'
-    }
-  },
-  {
-    name: 'updatedAt',
-    type: 'date',
-    props: {
-      label: 'Updated'
+      label: 'Date'
     }
   }
+  // {
+  //   name: 'createdAt',
+  //   type: 'date',
+  //   props: {
+  //     label: 'Created'
+  //   }
+  // },
+  // {
+  //   name: 'updatedAt',
+  //   type: 'date',
+  //   props: {
+  //     label: 'Updated'
+  //   }
+  // }
 ]
 
 const modal: TBaseCrudModal = {

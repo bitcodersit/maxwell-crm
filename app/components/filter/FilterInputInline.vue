@@ -34,6 +34,7 @@ watch(modelValue, v => {
       v-bind="rest"
       v-model="state"
       icon="i-lucide-search"
+      size="sm"
       variant="subtle"
       :highlight="false"
       :ui="{

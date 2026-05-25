@@ -3,6 +3,7 @@
 import type { TFilterCheckboxProps } from '@/components/filter/FilterCheckbox.vue'
 import type { TFilterDateProps } from '@/components/filter/FilterDate.vue'
 import type { TFilterInputProps } from '@/components/filter/FilterInput.vue'
+import type { TFilterTabsProps } from '@/components/filter/FilterTabs.vue'
 import type { TFormAutocompleteProps } from '@/components/form/FormAutocomplete.vue'
 import type { TFormSelectMenuProps } from '@/components/form/FormSelectMenu.vue'
 import type {
@@ -52,6 +53,7 @@ export type TFilter = { name: string } & (
   | { type: 'inline-input'; props?: InputProps }
   | { type: 'select'; props?: SelectProps }
   | { type: 'checkbox-api'; props: TFilterCheckboxProps }
+  | { type: 'tabs'; props: TFilterTabsProps }
 )
 
 export type TField =
@@ -603,10 +605,17 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
               v-model="query[row.name]"
               @update:model-value="onGotoFirstPage"
             />
+            <FilterTabs
+              v-else-if="row.type === 'tabs'"
+              v-bind="row.props"
+              v-model="query[row.name]"
+              @update:model-value="onGotoFirstPage"
+            />
           </template>
           <UTooltip text="Refresh data">
             <UButton
               icon="i-lucide-refresh-cw"
+              size="sm"
               color="primary"
               variant="subtle"
               @click="() => refetch()"
@@ -616,6 +625,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             <UButton
               v-if="isClearable"
               icon="i-lucide-filter"
+              size="sm"
               color="error"
               variant="subtle"
               @click="onClearFilters"
@@ -627,6 +637,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             <UButton
               v-if="isOrdered"
               icon="i-lucide-arrow-up-down"
+              size="sm"
               color="error"
               variant="subtle"
               @click="onClearOrderBy"

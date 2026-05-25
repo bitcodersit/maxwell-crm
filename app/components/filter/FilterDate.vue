@@ -174,14 +174,14 @@ const count = computed(() => {
   >
     <UChip
       :show="!!model?.value"
-      :size="dense ? 'xs' : 'md'"
+      :size="dense ? 'xs' : 'sm'"
       :inset="dense"
     >
       <UButton
         color="primary"
         variant="subtle"
         :icon="!dense ? 'i-lucide-filter' : undefined"
-        :size="dense ? 'xs' : 'md'"
+        :size="dense ? 'xs' : 'sm'"
         :ui="{
           base: dense ? 'rounded-full' : '',
           leadingIcon: dense ? 'size-3.5' : 'size-4'

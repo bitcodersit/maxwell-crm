@@ -59,6 +59,7 @@ watch(mMode, v => {
     <UChip :show="!!modelValue">
       <UButton
         icon="i-lucide-filter"
+        size="sm"
         color="primary"
         variant="subtle"
         :ui="{ leadingIcon: 'size-4' }"
