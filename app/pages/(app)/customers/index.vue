@@ -12,26 +12,45 @@ const UAvatar = resolveComponent('UAvatar')
 
 const { hCopy } = useHCopy()
 const { getAttachment } = useGetAttachment()
+const getCustomerAddressLine1 = (user?: TUser) =>
+  ((user as any)?.addressable?.addresses?.[0]?.addressLine1 as string | undefined) || ''
 
 const fields: TField[] = [
   {
     name: 'name',
     type: 'input',
-    label: 'Name'
+    label: 'Name',
+    col: 'col-span-2'
   },
   {
     name: 'phone',
     type: 'input',
     label: 'Phone'
+  },
+  {
+    name: 'email',
+    type: 'input',
+    label: 'Email (optional)',
+    props: {
+      type: 'email'
+    }
+  },
+  {
+    name: 'company',
+    type: 'input',
+    label: 'Company'
+  },
+  {
+    name: 'designation',
+    type: 'input',
+    label: 'Designation'
+  },
+  {
+    name: 'addressLine1',
+    type: 'textarea',
+    label: 'Address',
+    col: 'col-span-2'
   }
-  // {
-  //   name: 'email',
-  //   type: 'input',
-  //   label: 'Email (optional)',
-  //   props: {
-  //     type: 'email'
-  //   }
-  // }
 ]
 
 const columns = computed<TColumn<TUser>[]>(() => [
@@ -64,17 +83,6 @@ const columns = computed<TColumn<TUser>[]>(() => [
       ])
     }
   },
-  // {
-  //   accessorKey: 'email',
-  //   header: 'Email',
-  //   sortBy: 'email',
-  //   cell({ row }) {
-  //     return h('div', { class: 'flex items-center gap-2' }, [
-  //       h('span', row.original.email || '—'),
-  //       hVerified(row.original.email, row.original.emailVerifiedAt, 'Email not verified')
-  //     ])
-  //   }
-  // },
   {
     accessorKey: 'phone',
     header: 'Phone',
@@ -82,10 +90,37 @@ const columns = computed<TColumn<TUser>[]>(() => [
     cell({ row }) {
       return h('div', { class: 'flex items-center gap-2' }, [
         h('span', row.original.phone || '—'),
-        hVerified(row.original.phone, row.original.phoneVerifiedAt, 'Phone not verified'),
         hCopy(row.original.phone)
       ])
     }
+  },
+  {
+    accessorKey: 'email',
+    header: 'Email',
+    sortBy: 'email',
+    cell({ row }) {
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('span', row.original.email || '—'),
+        hCopy(row.original.email)
+      ])
+    }
+  },
+  {
+    accessorKey: 'organization',
+    header: 'Company',
+    sortBy: 'organization',
+    cell: ({ row }) => row.original.organization || '—'
+  },
+  {
+    accessorKey: 'designation',
+    header: 'Designation',
+    sortBy: 'designation',
+    cell: ({ row }) => row.original.designation || '—'
+  },
+  {
+    accessorKey: 'addressLine1',
+    header: 'Address',
+    cell: ({ row }) => getCustomerAddressLine1(row.original) || '—'
   },
   {
     accessorKey: 'creator',
@@ -135,21 +170,48 @@ const filters: TFilter[] = [
   //     modeable: true
   //   }
   // },
-  // {
-  //   name: 'email',
-  //   type: 'input',
-  //   props: {
-  //     label: 'Email',
-  //     placeholder: 'Search by email',
-  //     modeable: true
-  //   }
-  // },
+  {
+    name: 'email',
+    type: 'input',
+    props: {
+      label: 'Email',
+      placeholder: 'Search by email',
+      modeable: true
+    }
+  },
   {
     name: 'phone',
     type: 'input',
     props: {
       label: 'Phone',
       placeholder: 'Search by phone',
+      modeable: true
+    }
+  },
+  {
+    name: 'company',
+    type: 'input',
+    props: {
+      label: 'Company',
+      placeholder: 'Search by company',
+      modeable: true
+    }
+  },
+  {
+    name: 'designation',
+    type: 'input',
+    props: {
+      label: 'Designation',
+      placeholder: 'Search by designation',
+      modeable: true
+    }
+  },
+  {
+    name: 'addressLine1',
+    type: 'input',
+    props: {
+      label: 'Address',
+      placeholder: 'Search by address',
       modeable: true
     }
   },
@@ -211,15 +273,23 @@ const getActions: TGetActions<TUser> = (item, v) => [
 const getFormState = (v?: TUser) => ({
   id: v?.id,
   name: v?.name ?? '',
-  // email: v?.email ?? '',
-  phone: v?.phone ?? ''
+  email: v?.email ?? '',
+  phone: v?.phone ?? '',
+  company: v?.organization ?? '',
+  designation: v?.designation ?? '',
+  addressLine1: getCustomerAddressLine1(v)
 })
 
 const getPostBody = (v: Record<string, unknown>) => ({
   id: v.id,
   name: v.name,
-  // email: typeof v.email === 'string' && v.email.trim() ? v.email.trim() : undefined,
-  phone: typeof v.phone === 'string' && v.phone.trim() ? v.phone.trim() : undefined
+  email: typeof v.email === 'string' && v.email.trim() ? v.email.trim() : null,
+  phone: typeof v.phone === 'string' && v.phone.trim() ? v.phone.trim() : undefined,
+  company: typeof v.company === 'string' && v.company.trim() ? v.company.trim() : null,
+  designation:
+    typeof v.designation === 'string' && v.designation.trim() ? v.designation.trim() : null,
+  addressLine1:
+    typeof v.addressLine1 === 'string' && v.addressLine1.trim() ? v.addressLine1.trim() : null
 })
 </script>
 

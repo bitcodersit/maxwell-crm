@@ -3,9 +3,29 @@ import type { TSelectParams } from '../types'
 export const selectCustomerBase = {
   id: true,
   name: true,
+  email: true,
   phone: true,
+  designation: true,
+  organization: true,
   avatar: selectUserAvatar,
-  phoneVerifiedAt: true
+  phoneVerifiedAt: true,
+  addressableId: true,
+  addressable: {
+    select: {
+      addresses: {
+        where: {
+          deletedAt: null
+        },
+        orderBy: {
+          id: 'asc'
+        },
+        select: {
+          id: true,
+          addressLine1: true
+        }
+      }
+    }
+  }
 }
 
 export const selectCustomerForOptions = {

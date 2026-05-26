@@ -1,17 +1,33 @@
 import type { H3Event } from 'h3'
 import { z } from 'zod'
+import { CUSTOMER_ROLE_NAME } from '../customerRole'
+import { selectCustomer } from './select'
 
 export type TZGetCustomers = z.infer<typeof zGetCustomers>
 export const zGetCustomers = z
   .object({
     q: z.string().trim().nullish(),
     id: zIds(),
+    email: z.string().trim().nullish(),
     phone: z.string().trim().nullish(),
+    company: z.string().trim().nullish(),
+    designation: z.string().trim().nullish(),
+    addressLine1: z.string().trim().nullish(),
     idsNotIn: zIds(),
     createdAt: zDateObject().nullish(),
     updatedAt: zDateObject().nullish(),
     options: zBoolean().default(false),
-    orderBy: zOrderByRecord(['id', 'name', 'phone', 'creatorId', 'createdAt', 'updatedAt'])
+    orderBy: zOrderByRecord([
+      'id',
+      'name',
+      'email',
+      'phone',
+      'designation',
+      'organization',
+      'creatorId',
+      'createdAt',
+      'updatedAt'
+    ])
   })
   .and(zPagination())
 
@@ -34,13 +50,35 @@ export const getCustomers = async (
           name: order
         }
       }
+    },
+    organization(order) {
+      return {
+        organization: order
+      }
     }
   })
 
   const where = getWhere2<Prisma.UserWhereInput, TZGetCustomers>(input)
     .id('id')
-    .text('q', ['name', 'phone'])
+    .text('q', ['name', 'email', 'phone', 'designation', 'organization'])
+    .text('email')
     .text('phone')
+    .text('company', 'organization')
+    .text('designation')
+    .text('addressLine1', addressLine1 => ({
+      addressable: {
+        is: {
+          addresses: {
+            some: {
+              deletedAt: null,
+              addressLine1: {
+                contains: addressLine1
+              }
+            }
+          }
+        }
+      }
+    }))
     .date('createdAt')
     .date('updatedAt')
     .id('idsNotIn', ids => {

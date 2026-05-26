@@ -8,11 +8,11 @@ export const zUpsertCustomers = (options?: { except?: number }) => {
   return z.object({
     id: z.number().nullish(),
     name: zName(),
-    phone: zPhone({
-      unique: true,
-      except: options?.except,
-      uniqueMessage: 'Phone number is already taken'
-    })
+    phone: zPhone({ unique: true, except: options?.except }),
+    email: zEmail({ unique: true, except: options?.except }).nullish(),
+    company: zString().nullish(),
+    designation: zString().nullish(),
+    addressLine1: zString().nullish()
   })
 }
 
@@ -38,29 +38,84 @@ export const upsertCustomers = async (event: H3Event, options?: { input?: TZUpse
         }
       },
       select: {
-        id: true
+        id: true,
+        addressableId: true,
+        addressable: {
+          select: {
+            addresses: {
+              where: {
+                deletedAt: null
+              },
+              orderBy: {
+                id: 'asc'
+              },
+              select: {
+                id: true
+              }
+            }
+          }
+        }
       }
     })
     if (!existing) throw err.notFound()
 
-    return prisma.user.update({
+    await prisma.user.update({
       where: {
         id: input.id
       },
       data: {
         name: input.name,
+        email: input.email,
         phone: input.phone,
-        userRoles: {
-          createMany: {
-            skipDuplicates: true,
-            data: [{ roleId: customerRole.id }]
+        organization: input.company,
+        designation: input.designation
+      },
+      ...selectCustomer({ user: currentUser })
+    })
+
+    if (input.addressLine1 !== undefined) {
+      const existingAddress = existing.addressable?.addresses?.[0]
+      if (existingAddress?.id) {
+        await prisma.address.update({
+          where: {
+            id: existingAddress.id
           },
-          deleteMany: {
-            roleId: {
-              not: customerRole.id
-            }
+          data: {
+            addressLine1: input.addressLine1 ?? ''
           }
+        })
+      } else {
+        const addressableId =
+          existing.addressableId ||
+          (
+            await prisma.addressable.create({
+              data: {}
+            })
+          ).id
+
+        if (!existing.addressableId) {
+          await prisma.user.update({
+            where: {
+              id: existing.id
+            },
+            data: {
+              addressableId
+            }
+          })
         }
+
+        await prisma.address.create({
+          data: {
+            addressLine1: input.addressLine1 ?? '',
+            addressableId
+          }
+        })
+      }
+    }
+
+    return prisma.user.findUniqueOrThrow({
+      where: {
+        id: input.id
       },
       ...selectCustomer({ user: currentUser })
     })
@@ -73,8 +128,26 @@ export const upsertCustomers = async (event: H3Event, options?: { input?: TZUpse
   return prisma.user.create({
     data: {
       name: input.name,
-      creatorId: currentUser.id,
+      email: input.email,
       phone: input.phone,
+      organization: input.company,
+      designation: input.designation,
+      creator: {
+        connect: {
+          id: currentUser.id
+        }
+      },
+      addressable: input.addressLine1
+        ? {
+            create: {
+              addresses: {
+                create: {
+                  addressLine1: input.addressLine1
+                }
+              }
+            }
+          }
+        : undefined,
       userRoles: {
         create: {
           roleId: customerRole.id

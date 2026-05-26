@@ -25,7 +25,7 @@ export const zEmail = (options?: TUniqueOptions) => {
     except,
     unique = false,
     message = 'Invalid email address',
-    uniqueMessage = 'Email already in use'
+    uniqueMessage = 'Email is already taken'
   } = options ?? {}
   return z.email(message).refine(async email => {
     if (!unique) return true
@@ -45,7 +45,7 @@ export const zPhone = (options?: TUniqueOptions) => {
     except,
     unique = false,
     message = 'Invalid phone number',
-    uniqueMessage = 'Phone number already in use'
+    uniqueMessage = 'Phone number is already taken'
   } = options ?? {}
   return z
     .string(message)
