@@ -3,9 +3,12 @@ import type z from 'zod'
 
 export const getInput = async <S extends z.ZodSchema, I = z.infer<S>>(
   event: H3Event,
-  schema: S,
+  schema: S | ((data: any) => S),
   options?: { input?: I }
 ) => {
+  const getSchema = (data: any) => {
+    return typeof schema === 'function' ? schema(data) : schema
+  }
   return (
     options?.input ??
     (await (async () => {
@@ -16,11 +19,13 @@ export const getInput = async <S extends z.ZodSchema, I = z.infer<S>>(
           if (fd.has('files')) {
             ;(body as any).files = fd.getAll('files')
           }
-          return await validate(body, schema)
+          return await validate(body, getSchema(body))
         }
-        return await validate(await readBody(event), schema)
+        const body = await readBody(event)
+        return await validate(body, getSchema(body))
       }
-      return await validate(getQuery(event), schema)
+      const query = getQuery(event)
+      return await validate(query, getSchema(query))
     })())
   )
 }

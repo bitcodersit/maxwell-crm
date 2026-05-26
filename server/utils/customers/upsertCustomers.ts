@@ -1,0 +1,86 @@
+import type { H3Event } from 'h3'
+import z from 'zod'
+import { getOrCreateCustomerRole } from '../customerRole'
+import { selectCustomer } from './select'
+
+export type TZUpsertCustomers = z.infer<ReturnType<typeof zUpsertCustomers>>
+export const zUpsertCustomers = (options?: { except?: number }) => {
+  return z.object({
+    id: z.number().nullish(),
+    name: zName(),
+    phone: zPhone({
+      unique: true,
+      except: options?.except,
+      uniqueMessage: 'Phone number is already taken'
+    })
+  })
+}
+
+export const upsertCustomers = async (event: H3Event, options?: { input?: TZUpsertCustomers }) => {
+  //
+  const input = await getInput(event, v => zUpsertCustomers({ except: v.id }), options)
+  const currentUser = await getCurrentUser(event)
+  const customerRole = await getOrCreateCustomerRole(prisma as any)
+
+  if (input.id) {
+    if (!currentUser.updateAnyUsers) {
+      throw err.denied()
+    }
+
+    const existing = await prisma.user.findFirst({
+      where: {
+        id: input.id,
+        deletedAt: null,
+        userRoles: {
+          some: {
+            roleId: customerRole.id
+          }
+        }
+      },
+      select: {
+        id: true
+      }
+    })
+    if (!existing) throw err.notFound()
+
+    return prisma.user.update({
+      where: {
+        id: input.id
+      },
+      data: {
+        name: input.name,
+        phone: input.phone,
+        userRoles: {
+          createMany: {
+            skipDuplicates: true,
+            data: [{ roleId: customerRole.id }]
+          },
+          deleteMany: {
+            roleId: {
+              not: customerRole.id
+            }
+          }
+        }
+      },
+      ...selectCustomer({ user: currentUser })
+    })
+  }
+
+  if (!currentUser.createAnyUsers) {
+    throw err.denied()
+  }
+
+  return prisma.user.create({
+    data: {
+      name: input.name,
+      creatorId: currentUser.id,
+      phone: input.phone,
+      userRoles: {
+        create: {
+          roleId: customerRole.id
+        }
+      }
+    },
+    ...selectCustomer({ user: currentUser })
+  })
+}

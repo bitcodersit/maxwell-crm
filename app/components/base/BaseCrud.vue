@@ -684,6 +684,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             <UTooltip text="Export">
               <UButton
                 icon="i-lucide-download"
+                size="sm"
                 color="primary"
                 variant="solid"
                 label="Export"
@@ -731,6 +732,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                 <div class="flex justify-end">
                   <UButton
                     type="submit"
+                    size="sm"
                     icon="i-lucide-download"
                     :loading="exporting"
                     :disabled="
@@ -751,6 +753,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             <UTooltip text="Add new item">
               <UButton
                 icon="i-lucide-plus"
+                size="sm"
                 color="primary"
                 variant="solid"
                 @click="onAddNew"
@@ -842,12 +845,14 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                 <USelect
                   v-model="query.perPage"
                   :items="perPageOptions"
+                  size="sm"
                   class="min-w-20"
                   @change="onGotoFirstPage"
                 />
               </UTooltip>
               <UPagination
                 v-model:page="query.page"
+                size="sm"
                 :items-per-page="query.perPage"
                 :total="data.total"
               />
