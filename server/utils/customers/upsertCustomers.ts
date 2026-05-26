@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import z from 'zod'
+import { upsertAddress } from '../address'
 import { getOrCreateCustomerRole } from '../customerRole'
 import { selectCustomer } from './select'
 
@@ -75,42 +76,32 @@ export const upsertCustomers = async (event: H3Event, options?: { input?: TZUpse
 
     if (input.addressLine1 !== undefined) {
       const existingAddress = existing.addressable?.addresses?.[0]
-      if (existingAddress?.id) {
-        await prisma.address.update({
+      const addressableId =
+        existing.addressableId ||
+        (
+          await prisma.addressable.create({
+            data: {}
+          })
+        ).id
+
+      if (!existing.addressableId) {
+        await prisma.user.update({
           where: {
-            id: existingAddress.id
+            id: existing.id
           },
           data: {
-            addressLine1: input.addressLine1 ?? ''
-          }
-        })
-      } else {
-        const addressableId =
-          existing.addressableId ||
-          (
-            await prisma.addressable.create({
-              data: {}
-            })
-          ).id
-
-        if (!existing.addressableId) {
-          await prisma.user.update({
-            where: {
-              id: existing.id
-            },
-            data: {
-              addressableId
-            }
-          })
-        }
-
-        await prisma.address.create({
-          data: {
-            addressLine1: input.addressLine1 ?? '',
             addressableId
           }
         })
       }
+
+      await upsertAddress({
+        id: existingAddress?.id,
+        addressLine1: input.addressLine1 ?? '',
+        road: '',
+        block: '',
+        addressableId
+      })
     }
 
     return prisma.user.findUniqueOrThrow({
@@ -125,34 +116,54 @@ export const upsertCustomers = async (event: H3Event, options?: { input?: TZUpse
     throw err.denied()
   }
 
-  return prisma.user.create({
+  const addressableId = input.addressLine1
+    ? (
+        await prisma.addressable.create({
+          data: {}
+        })
+      ).id
+    : undefined
+
+  const customer = await prisma.user.create({
     data: {
       name: input.name,
       email: input.email,
       phone: input.phone,
       organization: input.company,
       designation: input.designation,
+      addressable: addressableId
+        ? {
+            connect: {
+              id: addressableId
+            }
+          }
+        : undefined,
       creator: {
         connect: {
           id: currentUser.id
         }
       },
-      addressable: input.addressLine1
-        ? {
-            create: {
-              addresses: {
-                create: {
-                  addressLine1: input.addressLine1
-                }
-              }
-            }
-          }
-        : undefined,
       userRoles: {
         create: {
           roleId: customerRole.id
         }
       }
+    },
+    ...selectCustomer({ user: currentUser })
+  })
+
+  if (input.addressLine1 && addressableId) {
+    await upsertAddress({
+      addressLine1: input.addressLine1,
+      road: '',
+      block: '',
+      addressableId
+    })
+  }
+
+  return prisma.user.findUniqueOrThrow({
+    where: {
+      id: customer.id
     },
     ...selectCustomer({ user: currentUser })
   })
