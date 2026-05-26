@@ -1,5 +1,4 @@
 import type { Address } from '~~/prisma/client/client'
-import type { TZUpsertAddress } from './zod'
 
 export const upsertAddress = async (data: TZUpsertAddress): Promise<Address> => {
   return prisma.address.upsert({
