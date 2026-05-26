@@ -71,9 +71,17 @@ const zGetLeadsFilter = z
     options: z.preprocess(
       value => (value === undefined ? false : isTrue(value)),
       z.boolean().default(false)
-    )
+    ),
+    orderBy: zOrderByRecord([
+      'id',
+      'sid',
+      'status',
+      'creatorId',
+      'customerId',
+      'createdAt',
+      'updatedAt'
+    ])
   })
-  .and(zOrderable({ createdAt: 'desc' }))
   .and(zPagination())
 
 export type TZGetLeads = z.infer<typeof zGetLeads>

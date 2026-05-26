@@ -1,13 +1,13 @@
-export const selectTeamForOptions: Prisma.TeamSelect = {
+export const selectTeamForOptions = {
   id: true,
   name: true
 }
 
-export const selectTeamForTable: Prisma.TeamInclude = {
+export const selectTeamForTable = {
   creator: selectUserForDisplay,
   members: {
     orderBy: {
-      role: 'asc'
+      role: 'asc' as Prisma.SortOrder
     },
     select: {
       role: true,

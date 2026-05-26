@@ -100,9 +100,9 @@ export const zGetProperties = z
     id: zIdArray.optional(),
     status: zStatusArray.optional(),
     name: zOptionalText,
-    purchaseTypeId: zIdArray.optional()
+    purchaseTypeId: zIdArray.optional(),
+    orderBy: zOrderByRecord(['id', 'name', 'status', 'purchaseTypeId', 'createdAt', 'updatedAt'])
   })
-  .and(zOrderable({ id: 'desc' }))
   .and(zPagination())
 
 export type TZGetProperties = z.infer<typeof zGetProperties>

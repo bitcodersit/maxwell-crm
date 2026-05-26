@@ -1,9 +1,6 @@
-/* eslint-disable no-unused-vars */
-import type { TZOrderable as TZOrderBy } from './zod/zOrderBy'
+type TOrderBy2 = Record<string, 'asc' | 'desc'>
 
-type TOrderBy = Record<string, 'asc' | 'desc'>
-
-export const getOrderBy = <T extends TOrderBy | TOrderBy[]>(query: TZOrderBy, orderBy?: T) => {
+export const getOrderBy = <T extends TOrderBy2 | TOrderBy2[]>(query: TZOrderBy, orderBy?: T) => {
   let v: Record<string, 'asc' | 'desc'> = {}
   try {
     if (typeof query.orderBy === 'string') {

@@ -11,10 +11,10 @@ export const zTest = z
     isDefault: zBoolean().default(true),
     names: zArray(z.array(z.string()).nullish()),
     date: zDateObject().nullish(),
-    year: z.array(zDate()).nullish()
+    year: z.array(zDate()).nullish(),
+    orderBy: zOrderByRecord(['id', 'name', 'email', 'phone', 'creatorId', 'createdAt', 'updatedAt'])
   })
   .and(zPagination())
-  .and(zOrderable())
 
 export default defineEventHandler(async event => {
   const query = getQuery(event)
