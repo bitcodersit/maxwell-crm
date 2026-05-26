@@ -15,13 +15,15 @@ export const upsertAddress = async (data: TZUpsertAddress): Promise<Address> => 
       name: data.name,
       addressLine1: data.addressLine1,
       road: data.road,
-      block: data.block
+      block: data.block,
+      addressableId: data.addressableId
     },
     create: {
       name: data.name,
       addressLine1: data.addressLine1,
       road: data.road,
-      block: data.block
+      block: data.block,
+      addressableId: data.addressableId
     }
   })
 }
