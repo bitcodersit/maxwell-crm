@@ -19,11 +19,10 @@ logs
 .idea
 
 # Local env files
-.env
-.env.*
 !.env.example
 
 prisma/client
 
 # Local uploads (filesystem storage default)
 storage/uploads
+config.bat
