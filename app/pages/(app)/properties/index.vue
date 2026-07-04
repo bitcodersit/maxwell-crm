@@ -213,7 +213,7 @@ const getActions: TGetActions<TPropertyRow> = item => [
     :columns="columns"
     :filters="filters"
     :get-actions="getActions"
-    :show-add-button="false"
+    :show-add-button="true"
   >
     <template #actions>
       <UTooltip text="Add new property">

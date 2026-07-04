@@ -215,7 +215,7 @@ async function onUnlinkProperty(property: TProperty) {
       v-else
       icon="i-lucide-building-2"
       title="No properties linked"
-      description="Search for a property above and click Link property to attach it to this lead."
+      description="Search for a property above and click Attach to lead to attach it to this lead."
     />
   </div>
 </template>

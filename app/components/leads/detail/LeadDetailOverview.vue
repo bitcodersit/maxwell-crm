@@ -3,14 +3,16 @@ defineProps<{
   lead: TLead
 }>()
 
+function formatRoleName(name: string) {
+  return name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ')
+}
+
 function memberRoleLabel(user?: TMaybe<TUser>) {
   const roles = (user?.userRoles ?? [])
     .map(row => row.role?.name)
-    .filter(Boolean) as string[]
+    .filter((name): name is string => !!name)
   if (!roles.length) return null
-  return roles
-    .map(name => name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' '))
-    .join(', ')
+  return roles.map(formatRoleName).join(' · ')
 }
 </script>
 
@@ -234,16 +236,16 @@ function memberRoleLabel(user?: TMaybe<TUser>) {
                             :src="member.user?.avatar?.path || undefined"
                             size="xs"
                           />
-                          <div class="min-w-0 flex items-baseline gap-1.5">
-                            <span class="text-sm text-highlighted truncate">
+                          <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-highlighted truncate">
                               {{ member.user?.name || 'Unknown' }}
-                            </span>
-                            <span
+                            </p>
+                            <p
                               v-if="memberRoleLabel(member.user)"
-                              class="text-[11px] text-muted shrink-0"
+                              class="text-[11px] text-muted truncate"
                             >
                               {{ memberRoleLabel(member.user) }}
-                            </span>
+                            </p>
                           </div>
                         </div>
                       </div>
