@@ -8,6 +8,7 @@ export const zGetUsers = z
     id: zIds(),
     email: z.string().trim().nullish(),
     roleIds: zIds(),
+    roleNames: zArray(z.array(z.string().trim().min(1))).optional(),
     creatorId: zIds(),
     idsNotIn: zIds(),
     isMemberOfTeam: zBoolean().nullish(),
@@ -61,6 +62,21 @@ export const getUsers = async (
         }
       }
     }))
+    .extend(
+      input.roleNames?.length
+        ? {
+            userRoles: {
+              some: {
+                role: {
+                  name: {
+                    in: input.roleNames
+                  }
+                }
+              }
+            }
+          }
+        : {}
+    )
     .id('idsNotIn', ids => {
       if ('in' in ids) {
         return {

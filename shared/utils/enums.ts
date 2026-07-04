@@ -6,6 +6,7 @@ import {
   BoardModule,
   VisitStatus,
   BillStatus,
+  PropertyStatus,
   FollowUpType,
   FollowUpStatus
 } from '~~/prisma/client/enums'
@@ -18,6 +19,7 @@ export {
   BoardModule,
   VisitStatus,
   BillStatus,
+  PropertyStatus,
   FollowUpType,
   FollowUpStatus
 }

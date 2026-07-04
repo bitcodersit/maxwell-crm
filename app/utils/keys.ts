@@ -7,5 +7,11 @@ export const keys = {
   },
   tasksOverview() {
     return ['/api/tasks/overview']
+  },
+  lead(id: MaybeRefOrGetter<string>) {
+    return ['/api/leads/{id}', id]
+  },
+  leadDetail(id: MaybeRefOrGetter<string>) {
+    return ['lead-detail', id]
   }
 }

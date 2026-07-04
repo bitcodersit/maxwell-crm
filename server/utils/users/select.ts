@@ -23,6 +23,23 @@ export const selectUserForDisplay = {
   select: selectUserBase
 }
 
+export const selectUserForTeamMember = {
+  select: {
+    ...selectUserBase,
+    userRoles: {
+      select: {
+        id: true,
+        role: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    }
+  }
+}
+
 export const selectUserForBadge = {
   select: {
     id: true,

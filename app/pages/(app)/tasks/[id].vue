@@ -9,11 +9,42 @@ const router = useRouter()
 const id = computed(() => Number(route.params.id))
 const task = useState<TTask>(keys.task(id.value).toString())
 
+const toast = useToast()
+const { confirm } = useConfirm()
+
 const { user } = useCurrentUser()
 const { mutate, isPending } = useTaskPatchMutation(id)
+const { mutate: deleteTask, isPending: isDeleting } = useTaskDeleteMutation(id)
 const { data, isFetching } = useTaskQuery(id, v => {
   task.value = { ...v }
 })
+
+const canDelete = computed(
+  () => !!(user.value?.deleteAnyTasks || user.value?.deleteOwnTasks)
+)
+
+const onDelete = async () => {
+  if (!(await confirm('Are you sure you want to delete this task?'))) return
+
+  deleteTask(undefined, {
+    onSuccess() {
+      toast.add({
+        color: 'success',
+        title: 'Success! 🎉',
+        description: 'Task deleted successfully'
+      })
+      router.push('/tasks')
+    },
+    onError(error) {
+      const { message } = parseError(error)
+      toast.add({
+        color: 'error',
+        title: 'Error! 😭',
+        description: message
+      })
+    }
+  })
+}
 
 const onMutate = (update: Partial<TTask>) => {
   const diff = getDeepDiff(task.value, data.value)
@@ -94,21 +125,32 @@ const attachments = computed<TAttachment[]>({
     class="flex flex-1 relative"
   >
     <UProgress
-      v-if="isPending"
+      v-if="isPending || isDeleting"
       size="sm"
       class="absolute top-0 left-0 w-full"
       :ui="{ base: 'rounded-none' }"
     />
     <div class="space-y-4 flex-1 p-8 overflow-y-auto scrollbar">
       <div class="space-y-3">
-        <UButton
-          icon="i-lucide-chevron-left"
-          color="neutral"
-          variant="link"
-          label="Go Back"
-          class="flex-none -ml-1 p-0"
-          @click="router.push('/tasks')"
-        />
+        <div class="flex items-center justify-between gap-2">
+          <UButton
+            icon="i-lucide-chevron-left"
+            color="neutral"
+            variant="link"
+            label="Go Back"
+            class="flex-none -ml-1 p-0"
+            @click="router.push('/tasks')"
+          />
+          <UButton
+            v-if="canDelete"
+            icon="i-lucide-trash"
+            label="Delete"
+            color="error"
+            variant="outline"
+            :loading="isDeleting"
+            @click="onDelete"
+          />
+        </div>
         <!-- disabled -->
         <FormContentEditable
           v-model="task.name"

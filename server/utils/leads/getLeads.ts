@@ -14,6 +14,12 @@ const zOptionalText = z.preprocess(value => {
   return normalized || undefined
 }, z.string().optional())
 
+const zOptionalNumber = z.preprocess(value => {
+  if (value === undefined || value === null || value === '') return undefined
+  const n = Number(value)
+  return Number.isFinite(n) && n >= 0 ? n : undefined
+}, z.number().nonnegative().optional())
+
 const zIdArray = z.preprocess(value => {
   const values = Array.isArray(value)
     ? value
@@ -64,6 +70,8 @@ const zGetLeadsFilter = z
     areaMode: zTextMode,
     assignedSalesman: zOptionalText,
     assignedSalesmanMode: zTextMode,
+    budgetMin: zOptionalNumber,
+    budgetMax: zOptionalNumber,
     createdAt: zOptionalText,
     createdAtMode: zDateMode,
     updatedAt: zOptionalText,
@@ -160,7 +168,7 @@ const getLeadOrderBy = (input: TZGetLeads) => {
     : [{ createdAt: 'desc' } satisfies Prisma.LeadOrderByWithRelationInput]
 }
 
-const getLeadWhere = (input: TZGetLeads): Prisma.LeadWhereInput => {
+export const getLeadWhere = (input: TZGetLeads): Prisma.LeadWhereInput => {
   const and: Prisma.LeadWhereInput[] = [{ deletedAt: null }]
 
   if (input.id?.length) and.push({ id: { in: input.id } })
@@ -246,6 +254,23 @@ const getLeadWhere = (input: TZGetLeads): Prisma.LeadWhereInput => {
           }
         ]
       }
+    })
+  }
+  // Overlap lead budget range with filter range (leads with no budget are excluded)
+  if (input.budgetMin != null) {
+    and.push({
+      OR: [
+        { budgetMax: { gte: input.budgetMin } },
+        { AND: [{ budgetMax: null }, { budgetMin: { gte: input.budgetMin } }] }
+      ]
+    })
+  }
+  if (input.budgetMax != null) {
+    and.push({
+      OR: [
+        { budgetMin: { lte: input.budgetMax } },
+        { AND: [{ budgetMin: null }, { budgetMax: { lte: input.budgetMax } }] }
+      ]
     })
   }
   if (input.createdAt) {

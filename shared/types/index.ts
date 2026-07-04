@@ -14,6 +14,10 @@ export * from './Assignable'
 export * from './Address'
 export * from './Option'
 export * from './Bill'
+export * from './Comment'
+export * from './FollowUp'
+export * from './Visit'
+export * from './LeadDetail'
 
 export type TMaybe<T> = T | null | undefined
 

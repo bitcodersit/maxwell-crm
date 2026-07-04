@@ -6,6 +6,7 @@ const enums = {
   BoardModule,
   VisitStatus,
   BillStatus,
+  PropertyStatus,
   FollowUpType,
   FollowUpStatus
 } as const

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { TColumn, TFilter, TGetActions } from '@/components/base/BaseCrud.vue'
+import type { TColumn, TGetActions } from '@/components/base/BaseCrud.vue'
 import type { TLead } from '~~/shared/types/Lead'
+import { leadListFilters } from '@/utils/leads-filters'
 
 definePageMeta({
   title: 'Leads',
@@ -9,13 +10,25 @@ definePageMeta({
 
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
+const NuxtLink = resolveComponent('NuxtLink')
 
-const drawerOpen = ref(false)
-const editingLead = ref<TLead | null>(null)
+function leadDetailTo(lead: TLead) {
+  return `/leads/${lead.sid}`
+}
 
-function openEditLead(lead: TLead) {
-  editingLead.value = lead
-  drawerOpen.value = true
+function goToLead(lead: TLead) {
+  navigateTo(leadDetailTo(lead))
+}
+
+function leadLinkCell(lead: TLead, label: string) {
+  return h(
+    NuxtLink,
+    {
+      to: leadDetailTo(lead),
+      class: 'font-medium text-primary hover:underline'
+    },
+    () => label
+  )
 }
 
 const numberFormatter = new Intl.NumberFormat('en-US', {
@@ -52,13 +65,18 @@ const columns = computed<TColumn<TLead>[]>(() => [
     header: 'Lead ID',
     pinned: 'left',
     sortBy: 'serialCode',
-    size: 100
+    size: 100,
+    cell: ({ row }) => leadLinkCell(row.original, row.original.sid)
   },
   {
     accessorKey: 'customer',
     header: 'Customer',
     sortBy: 'customerName',
-    cell: ({ row }) => row.original.customer?.name || '—'
+    cell: ({ row }) => {
+      const name = row.original.customer?.name
+      if (!name) return '—'
+      return leadLinkCell(row.original, name)
+    }
   },
   {
     accessorKey: 'customer',
@@ -115,47 +133,19 @@ const columns = computed<TColumn<TLead>[]>(() => [
   { id: 'action', pinned: 'right' }
 ])
 
-const filters: TFilter[] = [
-  {
-    name: 'q',
-    type: 'inline-input',
-    props: { placeholder: 'Search customer, phone or lead ID…' }
-  },
-  {
-    name: 'status',
-    type: 'inline-input',
-    props: { placeholder: 'Status (e.g. Hot, Warm)…' }
-  },
-  {
-    name: 'source',
-    type: 'input',
-    props: { label: 'Source', placeholder: 'Facebook, Website…' }
-  },
-  {
-    name: 'area',
-    type: 'input',
-    props: { label: 'Area', placeholder: 'Location' }
-  },
-  {
-    name: 'assignedSalesman',
-    type: 'input',
-    props: { label: 'Salesman', placeholder: 'Assigned salesman' }
-  }
-]
-
 const getActions: TGetActions<TLead> = (item, v) => [
   [
     {
       ...actions.view,
       hidden: v?.view,
       onSelect() {
-        crudRef.value?.onView(item, { modal: { ui: { content: 'max-w-2xl' } } })
+        goToLead(item)
       }
     },
     {
       ...actions.update,
       onSelect() {
-        openEditLead(item)
+        goToLead(item)
       }
     }
   ].filter(action => !('hidden' in action) || !action.hidden),
@@ -172,6 +162,14 @@ const getActions: TGetActions<TLead> = (item, v) => [
 
 <template>
   <div class="flex-1 flex flex-col px-4 pb-4 overflow-hidden">
+    <div class="flex justify-end pb-3">
+      <UButton
+        icon="i-lucide-plus"
+        label="Add Lead"
+        color="primary"
+        to="/leads/new"
+      />
+    </div>
     <BaseCrud
       ref="crudRef"
       get-url="/api/leads"
@@ -179,7 +177,7 @@ const getActions: TGetActions<TLead> = (item, v) => [
       :show-add-button="false"
       :fields="[]"
       :columns="columns"
-      :filters="filters"
+      :filters="leadListFilters"
       :get-actions="getActions"
     />
   </div>

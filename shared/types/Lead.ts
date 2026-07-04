@@ -8,8 +8,10 @@ export type TLead = Lead & {
   customer?: TMaybe<TUser>
   propertyTypeMain?: TMaybe<TOption>
   propertyTypeSub?: TMaybe<TOption>
-  properties?: TMaybe<TProperty[]>
+  properties?: TMaybe<TLeadProperty[]>
   boardItems?: TMaybe<TBoardItem[]>
+  attachable?: TMaybe<TAttachable>
+  commentable?: TMaybe<TCommentable>
   attachables?: TMaybe<TAttachable[]>
 }
 

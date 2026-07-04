@@ -1,4 +1,5 @@
 export * from './zod'
+export * from './utils'
 export * from './getProperties'
 export * from './getPropertyById'
 export * from './createProperty'

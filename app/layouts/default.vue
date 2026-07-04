@@ -46,7 +46,11 @@ const links = computed(() => {
         label: 'Properties',
         icon: 'i-lucide-building-2',
         to: '/properties',
-        visible: !!(user.value?.readAnyProperties || user.value?.readOwnProperties),
+        visible: !!(
+          user.value?.readAnyProperties ||
+          user.value?.readOwnProperties ||
+          user.value?.isSuperAdmin
+        ),
         onSelect: () => {
           open.value = false
         }

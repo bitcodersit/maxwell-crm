@@ -1,8 +1,11 @@
 import type { TZUpdateProperty } from './zod'
 import type { Prisma } from '~~/prisma/client/client'
+import type { TUser } from '~~/shared/types/User'
 import { upsertAddress } from '../address/upsertAddress'
+import { getAssignableCreate, getAssignableUpdate } from '../assignable'
+import { selectPropertyForDisplay } from './select'
 
-export const updateProperty = async (id: number, input: TZUpdateProperty) => {
+export const updateProperty = async (id: number, input: TZUpdateProperty, user: TUser) => {
   const sizeOptions = await prisma.option.findMany({
     where: {
       type: 'SIZE',
@@ -99,36 +102,32 @@ export const updateProperty = async (id: number, input: TZUpdateProperty) => {
     }
   }
 
-  const include = {
-    purchaseType: {
-      select: {
-        id: true,
-        name: true
-      }
-    },
-    address: true,
-    sizes: {
-      include: {
-        size: {
-          select: {
-            id: true,
-            name: true
+  if (input.userIds) {
+    data.assignable = existing.assignableId
+      ? getAssignableUpdate({ userIds: input.userIds }, user)
+      : getAssignableCreate({ userIds: input.userIds }, user)
+  } else if (input.userIds === null) {
+    if (existing.assignableId) {
+      data.assignable = {
+        update: {
+          users: {
+            deleteMany: {}
           }
         }
       }
     }
-  } as const
+  }
 
   if (!Object.keys(data).length) {
     return prisma.property.findFirstOrThrow({
       where: { id, deletedAt: null },
-      include
+      include: selectPropertyForDisplay
     })
   }
 
   return prisma.property.update({
     where: { id },
     data,
-    include
+    include: selectPropertyForDisplay
   })
 }

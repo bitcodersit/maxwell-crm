@@ -1,6 +1,9 @@
 import type { TZCreateProperty } from './zod'
 import type { TUser } from '~~/shared/types/User'
 import { upsertAddress } from '../address/upsertAddress'
+import { getAssignableCreate } from '../assignable'
+import { getConnect } from '../getConnect'
+import { selectPropertyForDisplay } from './select'
 
 const generatePropertySid = async () => {
   const last = await prisma.property.findFirst({
@@ -21,7 +24,7 @@ const generatePropertySid = async () => {
   return `PROP-${sid.toString().padStart(5, '0')}`
 }
 
-export const createProperty = async (input: TZCreateProperty, user?: TUser) => {
+export const createProperty = async (input: TZCreateProperty, user: TUser) => {
   const sizeOptions = await prisma.option.findMany({
     where: {
       type: 'SIZE',
@@ -51,35 +54,21 @@ export const createProperty = async (input: TZCreateProperty, user?: TUser) => {
   }
 
   return prisma.property.create({
-    include: {
-      purchaseType: {
-        select: {
-          id: true,
-          name: true
-        }
-      },
-      address: true,
-      sizes: {
-        include: {
-          size: {
-            select: {
-              id: true,
-              name: true
-            }
-          }
-        }
-      }
-    },
+    include: selectPropertyForDisplay,
     data: {
       sid: await generatePropertySid(),
       name: input.name,
       status: input.status,
-      creatorId: user?.id,
-      purchaseTypeId: input.purchaseTypeId ?? undefined,
-      addressId,
+      creator: getConnect(user.id),
+      purchaseType: getConnect(input.purchaseTypeId),
+      address: getConnect(addressId),
       facing: input.facing,
       price: input.price,
       previousPrice: input.previousPrice,
+      assignable: getAssignableCreate({ userIds: input.userIds }, user),
+      attachable: {
+        create: {}
+      },
       sizes: {
         create: [
           {

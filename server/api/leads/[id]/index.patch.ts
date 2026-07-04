@@ -4,7 +4,7 @@ import { updateLead, zUpdateLead } from '~~/server/utils/leads'
 export default defineEventHandler(async event => {
   // Check permission
   const user = await getCurrentUser(event)
-  if (!user.updateAnyLeads || !user.updateOwnLeads) return err.denied()
+  if (!user.updateAnyLeads && !user.updateOwnLeads) return err.denied()
 
   // Get id
   const id = getRouterParamId(event)

@@ -14,6 +14,7 @@ const _useDashboard = () => {
     'g-h': () => router.push('/'),
     'g-i': () => router.push('/inbox'),
     'g-t': () => router.push('/tasks'),
+    'g-p': () => router.push('/properties'),
     'g-b': () => router.push('/bills'),
     'g-c': () => router.push('/customers'),
     'g-s': () => router.push('/settings'),

@@ -12,5 +12,5 @@ export type TProperty = Property & {
   purchaseType?: TMaybe<TOption>
   sizes?: TMaybe<TPropertySize[]>
   leads?: TMaybe<TLeadProperty[]>
-  attachables?: TMaybe<TAttachable[]>
+  attachable?: TMaybe<TAttachable>
 }

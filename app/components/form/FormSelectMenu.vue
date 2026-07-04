@@ -67,9 +67,6 @@ const searchInput = computed(() => {
   return s.value || data.value.totalPages > 1 ? props.searchInput || true : false
 })
 
-watchEffect(() => {
-  console.log(props)
-})
 </script>
 
 <template>

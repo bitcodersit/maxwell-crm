@@ -258,6 +258,7 @@ async function main() {
     'attachments',
     'tasks',
     'leads',
+    'properties',
     'bills'
   ]
   const subjects = ['any', 'own']

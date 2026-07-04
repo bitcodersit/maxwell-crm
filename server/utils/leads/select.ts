@@ -1,4 +1,8 @@
-import { selectUserForDisplay, selectUserForEmail } from '../users/select'
+import {
+  selectUserForDisplay,
+  selectUserForEmail,
+  selectUserForTeamMember
+} from '../users/select'
 
 export const selectLeadForUpdate = {
   assignable: {
@@ -25,6 +29,23 @@ export const selectLeadForUpdate = {
   }
 }
 
+export const selectLeadForBoardCard = {
+  customer: selectUserForDisplay,
+  source: true,
+  address: true,
+  propertyTypeMain: true,
+  propertyTypeSub: true,
+  assignable: {
+    include: {
+      users: {
+        include: {
+          user: selectUserForDisplay
+        }
+      }
+    }
+  }
+}
+
 export const selectLeadForDisplay = {
   creator: selectUserForDisplay,
   customer: selectUserForDisplay,
@@ -33,13 +54,30 @@ export const selectLeadForDisplay = {
   boardItems: true,
   propertyTypeMain: true,
   propertyTypeSub: true,
+  properties: {
+    include: {
+      property: {
+        include: {
+          address: true,
+          purchaseType: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      }
+    }
+  },
   attachable: {
     select: {
       attachments: {
         select: {
           id: true,
           name: true,
-          path: true
+          path: true,
+          mime: true,
+          size: true
         }
       }
     }
@@ -78,7 +116,7 @@ export const selectLeadForDisplay = {
             include: {
               members: {
                 include: {
-                  user: selectUserForDisplay
+                  user: selectUserForTeamMember
                 }
               }
             }

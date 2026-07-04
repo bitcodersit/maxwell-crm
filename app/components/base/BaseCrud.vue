@@ -56,18 +56,28 @@ export type TFilter = { name: string } & (
   | { type: 'tabs'; props: TFilterTabsProps }
 )
 
+type TFieldHidden = boolean | ((ctx: { mode: TFormMode }) => boolean)
+
 export type TField =
-  | ({ name: string; label: string; col?: string; hidden?: boolean } & (
+  | ({ name: string; label: string; col?: string; hidden?: TFieldHidden } & (
       | { type: 'input'; props?: InputProps }
       | { type: 'select'; props?: SelectProps }
       | { type: 'textarea'; props?: TextareaProps }
       | { type: 'autocomplete'; props: TFormAutocompleteProps }
       | { type: 'select-menu'; props: TFormSelectMenuProps }
       | { type: 'team-members'; props?: Record<string, any> }
+      | {
+          type: 'attachments'
+          props?: {
+            folder?: string
+            attachableModelType?: 'task' | 'lead' | 'followUp' | 'property' | 'visit' | 'comment'
+          }
+        }
     ))
   | {
       type: 'separator'
       label?: string
+      hidden?: TFieldHidden
     }
 
 export type TBaseCrudModal = {
@@ -360,6 +370,12 @@ const formOpen = ref(false)
 const formMode = ref<TFormMode>('create')
 const formState = ref<TFormState>({})
 const isSubmitting = ref(false)
+
+const isFieldVisible = (row: TField) => {
+  if (!('hidden' in row) || row.hidden === undefined) return true
+  if (typeof row.hidden === 'function') return !row.hidden({ mode: formMode.value })
+  return !row.hidden
+}
 
 const onAddNew = () => {
   formMode.value = 'create'
@@ -784,10 +800,10 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             :ui="{
               root: 'scrollbar',
               base: 'table-fixed border-separate border-spacing-0',
-              thead: '[&>tr]:after:content-none',
+              thead: '[&>tr]:after:content-none bg-default',
               tbody: '[&>tr]:last:[&>td]:border-b-0',
-              th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
-              td: 'border-b border-default',
+              th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r data-[pinned=left]:bg-default data-[pinned=right]:bg-default data-[pinned=left]:z-2 data-[pinned=right]:z-2',
+              td: 'border-b border-default data-[pinned=left]:bg-default data-[pinned=right]:bg-default data-[pinned=left]:z-1 data-[pinned=right]:z-1',
               separator: 'h-0'
             }"
           >
@@ -915,7 +931,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             class="grid grid-cols-1 gap-4"
           >
             <template
-              v-for="(row, index) in fields.filter(row => ('hidden' in row ? !row.hidden : true))"
+              v-for="(row, index) in fields.filter(isFieldVisible)"
               :key="`separator-${index}`"
             >
               <div
@@ -959,6 +975,14 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
                   v-else-if="row.type === 'team-members'"
                   v-model="formState[row.name]"
                   v-bind="{ ...formItem, ...row.props }"
+                />
+                <FormAttachments
+                  v-else-if="row.type === 'attachments'"
+                  v-model="formState[row.name]"
+                  :folder="row.props?.folder"
+                  :attachable-id="formState.attachableId"
+                  :attachable-model-id="formState.id"
+                  :attachable-model-type="row.props?.attachableModelType"
                 />
               </UFormField>
             </template>

@@ -1,6 +1,10 @@
-const zGetBoardItems = z.object({
-  columnId: zId().nullish()
-})
+import { getLeadWhere, selectLeadForBoardCard, zGetLeads } from '~~/server/utils/leads'
+
+const zGetBoardItems = z
+  .object({
+    columnId: zId().nullish()
+  })
+  .and(zGetLeads)
 
 export default defineEventHandler(async event => {
   await getCurrentUser(event)
@@ -11,7 +15,13 @@ export default defineEventHandler(async event => {
   const where: Prisma.BoardItemWhereInput = {}
   if (input.columnId) where.columnId = Number(input.columnId)
 
-  const { skip, take, paginate } = getPagination(query)
+  const leadWhere = getLeadWhere(input)
+  // Only constrain by lead when list filters are applied (keeps task boards unaffected)
+  if (leadWhere.AND) {
+    where.lead = { is: leadWhere }
+  }
+
+  const { skip, take, paginate } = getPagination(input)
 
   const [total, items] = await prisma.$transaction([
     prisma.boardItem.count({ where }),
@@ -24,10 +34,13 @@ export default defineEventHandler(async event => {
       },
       include: {
         task: true,
-        lead: true
+        lead: {
+          include: selectLeadForBoardCard
+        }
       }
     })
   ])
 
   return paginate(items, total)
 })
+

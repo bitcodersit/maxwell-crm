@@ -3,16 +3,23 @@ import { useSortable } from '@vueuse/integrations/useSortable'
 </script>
 
 <script setup lang="ts" generic="Item extends Record<string, any>">
-const props = defineProps<{
-  columnId: number
-  getItem: (v: TBoardItem) => Item
-}>()
+const props = withDefaults(
+  defineProps<{
+    columnId: number
+    getItem: (v: TBoardItem) => Item
+    itemsQuery?: Record<string, any>
+  }>(),
+  {
+    itemsQuery: () => ({})
+  }
+)
 
 const queryKey = computed(() => {
   return [
     `/api/board-items`,
     {
-      columnId: props.columnId
+      columnId: props.columnId,
+      ...props.itemsQuery
     }
   ] as const
 })

@@ -69,7 +69,8 @@ const zPropertyPayload = z.object({
   katha: z.coerce.number().nonnegative().default(0),
   sqft: z.coerce.number().nonnegative().default(0),
   addressId: zId().nullish(),
-  address: zPropertyAddress.nullish()
+  address: zPropertyAddress.nullish(),
+  userIds: z.array(zId()).default([])
 })
 
 export const zCreateProperty = zPropertyPayload.refine(data => !!data.addressId || !!data.address, {
@@ -89,7 +90,8 @@ export const zUpdateProperty = z.object({
   katha: zPatchNumber.optional(),
   sqft: zPatchNumber.optional(),
   addressId: zId().nullish(),
-  address: zPropertyAddress.nullish()
+  address: zPropertyAddress.nullish(),
+  userIds: z.array(zId()).nullish()
 })
 
 export type TZUpdateProperty = z.infer<typeof zUpdateProperty>

@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { upsertAddress, zUpsertAddress } from '../address'
+import { getAssignableCreate } from '../assignable'
+import { upsertCustomer, zUpsertCustomer } from '../customer'
 import { getLeadScopedWhere } from './getLeadScopedWhere'
 import { selectLeadForDisplay, selectLeadForUpdate } from './select'
 
@@ -19,8 +22,57 @@ export const zUpdateLead = z.object({
   propertyTypeMainId: zId().nullish(),
   propertyTypeSubId: zId().nullish(),
 
+  // Linked properties (LeadProperty join)
+  propertyIds: z.array(zId()).nullish(),
+
   addressId: zId().nullish(),
-  customerId: zId().nullish()
+  address: zUpsertAddress.nullish(),
+
+  // null clears the linked customer (z.coerce.number would turn null into 0)
+  customerId: z.union([zId(), z.null()]).optional(),
+  customer: zUpsertCustomer.nullish()
+})
+
+const buildAssignableUsersUpdate = (userIds: number[], user: TUser) => ({
+  deleteMany: userIds.length
+    ? {
+        userId: {
+          notIn: userIds
+        }
+      }
+    : {},
+  ...(userIds.length
+    ? {
+        createMany: {
+          skipDuplicates: true,
+          data: userIds.map(userId => ({
+            userId,
+            assignerId: user.id
+          }))
+        }
+      }
+    : {})
+})
+
+const buildAssignableTeamsUpdate = (teamIds: number[], user: TUser) => ({
+  deleteMany: teamIds.length
+    ? {
+        teamId: {
+          notIn: teamIds
+        }
+      }
+    : {},
+  ...(teamIds.length
+    ? {
+        createMany: {
+          skipDuplicates: true,
+          data: teamIds.map(teamId => ({
+            teamId,
+            assignerId: user.id
+          }))
+        }
+      }
+    : {})
 })
 
 export const updateLead = async (id: number, input: TZUpdateLead, user: TUser) => {
@@ -32,68 +84,103 @@ export const updateLead = async (id: number, input: TZUpdateLead, user: TUser) =
 
   const existing = await prisma.lead.findFirst({
     where,
-    select: selectLeadForUpdate
+    select: {
+      assignableId: true,
+      addressId: true,
+      customerId: true,
+      ...selectLeadForUpdate
+    }
   })
 
   if (!existing) {
     throw err.notFound()
   }
 
+  if (input.address) {
+    const address = await upsertAddress({
+      ...input.address,
+      id: input.address.id ?? existing.addressId
+    })
+    data.addressId = address.id
+  } else if (input.addressId !== undefined) {
+    data.addressId = input.addressId
+  }
+
+  if (input.customer) {
+    const customer = await upsertCustomer({
+      ...input.customer,
+      id: input.customer.id ?? existing.customerId
+    })
+    data.customer = { connect: { id: customer.id } }
+  } else if (input.customerId !== undefined) {
+    data.customer =
+      input.customerId === null
+        ? { disconnect: true }
+        : { connect: { id: input.customerId } }
+  }
+
   if (input.status) data.status = input.status
   if (input.sourceId !== undefined) data.sourceId = input.sourceId
   if (input.budgetMin !== undefined) data.budgetMin = input.budgetMin
   if (input.budgetMax !== undefined) data.budgetMax = input.budgetMax
-  if (input.addressId !== undefined) data.addressId = input.addressId
-  if (input.customerId !== undefined) data.customerId = input.customerId
   if (input.propertyTypeSubId !== undefined) data.propertyTypeSubId = input.propertyTypeSubId
   if (input.propertyTypeMainId !== undefined) data.propertyTypeMainId = input.propertyTypeMainId
 
-  if (user.updateAnyLeads) {
-    if (input.userIds) {
-      data.assignable = {
-        update: {
-          users: {
-            deleteMany: {
-              userId: {
-                notIn: input.userIds
-              }
-            },
+  if (input.propertyIds !== undefined && input.propertyIds !== null) {
+    const propertyIds = input.propertyIds
+    data.properties = {
+      deleteMany: propertyIds.length
+        ? {
+            propertyId: {
+              notIn: propertyIds
+            }
+          }
+        : {},
+      ...(propertyIds.length
+        ? {
             createMany: {
               skipDuplicates: true,
-              data: input.userIds.map(userId => ({
-                userId,
-                assignerId: user.id
+              data: propertyIds.map(propertyId => ({
+                propertyId
               }))
             }
           }
+        : {})
+    }
+  }
+
+  if (user.updateAnyLeads) {
+    const hasUserAssignment = input.userIds !== undefined && input.userIds !== null
+    const hasTeamAssignment = input.teamIds !== undefined && input.teamIds !== null
+
+    if (hasUserAssignment || hasTeamAssignment) {
+      const assignableUpdate: Prisma.AssignableUpdateWithoutLeadsInput = {}
+
+      if (hasUserAssignment) {
+        assignableUpdate.users = buildAssignableUsersUpdate(input.userIds ?? [], user)
+      }
+      if (hasTeamAssignment) {
+        assignableUpdate.teams = buildAssignableTeamsUpdate(input.teamIds ?? [], user)
+      }
+
+      if (existing.assignableId) {
+        data.assignable = {
+          update: assignableUpdate
         }
+      } else {
+        data.assignable = getAssignableCreate(
+          {
+            userIds: input.userIds ?? [],
+            teamIds: input.teamIds ?? []
+          },
+          user
+        )
       }
     } else if (input.userIds === null) {
       data.assignable = {
         update: {
           users: {
             deleteMany: {}
-          }
-        }
-      }
-    }
-
-    if (input.teamIds) {
-      data.assignable = {
-        update: {
-          teams: {
-            deleteMany: {
-              teamId: {
-                notIn: input.teamIds
-              }
-            },
-            createMany: {
-              skipDuplicates: true,
-              data: input.teamIds.map(teamId => ({
-                teamId,
-                assignerId: user.id
-              }))
-            }
           }
         }
       }

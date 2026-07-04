@@ -1,6 +1,7 @@
 import type { Prisma } from '~~/prisma/client/client'
 import { getOrderBy } from '../getOrderBy'
 import { getPagination } from '../getPagination'
+import { selectPropertyForDisplay } from './select'
 import type { TZGetProperties } from './zod'
 
 const getPropertyOrderBy = (input: TZGetProperties): Prisma.PropertyOrderByWithRelationInput[] => {
@@ -69,25 +70,7 @@ export const getProperties = async (input: TZGetProperties) => {
       skip,
       take,
       orderBy,
-      include: {
-        purchaseType: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        address: true,
-        sizes: {
-          include: {
-            size: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
-          }
-        }
-      }
+      include: selectPropertyForDisplay
     })
   ])
 

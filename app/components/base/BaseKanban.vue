@@ -8,9 +8,10 @@ const props = withDefaults(
   defineProps<{
     initialQuery: Record<string, any>
     getItem: (v: TBoardItem) => Item
+    itemsQuery?: Record<string, any>
   }>(),
   {
-    //
+    itemsQuery: () => ({})
   }
 )
 
@@ -150,6 +151,7 @@ const onColumnFormSuccess = () => {
             v-if="data?.id"
             :column-id="column.id"
             :get-item="getItem"
+            :items-query="itemsQuery"
             @refetch="refetch"
           >
             <template #item="attrs">
