@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import z from 'zod'
+import { prisma } from '../db'
 
 type TMorphableDirectInput<T extends string> = Record<`${T}Id`, number>
 
