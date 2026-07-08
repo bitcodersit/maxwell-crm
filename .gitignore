@@ -20,9 +20,13 @@ logs
 
 # Local env files
 .env
-!.env.example
+.env.production
 
 prisma/client
+
+# Deployment package artifacts
+deploy
+maxwell-crm-deploy.zip
 
 # Local uploads (filesystem storage default)
 storage/uploads
