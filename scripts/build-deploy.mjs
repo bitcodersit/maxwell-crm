@@ -8,7 +8,9 @@
  *   3. Stages a `deploy/` folder with:
  *        - the full `.output` (with restored CommonJS package.json markers + Linux sharp binaries)
  *        - a Passenger-friendly startup file (`app.cjs`) with a zero-dependency .env loader
- *        - a minimal `package.json`
+ *        - a self-contained migration runner (`migrate.mjs`) + `prisma/migrations`
+ *        - a self-contained database seed (`seed.mjs`, bundled from prisma/seed.ts)
+ *        - a minimal `package.json` (with `start`, `migrate` and `seed` scripts)
  *        - the environment file (`.env`)
  *        - an empty `storage/uploads` directory
  *        - deployment instructions (`README-DEPLOY.md`)
@@ -50,7 +52,7 @@ const ROOT = resolve(__dirname, '..')
 // args
 // ---------------------------------------------------------------------------
 const args = process.argv.slice(2)
-const has = (flag) => args.includes(flag)
+const has = flag => args.includes(flag)
 const opt = (flag, fallback) => {
   const i = args.indexOf(flag)
   return i !== -1 && args[i + 1] ? args[i + 1] : fallback
@@ -70,11 +72,11 @@ const ZIP_PATH = join(ROOT, ZIP_NAME)
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
-const log = (msg) => console.log(`\n\x1b[36m▶ ${msg}\x1b[0m`)
-const ok = (msg) => console.log(`  \x1b[32m✔\x1b[0m ${msg}`)
-const warn = (msg) => console.log(`  \x1b[33m!\x1b[0m ${msg}`)
+const log = msg => console.log(`\n\x1b[36m▶ ${msg}\x1b[0m`)
+const ok = msg => console.log(`  \x1b[32m✔\x1b[0m ${msg}`)
+const warn = msg => console.log(`  \x1b[33m!\x1b[0m ${msg}`)
 
-const run = (cmd) => {
+const run = cmd => {
   console.log(`  \x1b[90m$ ${cmd}\x1b[0m`)
   execSync(cmd, { cwd: ROOT, stdio: 'inherit' })
 }
@@ -140,7 +142,9 @@ const PKG_JSON = `${JSON.stringify(
     version: '1.0.0',
     private: true,
     scripts: {
-      start: 'node app.cjs'
+      start: 'node app.cjs',
+      migrate: 'node migrate.mjs',
+      seed: 'node seed.mjs'
     },
     engines: {
       node: '>=20'
@@ -160,11 +164,14 @@ inside \`.output\`.
 
 | File / folder     | Purpose                                                      |
 | ----------------- | ----------------------------------------------------------- |
-| \`.output/\`        | Compiled Nuxt/Nitro server + static assets (self-contained) |
-| \`app.cjs\`         | Startup file. Loads \`.env\` and boots the server.            |
-| \`.env\`            | Your environment variables (DB, mail, session, etc.).       |
-| \`package.json\`    | Minimal manifest with a \`start\` script.                     |
-| \`storage/uploads\` | Writable folder for file uploads.                           |
+| \`.output/\`         | Compiled Nuxt/Nitro server + static assets (self-contained)  |
+| \`app.cjs\`          | Startup file. Loads \`.env\` and boots the server.             |
+| \`migrate.mjs\`      | Migration runner (applies \`prisma/migrations\` to the DB).     |
+| \`prisma/migrations\`| SQL migrations applied by \`migrate.mjs\`.                     |
+| \`seed.mjs\`         | Self-contained database seed (baseline roles/permissions/…).  |
+| \`.env\`             | Your environment variables (DB, mail, session, etc.).        |
+| \`package.json\`     | Minimal manifest with \`start\`, \`migrate\` and \`seed\` scripts. |
+| \`storage/uploads\`  | Writable folder for file uploads.                            |
 
 ## Steps in cPanel
 
@@ -193,13 +200,42 @@ inside \`.output\`.
    - Do **not** click "Run NPM Install" — it isn't needed and can fail because
      dependencies are already bundled.
 
-## Database
+## Database & migrations
 
-The app connects to the database defined in \`.env\`
-(\`NUXT_DATABASE_*\`). Make sure that database exists and the schema/migrations
-have been applied. Since you have no terminal, apply migrations by importing the
-SQL from \`prisma/migrations\` via **phpMyAdmin**, or run
-\`npx prisma migrate deploy\` from a machine that can reach the database.
+The app connects to the database defined in \`.env\` (\`NUXT_DATABASE_*\`). The
+database itself must already exist (create it in cPanel → **MySQL Databases**).
+
+To create/update the tables **without a terminal**, use the bundled migration
+runner:
+
+1. Open **Setup Node.js App** → your app → **Run JS script**.
+2. Choose the **\`migrate\`** script and run it.
+
+This executes \`node migrate.mjs\`, which applies everything in
+\`prisma/migrations\` and records them in the \`_prisma_migrations\` table (the same
+table \`prisma migrate deploy\` uses). It is **idempotent** — running it again
+only applies new migrations. The script output (applied/skipped/errors) is shown
+in the cPanel panel.
+
+You can verify connectivity any time by visiting \`/api/health/db\`, which returns
+\`{ "status": "ok" }\` on success or an error payload (HTTP 503) on failure.
+
+> Alternative: import each \`prisma/migrations/*/migration.sql\` via **phpMyAdmin**,
+> or run \`npx prisma migrate deploy\` from a machine that can reach the database.
+
+## Seeding
+
+After migrations, seed the baseline data (roles, permissions, super-admin user,
+default boards and option lists):
+
+1. Open **Setup Node.js App** → your app → **Run JS script**.
+2. Choose the **\`seed\`** script and run it.
+
+This runs \`node seed.mjs\` (a self-contained bundle of \`prisma/seed.ts\`). It is
+**idempotent** — safe to run more than once. The super-admin credentials come
+from \`NUXT_SUPER_ADMIN_EMAIL\` / \`NUXT_SUPER_ADMIN_PASSWORD\` in \`.env\`.
+
+**Order matters:** run **\`migrate\`** first (tables), then **\`seed\`** (data).
 
 ## Uploads
 
@@ -258,7 +294,7 @@ function patchModuleTypes() {
   const ESM_DIRS = new Set(['esm', 'es', 'mjs', 'module'])
   let patched = 0
 
-  const walk = (dir) => {
+  const walk = dir => {
     for (const name of readdirSync(dir)) {
       const abs = join(dir, name)
       if (!statSync(abs).isDirectory()) continue
@@ -279,9 +315,7 @@ function patchModuleTypes() {
 }
 
 function resolveEnvFile() {
-  const candidates = ENV_ARG
-    ? [ENV_ARG]
-    : ['.env.production', '.env']
+  const candidates = ENV_ARG ? [ENV_ARG] : ['.env.production', '.env']
   for (const c of candidates) {
     const p = resolve(ROOT, c)
     if (existsSync(p)) return p
@@ -305,22 +339,34 @@ function stage() {
   writeFileSync(join(DEPLOY_DIR, 'package.json'), PKG_JSON)
   ok('Wrote app.cjs + package.json')
 
-  // 3. env file
+  // 3. migration runner + migration SQL (so `npm run migrate` works on the server)
+  const migrationsSrc = join(ROOT, 'prisma', 'migrations')
+  if (existsSync(migrationsSrc)) {
+    cpSync(join(ROOT, 'scripts', 'deploy-migrate.mjs'), join(DEPLOY_DIR, 'migrate.mjs'))
+    cpSync(migrationsSrc, join(DEPLOY_DIR, 'prisma', 'migrations'), { recursive: true })
+    ok('Wrote migrate.mjs + prisma/migrations')
+  } else {
+    warn('prisma/migrations not found; skipping migration runner')
+  }
+
+  // 4. env file
   const envFile = resolveEnvFile()
   if (envFile) {
     cpSync(envFile, join(DEPLOY_DIR, '.env'))
     ok(`Bundled ${envFile.replace(ROOT + '\\', '').replace(ROOT + '/', '')} as .env`)
   } else {
-    warn('No env file found (.env.production / .env). Creating an empty .env — fill it in before deploying!')
+    warn(
+      'No env file found (.env.production / .env). Creating an empty .env — fill it in before deploying!'
+    )
     writeFileSync(join(DEPLOY_DIR, '.env'), '# Fill in your environment variables\n')
   }
 
-  // 4. writable uploads dir
+  // 5. writable uploads dir
   mkdirSync(join(DEPLOY_DIR, 'storage', 'uploads'), { recursive: true })
   writeFileSync(join(DEPLOY_DIR, 'storage', 'uploads', '.gitkeep'), '')
   ok('Created storage/uploads')
 
-  // 5. docs
+  // 6. docs
   writeFileSync(join(DEPLOY_DIR, 'README-DEPLOY.md'), README)
   ok('Wrote README-DEPLOY.md')
 }
@@ -330,16 +376,15 @@ function stage() {
 // cPanel hosts are almost always linux-x64, so we fetch and inject the matching
 // Linux binaries (using `npm pack`, which ignores the local platform).
 function bundleSharp() {
-  const sharpPkg = join(
-    DEPLOY_DIR,
-    '.output/server/node_modules/sharp/package.json'
-  )
+  const sharpPkg = join(DEPLOY_DIR, '.output/server/node_modules/sharp/package.json')
   if (!existsSync(sharpPkg)) {
     warn('sharp not present in build; skipping platform binary bundling')
     return
   }
   if (SKIP_SHARP) {
-    warn('--no-sharp set: NOT bundling Linux sharp binaries (image optimization may fail on the server)')
+    warn(
+      '--no-sharp set: NOT bundling Linux sharp binaries (image optimization may fail on the server)'
+    )
     return
   }
 
@@ -357,8 +402,7 @@ function bundleSharp() {
 
   log(`Bundling sharp binaries for ${SHARP_TARGET}`)
 
-  const optDeps =
-    JSON.parse(readFileSync(sharpPkg, 'utf8')).optionalDependencies || {}
+  const optDeps = JSON.parse(readFileSync(sharpPkg, 'utf8')).optionalDependencies || {}
   const imgDir = join(DEPLOY_DIR, '.output/server/node_modules/@img')
   mkdirSync(imgDir, { recursive: true })
 
@@ -376,10 +420,9 @@ function bundleSharp() {
         ok(`${name} already bundled`)
         continue
       }
-      const json = execSync(
-        `npm pack ${name}@${version} --pack-destination "${tmp}" --json`,
-        { cwd: ROOT }
-      ).toString()
+      const json = execSync(`npm pack ${name}@${version} --pack-destination "${tmp}" --json`, {
+        cwd: ROOT
+      }).toString()
       const filename = JSON.parse(json)[0].filename
       const extractDir = join(tmp, base)
       mkdirSync(extractDir, { recursive: true })
@@ -392,6 +435,45 @@ function bundleSharp() {
   } finally {
     rmSync(tmp, { recursive: true, force: true })
   }
+}
+
+// Bundles `prisma/seed.ts` into a single self-contained `seed.mjs` using
+// esbuild (a transitive dependency already installed via Vite/Nuxt). The bundle
+// inlines the Prisma client, its wasm query compiler and the MariaDB driver, so
+// it runs on the server with a plain `node seed.mjs` — no CLI, no tsx, no
+// npm install. The createRequire banner lets bundled CommonJS deps (dotenv,
+// mariadb, iconv-lite) require Node built-ins from within an ESM bundle.
+async function bundleSeed() {
+  const seedSrc = join(ROOT, 'prisma', 'seed.ts')
+  if (!existsSync(seedSrc)) {
+    warn('prisma/seed.ts not found; skipping seed bundling')
+    return
+  }
+
+  log('Bundling database seed')
+
+  let esbuild
+  try {
+    esbuild = await import('esbuild')
+  } catch {
+    warn('esbuild not available; skipping seed.mjs (run `npm run prisma:seed` from a connected machine instead)')
+    return
+  }
+
+  await esbuild.build({
+    entryPoints: [seedSrc],
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    target: 'node20',
+    outfile: join(DEPLOY_DIR, 'seed.mjs'),
+    banner: {
+      js: "import{createRequire as __cr}from'node:module';const require=__cr(import.meta.url);"
+    },
+    logLevel: 'warning'
+  })
+
+  ok('Wrote seed.mjs')
 }
 
 // --- Minimal, dependency-free ZIP writer -----------------------------------
@@ -416,10 +498,8 @@ function crc32(buf) {
 }
 
 function dosDateTime(date) {
-  const time =
-    (date.getHours() << 11) | (date.getMinutes() << 5) | (date.getSeconds() >> 1)
-  const day =
-    ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
+  const time = (date.getHours() << 11) | (date.getMinutes() << 5) | (date.getSeconds() >> 1)
+  const day = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
   return { time: time & 0xffff, date: day & 0xffff }
 }
 
@@ -520,10 +600,11 @@ function zip() {
 // ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
-try {
+async function main() {
   build()
   stage()
   bundleSharp()
+  await bundleSeed()
   zip()
 
   console.log('\n\x1b[32m✅ Deployment package ready.\x1b[0m')
@@ -531,7 +612,9 @@ try {
     console.log(`   Upload \x1b[1m${ZIP_NAME}\x1b[0m to cPanel and extract it in your app root.`)
   }
   console.log('   See \x1b[1mdeploy/README-DEPLOY.md\x1b[0m for step-by-step instructions.\n')
-} catch (err) {
+}
+
+main().catch((err) => {
   console.error(`\n\x1b[31m✖ ${err.message}\x1b[0m\n`)
   process.exit(1)
-}
+})
