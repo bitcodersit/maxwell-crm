@@ -9,7 +9,7 @@
  *        - the full `.output` (with restored CommonJS package.json markers + Linux sharp binaries)
  *        - a Passenger-friendly startup file (`app.cjs`) with a zero-dependency .env loader
  *        - a self-contained migration runner (`migrate.mjs`) + `prisma/migrations`
- *        - a self-contained database seed (`seed.mjs`, bundled from prisma/seed.ts)
+ *        - a self-contained database seed (`seed.mjs`, raw SQL — no Prisma/WASM)
  *        - a minimal `package.json` (with `start`, `migrate` and `seed` scripts)
  *        - the environment file (`.env`)
  *        - an empty `storage/uploads` directory
@@ -349,6 +349,11 @@ function stage() {
     warn('prisma/migrations not found; skipping migration runner')
   }
 
+  // 3b. seed runner (raw SQL via the bundled mariadb driver — no Prisma/WASM,
+  //     which OOMs in cPanel's memory-constrained "Run JS script" context)
+  cpSync(join(ROOT, 'scripts', 'deploy-seed.mjs'), join(DEPLOY_DIR, 'seed.mjs'))
+  ok('Wrote seed.mjs')
+
   // 4. env file
   const envFile = resolveEnvFile()
   if (envFile) {
@@ -435,45 +440,6 @@ function bundleSharp() {
   } finally {
     rmSync(tmp, { recursive: true, force: true })
   }
-}
-
-// Bundles `prisma/seed.ts` into a single self-contained `seed.mjs` using
-// esbuild (a transitive dependency already installed via Vite/Nuxt). The bundle
-// inlines the Prisma client, its wasm query compiler and the MariaDB driver, so
-// it runs on the server with a plain `node seed.mjs` — no CLI, no tsx, no
-// npm install. The createRequire banner lets bundled CommonJS deps (dotenv,
-// mariadb, iconv-lite) require Node built-ins from within an ESM bundle.
-async function bundleSeed() {
-  const seedSrc = join(ROOT, 'prisma', 'seed.ts')
-  if (!existsSync(seedSrc)) {
-    warn('prisma/seed.ts not found; skipping seed bundling')
-    return
-  }
-
-  log('Bundling database seed')
-
-  let esbuild
-  try {
-    esbuild = await import('esbuild')
-  } catch {
-    warn('esbuild not available; skipping seed.mjs (run `npm run prisma:seed` from a connected machine instead)')
-    return
-  }
-
-  await esbuild.build({
-    entryPoints: [seedSrc],
-    bundle: true,
-    platform: 'node',
-    format: 'esm',
-    target: 'node20',
-    outfile: join(DEPLOY_DIR, 'seed.mjs'),
-    banner: {
-      js: "import{createRequire as __cr}from'node:module';const require=__cr(import.meta.url);"
-    },
-    logLevel: 'warning'
-  })
-
-  ok('Wrote seed.mjs')
 }
 
 // --- Minimal, dependency-free ZIP writer -----------------------------------
@@ -604,7 +570,6 @@ async function main() {
   build()
   stage()
   bundleSharp()
-  await bundleSeed()
   zip()
 
   console.log('\n\x1b[32m✅ Deployment package ready.\x1b[0m')
@@ -614,7 +579,7 @@ async function main() {
   console.log('   See \x1b[1mdeploy/README-DEPLOY.md\x1b[0m for step-by-step instructions.\n')
 }
 
-main().catch((err) => {
+main().catch(err => {
   console.error(`\n\x1b[31m✖ ${err.message}\x1b[0m\n`)
   process.exit(1)
 })
