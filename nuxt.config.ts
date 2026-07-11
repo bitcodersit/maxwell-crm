@@ -45,6 +45,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     storageUrl: '', // NUXT_STORAGE_URL
     emailCronSecret: '', // NUXT_EMAIL_CRON_SECRET
+    facebookAppSecret: '', // NUXT_FACEBOOK_APP_SECRET
+    facebookVerifyToken: '', // NUXT_FACEBOOK_VERIFY_TOKEN
+    facebookPageAccessToken: '', // NUXT_FACEBOOK_PAGE_ACCESS_TOKEN
     public: {
       siteUrl: '' // NUXT_PUBLIC_SITE_URL
     }

@@ -613,6 +613,9 @@ model Lead {
     commentableId Int?         @unique
     commentable   Commentable? @relation("LeadCommentable", fields: [commentableId], references: [id], onDelete: SetNull)
 
+    externalSource String? @db.VarChar(32)
+    externalId     String? @db.VarChar(128)
+
     visits     Visit[]
     followUps  FollowUp[]
     boardItems BoardItem[]
@@ -633,6 +636,7 @@ model Lead {
     @@index([createdAt])
     @@index([attachableId])
     @@index([commentableId])
+    @@unique([externalSource, externalId])
     @@map("leads")
 }
 

@@ -26,10 +26,14 @@ export const zCreateLead = z.object({
 
   // Customer or customer id
   customerId: zId().nullish(),
-  customer: zUpsertCustomer.nullish()
+  customer: zUpsertCustomer.nullish(),
+
+  // External source tracking (e.g. Facebook leadgen_id)
+  externalSource: z.string().max(32).nullish(),
+  externalId: z.string().max(128).nullish()
 })
 
-export const createLead = async (input: TZCreateLead, user: TUser) => {
+export const createLead = async (input: TZCreateLead, user?: TUser | null) => {
   if (!input.addressId && input.address) {
     input.addressId = (await upsertAddress(input.address)).id
   }
@@ -46,11 +50,13 @@ export const createLead = async (input: TZCreateLead, user: TUser) => {
       budgetMin: input.budgetMin,
       budgetMax: input.budgetMax,
       source: getConnect(input.sourceId),
-      creator: getConnect(user.id),
+      creator: user ? getConnect(user.id) : undefined,
       address: getConnect(input.addressId),
       customer: getConnect(input.customerId),
       propertyTypeSub: getConnect(input.propertyTypeSubId),
       propertyTypeMain: getConnect(input.propertyTypeMainId),
+      externalSource: input.externalSource,
+      externalId: input.externalId,
       assignable: {
         create: {
           users:
@@ -58,7 +64,7 @@ export const createLead = async (input: TZCreateLead, user: TUser) => {
               ? {
                   create: input.userIds.map(userId => ({
                     userId,
-                    assignerId: user.id
+                    assignerId: user?.id
                   }))
                 }
               : undefined,
@@ -67,7 +73,7 @@ export const createLead = async (input: TZCreateLead, user: TUser) => {
               ? {
                   create: input.teamIds.map(teamId => ({
                     teamId,
-                    assignerId: user.id
+                    assignerId: user?.id
                   }))
                 }
               : undefined

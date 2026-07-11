@@ -229,6 +229,7 @@ const onDeleteSelected = async () => {
             <UCheckbox
               variant="card"
               :model-value="selected.includes(item.id)"
+              :ui="{ root: 'h-full w-full p-0 items-center justify-center' }"
               @click.stop
               @change.stop.prevent="onSelect(item.id)"
             />
