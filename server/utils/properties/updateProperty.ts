@@ -3,6 +3,8 @@ import type { Prisma } from '~~/prisma/client/client'
 import type { TUser } from '~~/shared/types/User'
 import { upsertAddress } from '../address/upsertAddress'
 import { getAssignableCreate, getAssignableUpdate } from '../assignable'
+import { getAssignableUserIds } from '../notifications'
+import { notifyPropertyAssigned } from './notifyPropertyAssignees'
 import { selectPropertyForDisplay } from './select'
 
 export const updateProperty = async (id: number, input: TZUpdateProperty, user: TUser) => {
@@ -102,6 +104,8 @@ export const updateProperty = async (id: number, input: TZUpdateProperty, user: 
     }
   }
 
+  const shouldNotifyAssignment = Array.isArray(input.userIds)
+
   if (input.userIds) {
     data.assignable = existing.assignableId
       ? getAssignableUpdate({ userIds: input.userIds }, user)
@@ -125,9 +129,24 @@ export const updateProperty = async (id: number, input: TZUpdateProperty, user: 
     })
   }
 
-  return prisma.property.update({
+  const previousUserIds =
+    shouldNotifyAssignment && existing.assignableId
+      ? await getAssignableUserIds(existing.assignableId)
+      : []
+
+  const property = await prisma.property.update({
     where: { id },
     data,
     include: selectPropertyForDisplay
   })
+
+  if (shouldNotifyAssignment) {
+    try {
+      await notifyPropertyAssigned(property, user, { previousUserIds })
+    } catch (error) {
+      console.error('Failed to notify property assigned', error)
+    }
+  }
+
+  return property
 }

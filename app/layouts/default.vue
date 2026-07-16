@@ -19,6 +19,7 @@ const open = ref(false)
 
 const { user } = useCurrentUser()
 const { title, links: panelLinks, isSearchOpen, isNotificationsOpen } = useDashboard()
+const { hasUnread, unreadBadge } = useNotifications()
 
 const links = computed(() => {
   return [
@@ -336,6 +337,8 @@ useUiColors()
                 <UChip
                   color="error"
                   inset
+                  :show="hasUnread"
+                  :text="unreadBadge"
                 >
                   <UIcon
                     name="i-lucide-bell"
