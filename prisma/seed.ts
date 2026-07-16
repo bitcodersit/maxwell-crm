@@ -259,7 +259,10 @@ async function main() {
     'tasks',
     'leads',
     'properties',
-    'bills'
+    'bills',
+    'followups',
+    'visits',
+    'comments'
   ]
   const subjects = ['any', 'own']
 

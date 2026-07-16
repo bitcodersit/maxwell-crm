@@ -60,6 +60,9 @@ model User {
     propertiesAsCreator   Property[]       @relation("PropertyCreator")
     attachmentsAsUploader Attachment[]     @relation("AttachmentUploader")
 
+    notificationsAsActor      Notification[]          @relation("NotificationActor")
+    notificationRecipients    NotificationRecipient[] @relation("NotificationRecipient")
+
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
     deletedAt DateTime?
@@ -1019,4 +1022,77 @@ model AuditLog {
 }
 
 // END UTILITY
+// ================================================================
+// START NOTIFICATION
+
+enum NotificationType {
+    LEAD_CREATED
+    LEAD_ASSIGNED
+    LEAD_STATUS_CHANGED
+    PROPERTY_CREATED
+    PROPERTY_ASSIGNED
+    FOLLOW_UP_REMINDER
+    VISIT_REMINDER
+    BILL_STATUS_CHANGED
+    ADMIN_BROADCAST
+}
+
+enum NotificationSubjectType {
+    LEAD
+    PROPERTY
+    FOLLOW_UP
+    VISIT
+    BILL
+    USER
+}
+
+model Notification {
+    id Int @id @default(autoincrement())
+
+    type  NotificationType
+    title String
+    body  String @db.Text
+
+    actorId Int?
+    actor   User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+    subjectType NotificationSubjectType?
+    subjectId   Int?
+
+    data Json?
+
+    recipients NotificationRecipient[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@index([type, createdAt])
+    @@index([subjectType, subjectId])
+    @@index([actorId])
+    @@map("notifications")
+}
+
+model NotificationRecipient {
+    id Int @id @default(autoincrement())
+
+    notificationId Int
+    notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+    userId Int
+    user   User @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+
+    readAt    DateTime?
+    seenAt    DateTime?
+    deletedAt DateTime?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@unique([notificationId, userId])
+    @@index([userId, readAt, createdAt])
+    @@index([userId, deletedAt, createdAt])
+    @@map("notification_recipients")
+}
+
+// END NOTIFICATION
 // ================================================================

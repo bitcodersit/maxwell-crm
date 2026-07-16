@@ -6,7 +6,10 @@ const open = defineModel<boolean>('open', { default: false })
 
 const props = defineProps<{
   lead: TLead
+  visit?: TVisit | null
 }>()
+
+const isEditMode = computed(() => !!props.visit)
 
 const emit = defineEmits<{
   success: []
@@ -38,9 +41,27 @@ function resetForm() {
   }
 }
 
+function populateFormFromVisit(visit: TVisit) {
+  form.value = {
+    date: toDatetimeLocalValue(visit.date),
+    status: visit.status,
+    customerPresence: visit.customerPresence ?? '',
+    nextAction: visit.nextAction ?? ''
+  }
+}
+
 watch(open, isOpen => {
-  if (isOpen) resetForm()
+  if (!isOpen) return
+  if (props.visit) populateFormFromVisit(props.visit)
+  else resetForm()
 })
+
+watch(
+  () => props.visit,
+  visit => {
+    if (open.value && visit) populateFormFromVisit(visit)
+  }
+)
 
 const { mutate, isPending } = useMutation({
   mutationFn: (body: Record<string, unknown>) =>
@@ -52,17 +73,22 @@ const { mutate, isPending } = useMutation({
 
 const onSubmit = (event: FormSubmitEvent<typeof form.value>) => {
   const payload: Record<string, unknown> = {
-    leadId: props.lead.id,
     status: event.data.status,
     customerPresence: event.data.customerPresence?.trim() || undefined,
     nextAction: event.data.nextAction?.trim() || undefined
   }
 
+  if (isEditMode.value && props.visit) payload.id = props.visit.id
+  else payload.leadId = props.lead.id
+
   if (event.data.date) payload.date = event.data.date
 
   mutate(payload, {
     onSuccess() {
-      toast.add({ title: 'Visit scheduled', color: 'success' })
+      toast.add({
+        title: isEditMode.value ? 'Visit updated' : 'Visit scheduled',
+        color: 'success'
+      })
       open.value = false
       emit('success')
     },
@@ -78,8 +104,10 @@ const onSubmit = (event: FormSubmitEvent<typeof form.value>) => {
 <template>
   <UModal
     v-model:open="open"
-    title="Schedule visit"
-    description="Record a site visit for this lead."
+    :title="isEditMode ? 'Edit visit' : 'Schedule visit'"
+    :description="
+      isEditMode ? 'Update this site visit record.' : 'Record a site visit for this lead.'
+    "
     :ui="{ content: 'max-w-lg w-full' }"
   >
     <template #body>
@@ -151,10 +179,10 @@ const onSubmit = (event: FormSubmitEvent<typeof form.value>) => {
           </UButton>
           <UButton
             type="submit"
-            icon="i-lucide-map-pin"
+            :icon="isEditMode ? 'i-lucide-save' : 'i-lucide-map-pin'"
             :loading="isPending"
           >
-            Schedule visit
+            {{ isEditMode ? 'Update visit' : 'Schedule visit' }}
           </UButton>
         </div>
       </UForm>

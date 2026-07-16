@@ -2,6 +2,7 @@ export const selectVisit = () => {
   return {
     select: {
       id: true,
+      authorId: true,
       date: true,
       status: true,
       checkIn: true,

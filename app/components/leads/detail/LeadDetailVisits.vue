@@ -3,17 +3,50 @@ const props = defineProps<{
   visits: TPaginated<TVisit>
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   refresh: []
 }>()
 
 const actions = useLeadDetailActions()
+const toast = useToast()
+const { confirm } = useConfirm()
+const { user } = useCurrentUser()
+
 const items = computed(() => props.visits.data)
+const deletingId = ref<number | null>(null)
 
 function assignees(visit: TVisit) {
   return (visit.assignable?.users ?? [])
     .map(u => u.user)
     .filter((u): u is NonNullable<typeof u> => !!u)
+}
+
+function canEdit(_item: TVisit) {
+  return canEditLeadDetailRecord(user.value)
+}
+
+function canDelete(item: TVisit) {
+  return canDeleteLeadDetailRecord(user.value, item.authorId, user.value?.deleteAnyVisits)
+}
+
+async function onDelete(item: TVisit) {
+  if (!(await confirm('Delete this visit?'))) return
+
+  deletingId.value = item.id
+  try {
+    await $fetch(`/api/visits/${item.id}`, { method: 'DELETE' })
+    toast.add({ title: 'Visit deleted', color: 'success' })
+    emit('refresh')
+  } catch (error) {
+    const { message } = parseError(error)
+    toast.add({
+      title: 'Failed to delete visit',
+      description: message,
+      color: 'error'
+    })
+  } finally {
+    deletingId.value = null
+  }
 }
 </script>
 
@@ -68,29 +101,44 @@ function assignees(visit: TVisit) {
                 size="sm"
               />
             </div>
-            <p
+            <!-- <p
               v-if="visit.author?.name"
               class="text-sm text-muted"
             >
               Logged by {{ visit.author.name }}
-            </p>
+            </p> -->
           </div>
-          <LeadDetailUserStack :users="assignees(visit)" />
+          <div class="flex items-center gap-1 shrink-0">
+            <!-- <LeadDetailUserStack :users="assignees(visit)" /> -->
+            <UButton
+              v-if="canEdit(visit)"
+              icon="i-lucide-pencil"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              @click="actions?.openEditVisitModal(visit)"
+            />
+            <UButton
+              v-if="canDelete(visit)"
+              icon="i-lucide-trash-2"
+              color="error"
+              variant="ghost"
+              size="sm"
+              :loading="deletingId === visit.id"
+              @click="onDelete(visit)"
+            />
+          </div>
         </div>
 
         <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div v-if="visit.customerPresence">
-            <dt class="text-muted">
-              Customer presence
-            </dt>
+            <dt class="text-muted">Customer presence</dt>
             <dd class="mt-0.5 font-medium text-highlighted">
               {{ visit.customerPresence }}
             </dd>
           </div>
           <div v-if="visit.checkIn">
-            <dt class="text-muted">
-              Check-in
-            </dt>
+            <dt class="text-muted">Check-in</dt>
             <dd class="mt-0.5">
               <UBadge
                 :label="`${(visit.checkIn as { lat?: number }).lat}, ${(visit.checkIn as { lng?: number }).lng}`"
@@ -105,9 +153,7 @@ function assignees(visit: TVisit) {
             v-if="visit.nextAction"
             class="sm:col-span-2"
           >
-            <dt class="text-muted">
-              Next action
-            </dt>
+            <dt class="text-muted">Next action</dt>
             <dd class="mt-0.5 text-default">
               {{ visit.nextAction }}
             </dd>
