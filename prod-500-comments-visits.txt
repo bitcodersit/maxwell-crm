@@ -1,0 +1,68 @@
+PRODUCTION 500 ERRORS - /api/comments & /api/visits
+====================================================
+
+THE PROBLEM
+-----------
+These two APIs work locally but return 500 "Server Error" in production:
+  - GET /api/comments?commentableModelType=lead&commentableModelId=35&paginate=false
+  - GET /api/visits?leadId=35&paginate=false
+
+The "Server Error" message is generic because production hides the real error.
+The real reason: the PRODUCTION DATABASE is missing recent migrations.
+So these endpoints ask for tables/columns that don't exist in prod yet.
+
+
+WHY ONLY THESE TWO
+------------------
+Visits and comments use NEW tables/columns added in recent migrations:
+  - /api/visits  -> visits.author, visits.assignable, checkIn, nextAction, customerPresence
+  - /api/comments -> comments + commentables tables
+
+Added in:
+  - 20260522180704_added_visit_followup_comments_bills_modules
+  - 20260523185100_removed_visit_users  (adds visits.assignableId, visits.authorId)
+
+The leads module migration (20260519095216) is OLDER, so leads still work
+while visits/comments fail. Production DB is just behind on migrations.
+
+
+WHY THE PROD DB IS BEHIND
+-------------------------
+The deploy never runs migrations. In package.json:
+  - postinstall: nuxt prepare && prisma generate
+  - build: nuxt build
+
+"prisma generate" only rebuilds the client code. It does NOT change the
+database. There is no "prisma migrate deploy" in the build, so deploying new
+code never updates the prod schema. It works locally only because migrations
+were run on the local DB.
+
+
+HOW TO CONFIRM
+--------------
+1. Check Vercel logs (Functions/Runtime) for /api/visits. You should see:
+     P2022: The column 'visits.assignableId' does not exist
+     or  P2021: The table 'comments' does not exist
+2. Or check the prod DB directly:
+     SHOW COLUMNS FROM visits;      (look for assignableId, authorId, checkIn, nextAction, customerPresence)
+     SHOW TABLES LIKE 'comments';
+
+
+THE FIX
+-------
+Run pending migrations against the PRODUCTION database (with the production
+NUXT_DATABASE_* values loaded, since prisma.config.ts builds the URL from them):
+
+     npx prisma migrate deploy
+
+No redeploy needed - the code is already live, it just needed the schema.
+
+
+PREVENT IT HAPPENING AGAIN
+--------------------------
+Add migrate deploy to the pipeline, for example:
+
+     "postinstall": "nuxt prepare && prisma generate && prisma migrate deploy"
+
+Note: this runs against whatever DB the build env vars point to, so make sure
+those are the production DB in Vercel.

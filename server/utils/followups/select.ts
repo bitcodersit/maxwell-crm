@@ -3,6 +3,7 @@ export const selectFollowUp = () => {
     select: {
       id: true,
       leadId: true,
+      authorId: true,
       date: true,
       type: true,
       status: true,

@@ -3,6 +3,7 @@ import type { TUser } from '~~/shared/types/User'
 import { upsertAddress } from '../address/upsertAddress'
 import { getAssignableCreate } from '../assignable'
 import { getConnect } from '../getConnect'
+import { notifyPropertyCreated } from './notifyPropertyAssignees'
 import { selectPropertyForDisplay } from './select'
 
 const generatePropertySid = async () => {
@@ -53,7 +54,7 @@ export const createProperty = async (input: TZCreateProperty, user: TUser) => {
     addressId = (await upsertAddress(input.address)).id
   }
 
-  return prisma.property.create({
+  const property = await prisma.property.create({
     include: selectPropertyForDisplay,
     data: {
       sid: await generatePropertySid(),
@@ -83,4 +84,12 @@ export const createProperty = async (input: TZCreateProperty, user: TUser) => {
       }
     }
   })
+
+  try {
+    await notifyPropertyCreated(property, user)
+  } catch (error) {
+    console.error('Failed to notify property created', error)
+  }
+
+  return property
 }

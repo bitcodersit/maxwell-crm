@@ -19,3 +19,13 @@ export const $dfc = (
 export const todayDateValue = () => {
   return today(getLocalTimeZone())
 }
+
+/** Format a date for `<input type="datetime-local">` in the user's local timezone. */
+export const toDatetimeLocalValue = (value: unknown) => {
+  if (!value) return ''
+  const date = new Date(value as string | number | Date)
+  if (Number.isNaN(date.getTime())) return ''
+  const offset = date.getTimezoneOffset()
+  const local = new Date(date.getTime() - offset * 60_000)
+  return local.toISOString().slice(0, 16)
+}

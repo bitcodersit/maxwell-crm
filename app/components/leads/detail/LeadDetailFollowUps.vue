@@ -3,12 +3,45 @@ const props = defineProps<{
   followUps: TPaginated<TFollowUp>
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   refresh: []
 }>()
 
 const actions = useLeadDetailActions()
+const toast = useToast()
+const { confirm } = useConfirm()
+const { user } = useCurrentUser()
+
 const items = computed(() => props.followUps.data)
+const deletingId = ref<number | null>(null)
+
+function canEdit(_item: TFollowUp) {
+  return canEditLeadDetailRecord(user.value)
+}
+
+function canDelete(item: TFollowUp) {
+  return canDeleteLeadDetailRecord(user.value, item.authorId, user.value?.deleteAnyFollowUps)
+}
+
+async function onDelete(item: TFollowUp) {
+  if (!(await confirm('Delete this follow-up?'))) return
+
+  deletingId.value = item.id
+  try {
+    await $fetch(`/api/followups/${item.id}`, { method: 'DELETE' })
+    toast.add({ title: 'Follow-up deleted', color: 'success' })
+    emit('refresh')
+  } catch (error) {
+    const { message } = parseError(error)
+    toast.add({
+      title: 'Failed to delete follow-up',
+      description: message,
+      color: 'error'
+    })
+  } finally {
+    deletingId.value = null
+  }
+}
 </script>
 
 <template>
@@ -81,14 +114,33 @@ const items = computed(() => props.followUps.data)
                 <span v-if="item.author?.name"> · {{ item.author.name }}</span>
               </p>
             </div>
-            <UBadge
-              v-if="item.attachable?.attachments?.length"
-              :label="`${item.attachable.attachments.length} file${item.attachable.attachments.length === 1 ? '' : 's'}`"
-              color="neutral"
-              variant="subtle"
-              size="sm"
-              icon="i-lucide-paperclip"
-            />
+            <div class="flex items-center gap-1 shrink-0">
+              <UBadge
+                v-if="item.attachable?.attachments?.length"
+                :label="`${item.attachable.attachments.length} file${item.attachable.attachments.length === 1 ? '' : 's'}`"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+                icon="i-lucide-paperclip"
+              />
+              <UButton
+                v-if="canEdit(item)"
+                icon="i-lucide-pencil"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                @click="actions?.openEditFollowUpModal(item)"
+              />
+              <UButton
+                v-if="canDelete(item)"
+                icon="i-lucide-trash-2"
+                color="error"
+                variant="ghost"
+                size="sm"
+                :loading="deletingId === item.id"
+                @click="onDelete(item)"
+              />
+            </div>
           </div>
           <p
             v-if="item.outcome"

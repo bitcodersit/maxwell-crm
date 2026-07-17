@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { upsertAddress, zUpsertAddress } from '../address'
 import { upsertCustomer, zUpsertCustomer } from '../customer'
 import { getConnect } from '../getConnect'
+import { notifyLeadCreated } from './notifyLeadAssignees'
 
 export type TZCreateLead = z.infer<typeof zCreateLead>
 export const zCreateLead = z.object({
@@ -92,9 +93,11 @@ export const createLead = async (input: TZCreateLead, user?: TUser | null) => {
   const boardItem = await assignLeadToTheBoard(lead.id)
   if (boardItem) lead.boardItems = [boardItem]
 
-  /**
-   * @TODO: Notify new assignees
-   */
+  try {
+    await notifyLeadCreated(lead, user)
+  } catch (error) {
+    console.error('Failed to notify lead created', error)
+  }
 
   return lead
 }

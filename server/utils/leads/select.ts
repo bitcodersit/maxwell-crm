@@ -74,6 +74,7 @@ export const selectLeadForDisplay = {
       attachments: {
         select: {
           id: true,
+          uploaderId: true,
           name: true,
           path: true,
           mime: true,

@@ -5,7 +5,9 @@ export const selectComment = () => {
   return {
     select: {
       id: true,
+      authorId: true,
       text: true,
+      createdAt: true,
       author: selectUserForBadge,
       attachable: {
         select: {

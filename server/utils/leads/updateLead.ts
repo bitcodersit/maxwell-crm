@@ -2,7 +2,9 @@ import { z } from 'zod'
 import { upsertAddress, zUpsertAddress } from '../address'
 import { getAssignableCreate } from '../assignable'
 import { upsertCustomer, zUpsertCustomer } from '../customer'
+import { getAssignableUserIds } from '../notifications'
 import { getLeadScopedWhere } from './getLeadScopedWhere'
+import { notifyLeadAssigned } from './notifyLeadAssignees'
 import { selectLeadForDisplay, selectLeadForUpdate } from './select'
 
 export type TZUpdateLead = z.infer<typeof zUpdateLead>
@@ -149,11 +151,14 @@ export const updateLead = async (id: number, input: TZUpdateLead, user: TUser) =
     }
   }
 
+  let shouldNotifyAssignment = false
+
   if (user.updateAnyLeads) {
     const hasUserAssignment = input.userIds !== undefined && input.userIds !== null
     const hasTeamAssignment = input.teamIds !== undefined && input.teamIds !== null
 
     if (hasUserAssignment || hasTeamAssignment) {
+      shouldNotifyAssignment = true
       const assignableUpdate: Prisma.AssignableUpdateWithoutLeadsInput = {}
 
       if (hasUserAssignment) {
@@ -195,15 +200,24 @@ export const updateLead = async (id: number, input: TZUpdateLead, user: TUser) =
     }
   }
 
+  const previousUserIds =
+    shouldNotifyAssignment && existing.assignableId
+      ? await getAssignableUserIds(existing.assignableId)
+      : []
+
   const lead = await prisma.lead.update({
     where: { id },
     data,
     include: selectLeadForDisplay
   })
 
-  /**
-   * @TODO: Notify new assignees
-   */
+  if (shouldNotifyAssignment) {
+    try {
+      await notifyLeadAssigned(lead, user, { previousUserIds })
+    } catch (error) {
+      console.error('Failed to notify lead assigned', error)
+    }
+  }
 
   return lead
 }
