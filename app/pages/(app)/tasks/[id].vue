@@ -19,9 +19,8 @@ const { data, isFetching } = useTaskQuery(id, v => {
   task.value = { ...v }
 })
 
-const canDelete = computed(
-  () => !!(user.value?.deleteAnyTasks || user.value?.deleteOwnTasks)
-)
+const canDelete = computed(() => !!(user.value?.deleteAnyTasks || user.value?.deleteOwnTasks))
+const canUpdate = computed(() => !!user.value?.updateAnyTasks)
 
 const onDelete = async () => {
   if (!(await confirm('Are you sure you want to delete this task?'))) return
@@ -64,7 +63,7 @@ const priorityItems = useTaskPriorityItems(priority => {
   onMutate({ priority })
 })
 
-const taskUsers = computed<Pick<TUser, 'id'>[]>({
+const taskUsers = computed<Pick<TUser, 'id' | 'name'>[]>({
   get() {
     return (task.value?.users || []).map(v => v.user).filter(v => !!v)
   },
@@ -76,7 +75,7 @@ const taskUsers = computed<Pick<TUser, 'id'>[]>({
   }
 })
 
-const taskTeams = computed<Pick<TTeam, 'id'>[]>({
+const taskTeams = computed<Pick<TTeam, 'id' | 'name'>[]>({
   get() {
     return (task.value?.teams || []).map(v => v.team).filter(v => !!v)
   },
@@ -210,24 +209,16 @@ const attachments = computed<TAttachment[]>({
     </div>
     <div class="space-y-4 w-96 flex-none border-l border-default p-4 overflow-auto scrollbar">
       <UFormField label="Assigned users">
-        <FormAutocomplete
+        <FormUsersCardPicker
           v-model="taskUsers"
-          :query="{ options: true }"
-          api="/api/users"
-          size="lg"
-          class="flex-1"
-          placeholder="Assign user"
+          :disabled="!canUpdate"
           @update:model-value="onChangeUsers"
         />
       </UFormField>
       <UFormField label="Assigned teams">
-        <FormAutocomplete
+        <FormTeamsCardPicker
           v-model="taskTeams"
-          :query="{ options: true }"
-          api="/api/teams"
-          size="lg"
-          class="flex-1"
-          placeholder="Assign team"
+          :disabled="!canUpdate"
           @update:model-value="onChangeTeams"
         />
       </UFormField>

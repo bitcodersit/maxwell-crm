@@ -8,6 +8,7 @@ export const zGetTeams = z
     id: zIds(),
     creatorId: zIds(),
     memberUserIds: zIds(),
+    idsNotIn: zIds(),
     createdAt: zDateObject().nullish(),
     updatedAt: zDateObject().nullish(),
     options: zBoolean().default(false),
@@ -47,6 +48,15 @@ export const getTeams = async (
         }
       }
     }))
+    .id('idsNotIn', ids => {
+      if ('in' in ids) {
+        return {
+          id: {
+            notIn: ids.in
+          }
+        }
+      }
+    })
     .text('q', ['name', 'description'])
     .date('createdAt')
     .date('updatedAt')
