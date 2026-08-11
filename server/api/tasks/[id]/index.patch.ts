@@ -1,6 +1,6 @@
 import type { Prisma } from '~~/prisma/client/client'
 import type { TZTaskItem } from '~~/server/utils/tasks'
-import { TaskItemStatus, TaskStatus } from '~~/prisma/client/enums'
+import { TaskItemStatus, TaskKind, TaskStatus } from '~~/prisma/client/enums'
 
 const getOwnScope = (userId: number) =>
   ({
@@ -40,6 +40,7 @@ export default defineEventHandler(async event => {
   const where = {
     id,
     deletedAt: null,
+    kind: TaskKind.TASK,
     ...(!user.updateAnyTasks ? getOwnScope(user.id) : {})
   }
 

@@ -10,6 +10,7 @@ type TModule =
   | 'Roles'
   | 'Teams'
   | 'Tasks'
+  | 'Targets'
   | 'Leads'
   | 'Properties'
   | 'Permissions'

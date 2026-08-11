@@ -1,5 +1,5 @@
 import { capitalize } from 'vue'
-import { LeadStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
+import { LeadStatus, TargetFrequency, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
 const allowedStatuses: TaskStatus[] = [
   TaskStatus.TODO,
@@ -31,6 +31,50 @@ export const useTaskPriorityItems = (onSelect?: (value: TaskPriority) => void) =
     return (
       user.value?.updateAnyTasks ? values : values.filter(v => allowedPriorities.includes(v))
     ).map(value => ({
+      value,
+      label: capitalize(value.split('_').join(' ').toLowerCase()),
+      onSelect() {
+        onSelect?.(value)
+      }
+    }))
+  })
+}
+
+export const useTargetStatusItems = (onSelect?: (value: TaskStatus) => void) => {
+  const { user } = useCurrentUser()
+  return computed(() => {
+    const values = Object.values(TaskStatus)
+    return (
+      user.value?.updateAnyTargets ? values : values.filter(v => allowedStatuses.includes(v))
+    ).map(value => ({
+      value,
+      label: capitalize(value.split('_').join(' ').toLowerCase()),
+      onSelect() {
+        onSelect?.(value)
+      }
+    }))
+  })
+}
+
+export const useTargetPriorityItems = (onSelect?: (value: TaskPriority) => void) => {
+  const { user } = useCurrentUser()
+  return computed(() => {
+    const values = Object.values(TaskPriority)
+    return (
+      user.value?.updateAnyTargets ? values : values.filter(v => allowedPriorities.includes(v))
+    ).map(value => ({
+      value,
+      label: capitalize(value.split('_').join(' ').toLowerCase()),
+      onSelect() {
+        onSelect?.(value)
+      }
+    }))
+  })
+}
+
+export const useTargetFrequencyItems = (onSelect?: (value: TargetFrequency) => void) => {
+  return computed(() => {
+    return Object.values(TargetFrequency).map(value => ({
       value,
       label: capitalize(value.split('_').join(' ').toLowerCase()),
       onSelect() {

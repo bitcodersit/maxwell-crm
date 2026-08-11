@@ -9,7 +9,7 @@ import {
   startOfWeek,
   startOfDay
 } from 'date-fns'
-import { TaskStatus } from '~~/prisma/client/client'
+import { TaskKind, TaskStatus } from '~~/prisma/client/client'
 
 const getTaskScopedWhere = (user, where) => {
   if (user.readAnyTasks) return where
@@ -73,7 +73,7 @@ export default defineEventHandler(async event => {
     throw err.denied()
   }
 
-  const where = getTaskScopedWhere(user, { deletedAt: null })
+  const where = getTaskScopedWhere(user, { deletedAt: null, kind: TaskKind.TASK })
 
   const now = new Date()
   const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 })

@@ -8,6 +8,15 @@ export const keys = {
   tasksOverview() {
     return ['/api/tasks/overview']
   },
+  target(id: MaybeRefOrGetter<number>) {
+    return ['/api/targets/{id}', id]
+  },
+  targets(query?: MaybeRefOrGetter<Record<string, any>>) {
+    return query ? ['/api/targets', query] : ['/api/targets']
+  },
+  targetsOverview() {
+    return ['/api/targets/overview']
+  },
   lead(id: MaybeRefOrGetter<string>) {
     return ['/api/leads/{id}', id]
   },

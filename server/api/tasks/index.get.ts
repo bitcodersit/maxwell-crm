@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import { TaskKind } from '~~/prisma/client/enums'
 
 const getTaskScopedWhere = (user: TUser, where: Prisma.TaskWhereInput) => {
   if (user.readAnyTasks) return where
@@ -38,7 +39,10 @@ export const getTasks = async (event: H3Event, query = getQuery(event)) => {
     }
   }
 
-  const where = getWhere<Prisma.TaskWhereInput>(query, { deletedAt: null })
+  const where = getWhere<Prisma.TaskWhereInput>(query, {
+    deletedAt: null,
+    kind: TaskKind.TASK
+  })
     .id('id')
     .text('name')
     .text('description')

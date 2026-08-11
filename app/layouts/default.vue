@@ -91,6 +91,16 @@ const links = computed(() => {
         }
       },
       {
+        label: 'Targets',
+        icon: 'i-lucide-target',
+        to: '/targets',
+        active: isNavActive('/targets'),
+        visible: !!(user.value?.readAnyTargets || user.value?.readOwnTargets),
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      {
         label: 'Teams',
         icon: 'i-lucide-users-round',
         to: '/teams',

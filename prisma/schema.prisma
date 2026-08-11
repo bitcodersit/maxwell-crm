@@ -400,12 +400,24 @@ enum TaskItemStatus {
     COMPLETED
 }
 
+enum TaskKind {
+    TASK
+    TARGET
+}
+
+enum TargetFrequency {
+    WEEKLY
+    MONTHLY
+    CUSTOM
+}
+
 model Task {
     id Int @id @default(autoincrement())
 
     name        String  @db.Text
     description String? @db.Text
 
+    kind     TaskKind     @default(TASK)
     status   TaskStatus   @default(TODO)
     priority TaskPriority @default(MEDIUM)
 
@@ -413,14 +425,18 @@ model Task {
     reviewerId   Int?
     submitterId  Int?
     attachableId Int? @unique
+    parentId     Int?
 
     dueAt       DateTime?
     reviewedAt  DateTime?
     submittedAt DateTime?
 
-    creator   User? @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
-    reviewer  User? @relation("TaskReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
-    submitter User? @relation("TaskSubmitter", fields: [submitterId], references: [id], onDelete: SetNull)
+    creator    User?           @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+    reviewer   User?           @relation("TaskReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+    submitter  User?           @relation("TaskSubmitter", fields: [submitterId], references: [id], onDelete: SetNull)
+    parent     Task?           @relation("TaskOccurrences", fields: [parentId], references: [id], onDelete: Cascade)
+    children   Task[]          @relation("TaskOccurrences")
+    recurrence TaskRecurrence?
 
     items      TaskItem[]
     users      TaskUser[]
@@ -434,11 +450,36 @@ model Task {
 
     @@index([status, priority])
     @@index([dueAt])
+    @@index([kind, dueAt])
+    @@index([parentId])
     @@index([creatorId])
     @@index([reviewerId])
     @@index([submitterId])
     @@index([attachableId])
     @@map("tasks")
+}
+
+model TaskRecurrence {
+    id Int @id @default(autoincrement())
+
+    taskId Int @unique
+
+    frequency    TargetFrequency
+    intervalDays Int?
+    rangeStart   DateTime
+    rangeEnd     DateTime
+    endsAt       DateTime?
+    nextRunAt    DateTime?
+
+    task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @default(now()) @updatedAt
+    deletedAt DateTime?
+
+    @@index([nextRunAt])
+    @@index([frequency])
+    @@map("task_recurrences")
 }
 
 model TaskItem {

@@ -114,6 +114,7 @@ const seedTasksBoard = async () => {
   const tasks = await prisma.task.findMany({
     where: {
       deletedAt: null,
+      kind: 'TASK',
       boardItems: {
         none: {
           boardId: board.id
@@ -257,6 +258,7 @@ async function main() {
     'teams',
     'attachments',
     'tasks',
+    'targets',
     'leads',
     'properties',
     'bills',

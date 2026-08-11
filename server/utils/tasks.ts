@@ -1,4 +1,6 @@
 import z from 'zod'
+import type { Prisma } from '~~/prisma/client/client'
+import { TargetFrequency, TaskItemStatus, TaskKind, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
 export type TZTaskItem = z.infer<typeof zTaskItems>
 const zTaskItems = z.object({
@@ -42,6 +44,78 @@ export const zTaskPatch = zTaskCommon.extend({
   users: z.array(zTaskUser).optional(),
   teams: z.array(zTaskTeam).optional()
 })
+
+const zRecurrenceBase = z.object({
+  frequency: z.enum(TargetFrequency),
+  intervalDays: z.number().int().positive().nullish(),
+  rangeStart: zDateRequired('Range start is required!'),
+  rangeEnd: zDateRequired('Range end is required!'),
+  endsAt: z.coerce.date().nullish()
+})
+
+export type TZTargetRecurrence = z.infer<typeof zRecurrenceBase>
+
+export type TZTargetPost = z.infer<typeof zTargetPost>
+export const zTargetPost = zTaskCommon
+  .extend({
+    name: zName('Target name is required!'),
+    status: z.enum(TaskStatus).optional().default(TaskStatus.TODO),
+    priority: z.enum(TaskPriority).optional().default(TaskPriority.MEDIUM),
+    frequency: z.enum(TargetFrequency),
+    intervalDays: z.number().int().positive().nullish(),
+    rangeStart: zDateRequired('Range start is required!'),
+    rangeEnd: zDateRequired('Range end is required!'),
+    endsAt: z.coerce.date().nullish()
+  })
+  .superRefine((data, ctx) => {
+    if (data.rangeEnd < data.rangeStart) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['rangeEnd'],
+        message: 'Range end must be on or after range start'
+      })
+    }
+    if (data.frequency === TargetFrequency.CUSTOM && (!data.intervalDays || data.intervalDays < 1)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['intervalDays'],
+        message: 'Interval days is required for custom frequency'
+      })
+    }
+    if (data.endsAt && data.endsAt < data.rangeStart) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['endsAt'],
+        message: 'Ends at must be on or after range start'
+      })
+    }
+  })
+
+export type TZTargetPatch = z.infer<typeof zTargetPatch>
+export const zTargetPatch = zTaskPatch
+  .extend({
+    frequency: z.enum(TargetFrequency).nullish(),
+    intervalDays: z.number().int().positive().nullish(),
+    rangeStart: z.coerce.date().nullish(),
+    rangeEnd: z.coerce.date().nullish(),
+    endsAt: z.coerce.date().nullish()
+  })
+  .superRefine((data, ctx) => {
+    if (data.frequency === TargetFrequency.CUSTOM && data.intervalDays != null && data.intervalDays < 1) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['intervalDays'],
+        message: 'Interval days must be at least 1'
+      })
+    }
+    if (data.rangeStart && data.rangeEnd && data.rangeEnd < data.rangeStart) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['rangeEnd'],
+        message: 'Range end must be on or after range start'
+      })
+    }
+  })
 
 export const TaskInclude = {
   creator: {
@@ -127,3 +201,47 @@ export const TaskInclude = {
     }
   }
 } satisfies Prisma.TaskInclude
+
+export const TargetInclude = {
+  ...TaskInclude,
+  recurrence: true,
+  parent: {
+    select: {
+      id: true,
+      name: true,
+      kind: true,
+      recurrence: true
+    }
+  }
+} satisfies Prisma.TaskInclude
+
+export const taskKindWhere = (kind: TaskKind): Prisma.TaskWhereInput => ({
+  kind
+})
+
+export const targetOccurrenceWhere = (): Prisma.TaskWhereInput => ({
+  kind: TaskKind.TARGET,
+  parentId: { not: null }
+})
+
+export const getTaskOwnScope = (userId: number): Prisma.TaskWhereInput => ({
+  OR: [
+    { creatorId: userId },
+    { reviewerId: userId },
+    { submitterId: userId },
+    { users: { some: { userId } } },
+    {
+      teams: {
+        some: {
+          team: {
+            members: {
+              some: {
+                userId
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+})

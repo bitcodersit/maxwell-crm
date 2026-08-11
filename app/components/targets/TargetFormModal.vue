@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { TaskKind } from '~~/prisma/client/enums'
+import { TargetFrequency } from '~~/prisma/client/enums'
+
+type TTargetForm = {
+  name: string
+  description: string
+  status: TaskStatus
+  priority: TaskPriority
+  frequency: TargetFrequency
+  intervalDays: number | null
+  rangeStart: Date | null
+  rangeEnd: Date | null
+  endsAt: Date | null
+  items: TTaskItem[]
+}
 
 const open = defineModel<boolean>('open', {
   default: false
@@ -21,50 +34,49 @@ const newTaskItem = (v?: Partial<TTaskItem>): TTaskItem => {
   }
 }
 
-const newForm = (v?: Partial<TTask>): TTask => {
+const newForm = (v?: Partial<TTargetForm>): TTargetForm => {
+  const start = v?.rangeStart ?? new Date()
+  const end = v?.rangeEnd ?? new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000)
   return {
-    id: v?.id ?? -Date.now(),
     name: v?.name ?? '',
     description: v?.description ?? '',
-    kind: v?.kind ?? TaskKind.TASK,
-    dueAt: v?.dueAt ?? null,
     status: v?.status ?? TaskStatus.TODO,
     priority: v?.priority ?? TaskPriority.MEDIUM,
-    items: v?.items?.length ? v.items : [newTaskItem()],
-    createdAt: v?.createdAt ?? new Date(),
-    updatedAt: v?.updatedAt ?? new Date(),
-    deletedAt: v?.deletedAt ?? null,
-    creatorId: v?.creatorId ?? null,
-    reviewedAt: v?.reviewedAt ?? null,
-    reviewerId: v?.reviewerId ?? null,
-    submittedAt: v?.submittedAt ?? null,
-    submitterId: v?.submitterId ?? null,
-    parentId: v?.parentId ?? null,
-    attachableId: v?.attachableId ?? null
+    frequency: v?.frequency ?? TargetFrequency.WEEKLY,
+    intervalDays: v?.intervalDays ?? 7,
+    rangeStart: start,
+    rangeEnd: end,
+    endsAt: v?.endsAt ?? null,
+    items: v?.items?.length ? v.items : [newTaskItem()]
   }
 }
 
 const form = ref(newForm())
 const formRef = useTemplateRef('formRef')
 
-const taskStatuses = useTaskStatusItems()
-const taskPriorities = useTaskPriorityItems()
+const taskStatuses = useTargetStatusItems()
+const taskPriorities = useTargetPriorityItems()
+const frequencies = useTargetFrequencyItems()
 
 const onReset = () => {
   form.value = newForm()
   open.value = false
 }
 
-const { mutate, isPending } = useTaskPostMutation()
-const onSubmit = (event: FormSubmitEvent<TTask>) => {
-  mutate(event.data, {
+const { mutate, isPending } = useTargetPostMutation()
+const onSubmit = (event: FormSubmitEvent<TTargetForm>) => {
+  const payload = {
+    ...event.data,
+    intervalDays:
+      event.data.frequency === TargetFrequency.CUSTOM ? event.data.intervalDays : null
+  }
+  mutate(payload, {
     onSuccess(data) {
       onReset()
-      navigateTo(`/tasks/${data.id}`)
+      navigateTo(`/targets/${data.id}`)
     },
     onError(error) {
       const { message, errors } = parseError(error)
-      console.log('Errors', message, errors)
       if (errors?.length) formRef.value?.setErrors(errors)
       else formRef.value?.setErrors([{ name: 'name', message }])
     }
@@ -82,38 +94,40 @@ const onSubmit = (event: FormSubmitEvent<TTask>) => {
         <div class="border-r border-default/80 p-8 space-y-8 col-span-4 bg-elevated/30">
           <div class="inline-flex rounded-lg bg-primary/15 p-3">
             <UIcon
-              name="i-lucide-badge-plus"
+              name="i-lucide-target"
               class="size-6 text-primary"
             />
           </div>
           <div>
-            <h4 class="text-2xl font-semibold">New Task Initiation</h4>
+            <h4 class="text-2xl font-semibold">New Target</h4>
             <p class="mt-2 text-sm text-muted">
-              Complete the configuration for this CRM directive. Ensure items are clearly defined
-              for the assigned team.
+              Create a recurring target with a weekly, monthly, or custom date range. Each period
+              becomes a trackable occurrence.
             </p>
           </div>
           <div class="space-y-4 text-sm">
             <div class="flex items-start gap-2">
               <UIcon
-                name="i-lucide-shield-check"
+                name="i-lucide-repeat"
                 class="mt-0.5 size-5 text-primary"
               />
               <p>
-                <span class="font-medium text-default">Precision Control</span><br />
+                <span class="font-medium text-default">Recurring windows</span><br />
                 <span class="text-muted"
-                  >Every task is tracked with millisecond-accurate logs.</span
+                  >Occurrences generate automatically when a new period starts.</span
                 >
               </p>
             </div>
             <div class="flex items-start gap-2">
               <UIcon
-                name="i-lucide-network"
+                name="i-lucide-calendar-range"
                 class="mt-0.5 size-4 text-primary"
               />
               <p>
-                <span class="font-medium text-default">Smart Assignment</span><br />
-                <span class="text-muted">Team capacity is calculated for optimal delivery.</span>
+                <span class="font-medium text-default">Date range</span><br />
+                <span class="text-muted"
+                  >Set the first window; later periods advance by frequency.</span
+                >
               </p>
             </div>
           </div>
@@ -126,7 +140,7 @@ const onSubmit = (event: FormSubmitEvent<TTask>) => {
           @submit="onSubmit"
         >
           <div class="flex items-center justify-between col-span-12">
-            <div class="uppercase text-muted">Task Configuration</div>
+            <div class="uppercase text-muted">Target Configuration</div>
             <div>
               <UButton
                 icon="i-lucide-x"
@@ -146,7 +160,7 @@ const onSubmit = (event: FormSubmitEvent<TTask>) => {
               v-model="form.name"
               size="lg"
               class="w-full"
-              placeholder="Enter task name..."
+              placeholder="Enter target name..."
             />
           </UFormField>
           <UFormField
@@ -159,7 +173,7 @@ const onSubmit = (event: FormSubmitEvent<TTask>) => {
               :items="taskStatuses"
               size="lg"
               class="w-full"
-              placeholder="Select task status..."
+              placeholder="Select status..."
             />
           </UFormField>
           <UFormField
@@ -172,19 +186,72 @@ const onSubmit = (event: FormSubmitEvent<TTask>) => {
               :items="taskPriorities"
               size="lg"
               class="w-full"
-              placeholder="Select task priority..."
+              placeholder="Select priority..."
             />
           </UFormField>
           <UFormField
             required
-            name="dueAt"
-            label="Due Date"
+            name="frequency"
+            label="Frequency"
+            class="col-span-4"
+          >
+            <USelect
+              v-model="form.frequency"
+              :items="frequencies"
+              size="lg"
+              class="w-full"
+              placeholder="Select frequency..."
+            />
+          </UFormField>
+          <UFormField
+            v-if="form.frequency === TargetFrequency.CUSTOM"
+            required
+            name="intervalDays"
+            label="Every N days"
+            class="col-span-4"
+          >
+            <UInput
+              v-model.number="form.intervalDays"
+              type="number"
+              min="1"
+              size="lg"
+              class="w-full"
+              placeholder="e.g. 14"
+            />
+          </UFormField>
+          <UFormField
+            required
+            name="rangeStart"
+            label="Range start"
             class="col-span-4"
           >
             <FormDate
-              v-model="form.dueAt"
+              v-model="form.rangeStart"
               size="lg"
-              placeholder="Select due date..."
+              placeholder="Start date..."
+            />
+          </UFormField>
+          <UFormField
+            required
+            name="rangeEnd"
+            label="Range end"
+            class="col-span-4"
+          >
+            <FormDate
+              v-model="form.rangeEnd"
+              size="lg"
+              placeholder="End date..."
+            />
+          </UFormField>
+          <UFormField
+            name="endsAt"
+            label="Ends at (optional)"
+            class="col-span-4"
+          >
+            <FormDate
+              v-model="form.endsAt"
+              size="lg"
+              placeholder="Stop recurring..."
             />
           </UFormField>
           <UFormField
@@ -195,7 +262,7 @@ const onSubmit = (event: FormSubmitEvent<TTask>) => {
             <FormEditor
               v-model="form.description"
               content-type="markdown"
-              placeholder="Add short task details..."
+              placeholder="Add short target details..."
               min-height-class="min-h-32"
             />
           </UFormField>
@@ -218,7 +285,7 @@ const onSubmit = (event: FormSubmitEvent<TTask>) => {
               type="submit"
               :loading="isPending"
             >
-              Create Task
+              Create Target
             </UButton>
           </div>
         </UForm>

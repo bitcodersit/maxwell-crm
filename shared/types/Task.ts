@@ -6,7 +6,9 @@ import type {
   TaskUser,
   TaskStatus,
   TaskPriority,
-  TaskItemStatus
+  TaskItemStatus,
+  TaskRecurrence,
+  TargetFrequency
 } from '~~/prisma/client/client'
 
 export type TTaskItem = TaskItem & {
@@ -24,6 +26,8 @@ export type TTaskTeam = TaskTeam & {
   team?: TMaybe<TTeam>
 }
 
+export type TTaskRecurrence = TaskRecurrence
+
 export type TTask = Task & {
   creator?: TMaybe<TUser>
   reviewer?: TMaybe<TUser>
@@ -32,8 +36,15 @@ export type TTask = Task & {
   items?: TTaskItem[]
   users?: TTaskUser[]
   teams?: TTaskTeam[]
+  recurrence?: TMaybe<TTaskRecurrence>
+  parent?: TMaybe<
+    Pick<Task, 'id' | 'name' | 'kind'> & {
+      recurrence?: TMaybe<TTaskRecurrence>
+    }
+  >
 }
 
 export type TTaskStatus = TaskStatus
 export type TTaskPriority = TaskPriority
 export type TTaskItemStatus = TaskItemStatus
+export type TTargetFrequency = TargetFrequency

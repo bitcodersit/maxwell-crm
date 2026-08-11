@@ -1,3 +1,5 @@
+import { TaskItemStatus, TaskKind } from '~~/prisma/client/enums'
+
 export default defineEventHandler(async event => {
   const user = await getCurrentUser(event)
   if (!user.createAnyTasks) {
@@ -12,6 +14,7 @@ export default defineEventHandler(async event => {
     data: {
       name: input.name,
       description: input.description,
+      kind: TaskKind.TASK,
       status: input.status,
       priority: input.priority,
       dueAt: input.dueAt,

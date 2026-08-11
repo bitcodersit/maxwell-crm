@@ -1,4 +1,5 @@
 import type { Prisma } from '~~/prisma/client/client'
+import { TaskKind } from '~~/prisma/client/enums'
 
 const getOwnScope = (userId: number) =>
   ({
@@ -46,7 +47,8 @@ export default defineEventHandler(async event => {
         id: {
           in: ids
         },
-        deletedAt: null
+        deletedAt: null,
+        kind: TaskKind.TASK
       },
       data: {
         deletedAt: now
@@ -65,6 +67,7 @@ export default defineEventHandler(async event => {
     const where: Prisma.TaskWhereInput = {
       id,
       deletedAt: null,
+      kind: TaskKind.TASK,
       ...getOwnScope(user.id)
     }
     const updated = await prisma.task.updateMany({

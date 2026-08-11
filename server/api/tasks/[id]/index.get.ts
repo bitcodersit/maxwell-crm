@@ -1,4 +1,5 @@
 import type { Prisma } from '~~/prisma/client/client'
+import { TaskKind } from '~~/prisma/client/enums'
 
 const getOwnScope = (userId: number) =>
   ({
@@ -37,6 +38,7 @@ export default defineEventHandler(async event => {
   const where: Prisma.TaskWhereInput = {
     id,
     deletedAt: null,
+    kind: TaskKind.TASK,
     ...(user.readAnyTasks ? {} : getOwnScope(user.id))
   }
 
