@@ -19,6 +19,11 @@ const { user } = useCurrentUser()
 const { title, links: panelLinks, isSearchOpen, isNotificationsOpen } = useDashboard()
 const { hasUnread, unreadBadge } = useNotifications()
 
+const isNavActive = (to: string, exact = false) => {
+  if (exact) return route.path === to
+  return route.path === to || route.path.startsWith(`${to}/`)
+}
+
 const links = computed(() => {
   return [
     [
@@ -26,6 +31,8 @@ const links = computed(() => {
         label: 'Home',
         icon: 'i-lucide-house',
         to: '/',
+        exact: true,
+        active: isNavActive('/', true),
         onSelect: () => {
           open.value = false
         }
@@ -36,6 +43,7 @@ const links = computed(() => {
         icon: 'i-lucide-contact',
         to: '/leads',
         // badge: '12',
+        active: isNavActive('/leads'),
         visible: !!(user.value?.readAnyLeads || user.value?.readOwnLeads),
         onSelect: () => {
           open.value = false
@@ -45,6 +53,7 @@ const links = computed(() => {
         label: 'Properties',
         icon: 'i-lucide-building-2',
         to: '/properties',
+        active: isNavActive('/properties'),
         visible: !!(
           user.value?.readAnyProperties ||
           user.value?.readOwnProperties ||
@@ -75,6 +84,7 @@ const links = computed(() => {
         label: 'Tasks',
         icon: 'i-lucide-check-square',
         to: '/tasks',
+        active: isNavActive('/tasks'),
         visible: !!(user.value?.readAnyTasks || user.value?.readOwnTasks),
         onSelect: () => {
           open.value = false
@@ -84,6 +94,7 @@ const links = computed(() => {
         label: 'Teams',
         icon: 'i-lucide-users-round',
         to: '/teams',
+        active: isNavActive('/teams'),
         visible: !!(user.value?.readAnyTeams || user.value?.readOwnTeams),
         onSelect: () => {
           open.value = false
@@ -93,6 +104,7 @@ const links = computed(() => {
         label: 'Customers',
         icon: 'i-lucide-user-round-search',
         to: '/customers',
+        active: isNavActive('/customers'),
         visible: !!user.value?.readAnyUsers,
         onSelect: () => {
           open.value = false
@@ -103,6 +115,7 @@ const links = computed(() => {
         label: 'Users',
         icon: 'i-lucide-users',
         to: '/users',
+        active: isNavActive('/users'),
         visible: !!(user.value?.readAnyUsers || user.value?.readOwnUsers),
         onSelect: () => {
           open.value = false
@@ -112,6 +125,7 @@ const links = computed(() => {
         label: 'Roles',
         icon: 'i-lucide-shield',
         to: '/roles',
+        active: isNavActive('/roles'),
         visible: !!user.value?.readAnyRoles,
         onSelect: () => {
           open.value = false
@@ -121,6 +135,7 @@ const links = computed(() => {
         label: 'Permissions',
         icon: 'i-lucide-key',
         to: '/permissions',
+        active: isNavActive('/permissions'),
         visible: !!user.value?.readAnyPermissions,
         onSelect: () => {
           open.value = false
@@ -139,6 +154,7 @@ const links = computed(() => {
         label: 'Conveyance Bills',
         icon: 'i-lucide-receipt-text',
         to: '/bills',
+        active: isNavActive('/bills'),
         visible: !!(user.value?.readAnyBills || user.value?.readOwnBills),
         onSelect: () => {
           open.value = false
@@ -150,11 +166,13 @@ const links = computed(() => {
         icon: 'i-lucide-settings',
         defaultOpen: true,
         type: 'trigger' as const,
+        active: isNavActive('/settings'),
         children: [
           {
             label: 'General',
             to: '/settings',
             exact: true,
+            active: isNavActive('/settings', true),
             onSelect: () => {
               open.value = false
             }
@@ -176,6 +194,7 @@ const links = computed(() => {
           {
             label: 'Security',
             to: '/settings/security',
+            active: isNavActive('/settings/security'),
             onSelect: () => {
               open.value = false
             }
@@ -188,6 +207,7 @@ const links = computed(() => {
         label: 'API Client',
         icon: 'i-lucide-code',
         to: '/api',
+        active: isNavActive('/api'),
         visible: import.meta.dev
       }
       // {
