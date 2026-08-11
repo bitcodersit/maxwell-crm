@@ -24,6 +24,21 @@ const canUpdate = computed(() => !!user.value?.updateAnyTargets)
 
 const recurrence = computed(() => task.value?.parent?.recurrence || task.value?.recurrence)
 
+const historyOpen = ref(false)
+
+const fillUp = computed(() => {
+  const items = task.value?.items || []
+  const totalItems = items.length
+  const completedItems = items.filter(item => item.status === TaskItemStatus.COMPLETED).length
+  const fillUpPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0
+  return {
+    totalItems,
+    completedItems,
+    fillUpPercent,
+    isFilledUp: totalItems > 0 && completedItems === totalItems
+  }
+})
+
 const onDelete = async () => {
   if (!(await confirm('Are you sure you want to delete this target?'))) return
 
@@ -142,15 +157,24 @@ const attachments = computed<TAttachment[]>({
             class="flex-none -ml-1 p-0"
             @click="router.push('/targets')"
           />
-          <UButton
-            v-if="canDelete"
-            icon="i-lucide-trash"
-            label="Delete"
-            color="error"
-            variant="outline"
-            :loading="isDeleting"
-            @click="onDelete"
-          />
+          <div class="flex items-center gap-2">
+            <UButton
+              icon="i-lucide-history"
+              label="Cycle history"
+              color="neutral"
+              variant="subtle"
+              @click="historyOpen = true"
+            />
+            <UButton
+              v-if="canDelete"
+              icon="i-lucide-trash"
+              label="Delete"
+              color="error"
+              variant="outline"
+              :loading="isDeleting"
+              @click="onDelete"
+            />
+          </div>
         </div>
         <FormContentEditable
           v-model="task.name"
@@ -197,6 +221,31 @@ const attachments = computed<TAttachment[]>({
             :range-end="task.dueAt"
             :interval-days="recurrence.intervalDays"
           />
+          <UBadge
+            v-if="fillUp.totalItems"
+            size="lg"
+            variant="subtle"
+            :color="fillUp.isFilledUp ? 'success' : fillUp.fillUpPercent > 0 ? 'warning' : 'neutral'"
+            :label="
+              fillUp.isFilledUp
+                ? `Filled up · ${fillUp.completedItems}/${fillUp.totalItems}`
+                : `${fillUp.completedItems}/${fillUp.totalItems} · ${fillUp.fillUpPercent}%`
+            "
+          />
+        </div>
+        <div
+          v-if="fillUp.totalItems"
+          class="space-y-1 max-w-md"
+        >
+          <div class="flex items-center justify-between text-xs text-muted">
+            <span>Cycle fill-up</span>
+            <span>{{ fillUp.fillUpPercent }}%</span>
+          </div>
+          <UProgress
+            :model-value="fillUp.fillUpPercent"
+            :color="fillUp.isFilledUp ? 'success' : 'primary'"
+            size="sm"
+          />
         </div>
       </div>
       <FormEditor
@@ -239,6 +288,10 @@ const attachments = computed<TAttachment[]>({
         />
       </UFormField>
     </div>
+    <TargetHistorySlideover
+      v-model:open="historyOpen"
+      :target-id="id"
+    />
   </div>
   <div
     v-else-if="isNaN(id) || id <= 0"

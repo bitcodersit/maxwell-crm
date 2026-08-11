@@ -11,6 +11,9 @@ export const keys = {
   target(id: MaybeRefOrGetter<number>) {
     return ['/api/targets/{id}', id]
   },
+  targetHistory(id: MaybeRefOrGetter<number>) {
+    return ['/api/targets/{id}/history', id]
+  },
   targets(query?: MaybeRefOrGetter<Record<string, any>>) {
     return query ? ['/api/targets', query] : ['/api/targets']
   },
