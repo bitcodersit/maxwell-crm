@@ -549,6 +549,7 @@ const onView = (item: T, props = viewProps.value) => {
 
 defineExpose({
   onView,
+  onAddNew,
   onUpdate,
   onDelete,
   onDeleteSelected,

@@ -291,6 +291,12 @@ const getPostBody = (v: Record<string, unknown>) => ({
   addressLine1:
     typeof v.addressLine1 === 'string' && v.addressLine1.trim() ? v.addressLine1.trim() : null
 })
+
+const importOpen = ref(false)
+
+const onImportDone = () => {
+  crudRef.value?.refetch()
+}
 </script>
 
 <template>
@@ -306,5 +312,40 @@ const getPostBody = (v: Record<string, unknown>) => ({
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
+  >
+    <template #actions>
+      <UTooltip text="Bulk import customers">
+        <UButton
+          icon="i-lucide-upload"
+          size="sm"
+          color="neutral"
+          variant="subtle"
+          @click="
+            () => {
+              importOpen = true
+            }
+          "
+        >
+          Bulk Import
+        </UButton>
+      </UTooltip>
+      <UTooltip text="Add new item">
+        <UButton
+          icon="i-lucide-plus"
+          size="sm"
+          color="primary"
+          variant="solid"
+          @click="() => crudRef?.onAddNew()"
+        >
+          Add New
+        </UButton>
+      </UTooltip>
+    </template>
+  </BaseCrud>
+
+  <CustomerImportModal
+    v-model:open="importOpen"
+    @success="onImportDone"
+    @failed="onImportDone"
   />
 </template>
