@@ -313,6 +313,7 @@ const importConfig: TBaseCrudImport = {
     ref="crudRef"
     get-url="/api/customers"
     post-url="/api/customers"
+    export-url="/api/customers/export"
     delete-url="/api/customers/{id}"
     :modal="modal"
     :fields="fields"
