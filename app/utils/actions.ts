@@ -11,5 +11,14 @@ export const actions = {
     label: 'Delete',
     icon: 'i-lucide-trash',
     color: 'error' as const
+  },
+  restore: {
+    label: 'Restore',
+    icon: 'i-lucide-rotate-ccw'
+  },
+  deleteForever: {
+    label: 'Delete permanently',
+    icon: 'i-lucide-trash-2',
+    color: 'error' as const
   }
 }

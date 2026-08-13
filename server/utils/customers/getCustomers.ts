@@ -16,6 +16,7 @@ export const zGetCustomers = z
     idsNotIn: zIds(),
     createdAt: zDateObject().nullish(),
     updatedAt: zDateObject().nullish(),
+    deletedAt: zDateObject().nullish(),
     options: zBoolean().default(false),
     orderBy: zOrderByRecord([
       'id',
@@ -26,7 +27,8 @@ export const zGetCustomers = z
       'organization',
       'creatorId',
       'createdAt',
-      'updatedAt'
+      'updatedAt',
+      'deletedAt'
     ])
   })
   .and(zPagination())
@@ -35,6 +37,7 @@ export const getCustomers = async (
   event: H3Event,
   options?: {
     input?: TZGetCustomers
+    trashed?: boolean
   }
 ) => {
   const user = await getCurrentUser(event)
@@ -81,6 +84,7 @@ export const getCustomers = async (
     }))
     .date('createdAt')
     .date('updatedAt')
+    .date('deletedAt')
     .id('idsNotIn', ids => {
       if ('in' in ids) {
         return {
@@ -91,7 +95,7 @@ export const getCustomers = async (
       }
     })
     .extend({
-      deletedAt: null,
+      deletedAt: options?.trashed ? { not: null } : null,
       userRoles: {
         some: {
           role: {

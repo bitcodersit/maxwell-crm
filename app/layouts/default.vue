@@ -171,6 +171,16 @@ const links = computed(() => {
         }
       },
       {
+        label: 'Trash',
+        icon: 'i-lucide-trash-2',
+        to: '/trash',
+        active: isNavActive('/trash'),
+        visible: !!(user.value?.readAnyUsers || user.value?.readOwnUsers),
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      {
         label: 'Settings',
         to: '/settings',
         icon: 'i-lucide-settings',

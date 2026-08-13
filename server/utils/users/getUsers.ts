@@ -15,8 +15,18 @@ export const zGetUsers = z
     isCreatorOfTeam: zBoolean().nullish(),
     createdAt: zDateObject().nullish(),
     updatedAt: zDateObject().nullish(),
+    deletedAt: zDateObject().nullish(),
     options: zBoolean().default(false),
-    orderBy: zOrderByRecord(['id', 'name', 'email', 'phone', 'creatorId', 'createdAt', 'updatedAt'])
+    orderBy: zOrderByRecord([
+      'id',
+      'name',
+      'email',
+      'phone',
+      'creatorId',
+      'createdAt',
+      'updatedAt',
+      'deletedAt'
+    ])
       .default([
         {
           id: 'desc'
@@ -30,6 +40,7 @@ export const getUsers = async (
   event: H3Event,
   options?: {
     input?: TZGetUsers
+    trashed?: boolean
   }
 ) => {
   const user = await getCurrentUser(event)
@@ -55,6 +66,7 @@ export const getUsers = async (
     .text('email')
     .date('createdAt')
     .date('updatedAt')
+    .date('deletedAt')
     .id('roleIds', roleId => ({
       userRoles: {
         some: {
@@ -103,7 +115,7 @@ export const getUsers = async (
       }
     }))
     .extend({
-      deletedAt: null,
+      deletedAt: options?.trashed ? { not: null } : null,
       userRoles: {
         none: {
           role: {

@@ -18,17 +18,17 @@ const _useDashboard = () => {
     'g-b': () => router.push('/bills'),
     'g-c': () => router.push('/customers'),
     'g-s': () => router.push('/settings'),
-    'n': () => (isNotificationsOpen.value = !isNotificationsOpen.value)
+    n: () => (isNotificationsOpen.value = !isNotificationsOpen.value)
   })
 
   watch(
     () => route.fullPath,
-    (path) => {
+    path => {
       isNotificationsOpen.value = false
-      const titleItem = titlesMap.find((item) => {
+      const titleItem = titlesMap.find(item => {
         return item.exact ? path === item.path : path.startsWith(item.path)
       })
-      const linksItem = linksMap.find((item) => {
+      const linksItem = linksMap.find(item => {
         return path.startsWith(item.path)
       })
       title.value = titleItem?.title ?? ''
@@ -61,23 +61,23 @@ const titlesMap = [
   },
   {
     path: '/leads',
-    title: 'Leads',
+    title: 'Leads'
   },
   {
     path: '/properties',
-    title: 'Property Inventory',
+    title: 'Property Inventory'
   },
   {
     path: '/pipeline',
-    title: 'Sales Pipeline',
+    title: 'Sales Pipeline'
   },
   {
     path: '/followups',
-    title: 'Follow-ups',
+    title: 'Follow-ups'
   },
   {
     path: '/tasks',
-    title: 'Tasks',
+    title: 'Tasks'
   },
   {
     path: '/bills',
@@ -102,6 +102,10 @@ const titlesMap = [
   {
     path: '/customers',
     title: 'Customers'
+  },
+  {
+    path: '/trash',
+    title: 'Trash'
   },
   {
     exact: true,

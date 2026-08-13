@@ -123,6 +123,8 @@ const props = withDefaults(
     gridClass?: string
     leftClass?: string
     deleteUrl?: string | ((item: T | T[]) => string)
+    restoreUrl?: string | ((item: T | T[]) => string)
+    permanentDelete?: boolean
     dateFields?: string[]
     perPageOptions?: number[]
     initialQuery?: TQuery
@@ -145,6 +147,7 @@ const props = withDefaults(
     getPatchBody: (state: TFormState) => state,
     getFormState: (v?: T) => ({ ...(v ?? {}) }),
     perPageOptions: () => [5, 10, 20, 30, 40, 50, 100],
+    permanentDelete: false,
     formItem: () => ({
       size: 'xl',
       class: 'w-full'
@@ -159,6 +162,7 @@ const {
   patchUrl,
   exportUrl,
   deleteUrl,
+  restoreUrl,
   dateFields,
   getPostBody,
   getPatchBody,
@@ -457,38 +461,49 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
 const { confirm } = useConfirm()
 const onDelete = async (item: T | T[]) => {
   if (!deleteUrl.value) throw new Error('Delete URL is not set')
-  const url =
-    typeof deleteUrl.value === 'function'
-      ? deleteUrl.value(item)
-      : deleteUrl.value.replace(
-          '{id}',
-          Array.isArray(item) ? item.map(x => x.id).join(',') : item.id
-        )
-  if (await confirm('Are you sure you want to delete this item?')) {
-    isSubmitting.value = true
-    $fetch(url, { method: 'DELETE' })
-      .then(() => {
-        toast.add({
-          color: 'success',
-          title: 'Success! 🎉',
-          description: 'Item deleted successfully'
-        })
-        refetch()
-        viewModal.value = false
+  const url = resolveItemUrl(deleteUrl.value, item)
+  const count = Array.isArray(item) ? item.length : 1
+  const isPermanent = props.permanentDelete
+  const confirmed = await confirm(
+    isPermanent
+      ? {
+          title: 'Delete permanently',
+          description:
+            count > 1
+              ? `Permanently delete ${count} items? This cannot be undone.`
+              : 'Permanently delete this item? This cannot be undone.',
+          confirmLabel: 'Delete permanently'
+        }
+      : 'Are you sure you want to delete this item?'
+  )
+  if (!confirmed) return
+  isSubmitting.value = true
+  $fetch(url, { method: 'DELETE' })
+    .then(() => {
+      toast.add({
+        color: 'success',
+        title: 'Success! 🎉',
+        description: isPermanent
+          ? count > 1
+            ? 'Items permanently deleted'
+            : 'Item permanently deleted'
+          : 'Item deleted successfully'
       })
-      .catch(e => {
-        const { message } = parseError(e)
-        toast.add({
-          color: 'error',
-          title: 'Error! 😭',
-          description: message
-        })
+      refetch()
+      viewModal.value = false
+    })
+    .catch(e => {
+      const { message } = parseError(e)
+      toast.add({
+        color: 'error',
+        title: 'Error! 😭',
+        description: message
       })
-      .finally(() => {
-        isSubmitting.value = false
-        selected.value = {}
-      })
-  }
+    })
+    .finally(() => {
+      isSubmitting.value = false
+      selected.value = {}
+    })
 }
 
 const getSelectedRows = () => {
@@ -503,6 +518,60 @@ const onDeleteSelected = () => {
   const items = getSelectedRowItems()
   if (!items?.length) return
   onDelete(items)
+}
+
+const resolveItemUrl = (
+  url: string | ((item: T | T[]) => string),
+  item: T | T[]
+) => {
+  return typeof url === 'function'
+    ? url(item)
+    : url.replace('{id}', Array.isArray(item) ? item.map(x => x.id).join(',') : item.id)
+}
+
+const onRestore = async (item: T | T[]) => {
+  if (!restoreUrl.value) throw new Error('Restore URL is not set')
+  const url = resolveItemUrl(restoreUrl.value, item)
+  const count = Array.isArray(item) ? item.length : 1
+  const confirmed = await confirm({
+    title: 'Restore',
+    description:
+      count > 1
+        ? `Are you sure you want to restore ${count} items?`
+        : 'Are you sure you want to restore this item?',
+    confirmLabel: 'Restore',
+    confirmColor: 'primary'
+  })
+  if (!confirmed) return
+  isSubmitting.value = true
+  $fetch(url, { method: 'POST' })
+    .then(() => {
+      toast.add({
+        color: 'success',
+        title: 'Success! 🎉',
+        description: count > 1 ? 'Items restored successfully' : 'Item restored successfully'
+      })
+      refetch()
+      viewModal.value = false
+    })
+    .catch(e => {
+      const { message } = parseError(e)
+      toast.add({
+        color: 'error',
+        title: 'Error! 😭',
+        description: message
+      })
+    })
+    .finally(() => {
+      isSubmitting.value = false
+      selected.value = {}
+    })
+}
+
+const onRestoreSelected = () => {
+  const items = getSelectedRowItems()
+  if (!items?.length) return
+  onRestore(items)
 }
 
 const onGotoFirstPage = () => {
@@ -566,6 +635,8 @@ defineExpose({
   onUpdate,
   onDelete,
   onDeleteSelected,
+  onRestore,
+  onRestoreSelected,
   refetch
 })
 
@@ -698,11 +769,28 @@ const onImportDone = () => {
             </UTooltip>
             <!-- <slot name="bulk-actions" /> -->
             <UButton
-              label="Delete"
+              v-if="restoreUrl"
+              label="Restore"
+              size="sm"
+              color="primary"
+              variant="subtle"
+              icon="i-lucide-rotate-ccw"
+              :ui="{ leadingIcon: 'size-4' }"
+              @click="onRestoreSelected"
+            >
+              <template #trailing>
+                <UKbd size="sm">
+                  {{ getSelectedRowItems().length }}
+                </UKbd>
+              </template>
+            </UButton>
+            <UButton
+              v-if="deleteUrl"
+              :label="permanentDelete ? 'Delete permanently' : 'Delete'"
               size="sm"
               color="error"
               variant="subtle"
-              icon="i-lucide-trash"
+              :icon="permanentDelete ? 'i-lucide-trash-2' : 'i-lucide-trash'"
               :ui="{ leadingIcon: 'size-4' }"
               @click="onDeleteSelected"
             >

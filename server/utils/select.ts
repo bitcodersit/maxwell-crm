@@ -1,4 +1,5 @@
 export const selectTimestamp = {
   createdAt: true,
-  updatedAt: true
+  updatedAt: true,
+  deletedAt: true
 }

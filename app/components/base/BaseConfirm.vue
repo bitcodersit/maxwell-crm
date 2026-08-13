@@ -4,6 +4,7 @@ export type TConfirmProps = {
   description?: string
   cancelLabel?: string
   confirmLabel?: string
+  confirmColor?: 'error' | 'primary' | 'success' | 'neutral'
   onConfirm?: () => Promise<any>
 }
 
@@ -11,7 +12,8 @@ const props = withDefaults(defineProps<TConfirmProps>(), {
   title: 'Confirm',
   description: 'Are you sure you want to do this?',
   cancelLabel: 'Cancel',
-  confirmLabel: 'Confirm'
+  confirmLabel: 'Confirm',
+  confirmColor: 'error'
 })
 
 const emit = defineEmits<{
@@ -40,7 +42,7 @@ const onConfirm = async () => {
   >
     <template #footer>
       <UButton
-        color="error"
+        :color="confirmColor"
         :label="confirmLabel"
         :loading="loading"
         @click="onConfirm"
