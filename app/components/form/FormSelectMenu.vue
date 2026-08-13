@@ -1,22 +1,25 @@
+<script lang="ts">
+import type { InputMenuProps } from '@nuxt/ui'
+
+export type TFormSelectMenuProps = {
+  api: string
+  query?: Record<string, any>
+  labelKey?: string
+  placeholder?: string
+  class?: any
+  icon?: string
+  disabled?: boolean
+  size?: InputMenuProps['size']
+  clear?: InputMenuProps['clear']
+}
+</script>
+
 <script setup lang="ts">
-const props = withDefaults(
-  defineProps<{
-    api: string
-    query?: Record<string, any>
-    labelKey?: string
-    placeholder?: string
-    size?: string
-    class?: any
-    icon?: string
-    clear?: boolean | object
-    disabled?: boolean
-  }>(),
-  {
-    icon: 'i-lucide-search',
-    labelKey: 'name',
-    clear: true
-  }
-)
+const props = withDefaults(defineProps<TFormSelectMenuProps>(), {
+  icon: 'i-lucide-search',
+  labelKey: 'name',
+  clear: true
+})
 
 const model = defineModel<any>()
 const open = ref(false)

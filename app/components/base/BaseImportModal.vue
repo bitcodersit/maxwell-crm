@@ -1,22 +1,44 @@
 <script setup lang="ts">
-export type TCustomerImportFailedRow = {
+export type TImportFailedRow = {
   row: number
-  name?: string
-  phone?: string
-  email?: string
-  company?: string
-  designation?: string
-  addressLine1?: string
   errors: string[]
+  [key: string]: unknown
 }
 
-type TImportResult = {
+export type TImportResult = {
   imported: number
-  failed: TCustomerImportFailedRow[]
+  failed: TImportFailedRow[]
   total: number
 }
 
+export type TImportFailedColumn = {
+  key: string
+  label: string
+}
+
 const open = defineModel<boolean>('open', { default: false })
+
+const props = withDefaults(
+  defineProps<{
+    title?: string
+    description?: string
+    importUrl: string
+    exampleUrl: string
+    entityLabel?: string
+    dropzoneDescription?: string
+    failedColumns?: TImportFailedColumn[]
+  }>(),
+  {
+    title: 'Bulk Import',
+    description: 'Upload a CSV or Excel file to import multiple rows at once',
+    entityLabel: 'item',
+    dropzoneDescription: 'CSV or Excel (.xlsx, .xls) — one row per record',
+    failedColumns: () => [
+      { key: 'name', label: 'Name' },
+      { key: 'email', label: 'Email' }
+    ]
+  }
+)
 
 const emit = defineEmits<{
   success: [result: TImportResult]
@@ -27,7 +49,7 @@ const toast = useToast()
 const file = ref<File | null>(null)
 const importing = ref(false)
 const failedOpen = ref(false)
-const failedRows = ref<TCustomerImportFailedRow[]>([])
+const failedRows = ref<TImportFailedRow[]>([])
 const importSummary = ref({ imported: 0, total: 0 })
 
 const accept =
@@ -41,7 +63,8 @@ watch(open, value => {
 })
 
 const downloadExample = (format: 'xlsx' | 'csv' = 'xlsx') => {
-  window.open(`/api/customers/import/example?format=${format}`, '_blank')
+  const separator = props.exampleUrl.includes('?') ? '&' : '?'
+  window.open(`${props.exampleUrl}${separator}format=${format}`, '_blank')
 }
 
 const onImport = async () => {
@@ -59,7 +82,7 @@ const onImport = async () => {
     const body = new FormData()
     body.append('file', file.value)
 
-    const result = await $fetch<TImportResult>('/api/customers/import', {
+    const result = await $fetch<TImportResult>(props.importUrl, {
       method: 'POST',
       body
     })
@@ -76,7 +99,7 @@ const onImport = async () => {
     open.value = false
     toast.add({
       title: 'Import successful',
-      description: `${result.imported} customer${result.imported === 1 ? '' : 's'} imported`,
+      description: `${result.imported} ${props.entityLabel}${result.imported === 1 ? '' : 's'} imported`,
       color: 'success'
     })
     emit('success', result)
@@ -91,13 +114,19 @@ const onImport = async () => {
     importing.value = false
   }
 }
+
+const cellValue = (row: TImportFailedRow, key: string) => {
+  const value = row[key]
+  if (value == null || value === '') return '—'
+  return String(value)
+}
 </script>
 
 <template>
   <UModal
     v-model:open="open"
-    title="Bulk Import Customers"
-    description="Upload a CSV or Excel file to create multiple customers at once"
+    :title="title"
+    :description="description"
     :ui="{ content: 'max-w-lg' }"
   >
     <template #body>
@@ -109,7 +138,7 @@ const onImport = async () => {
           layout="list"
           position="inside"
           label="Drop your file here"
-          description="CSV or Excel (.xlsx, .xls) — one customer per row"
+          :description="dropzoneDescription"
           class="w-full min-h-40"
           size="lg"
         />
@@ -165,22 +194,30 @@ const onImport = async () => {
           <thead class="bg-elevated sticky top-0">
             <tr class="text-left">
               <th class="px-3 py-2 font-medium">Row</th>
-              <th class="px-3 py-2 font-medium">Name</th>
-              <th class="px-3 py-2 font-medium">Phone</th>
-              <th class="px-3 py-2 font-medium">Email</th>
+              <th
+                v-for="column in failedColumns"
+                :key="column.key"
+                class="px-3 py-2 font-medium"
+              >
+                {{ column.label }}
+              </th>
               <th class="px-3 py-2 font-medium">Errors</th>
             </tr>
           </thead>
           <tbody>
             <tr
               v-for="row in failedRows"
-              :key="`${row.row}-${row.phone || row.name}`"
+              :key="row.row"
               class="border-t border-default align-top"
             >
               <td class="px-3 py-2 text-muted whitespace-nowrap">{{ row.row }}</td>
-              <td class="px-3 py-2">{{ row.name || '—' }}</td>
-              <td class="px-3 py-2 whitespace-nowrap">{{ row.phone || '—' }}</td>
-              <td class="px-3 py-2">{{ row.email || '—' }}</td>
+              <td
+                v-for="column in failedColumns"
+                :key="column.key"
+                class="px-3 py-2"
+              >
+                {{ cellValue(row, column.key) }}
+              </td>
               <td class="px-3 py-2 text-error">
                 <ul class="list-disc pl-4 space-y-0.5">
                   <li

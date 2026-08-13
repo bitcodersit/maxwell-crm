@@ -1,5 +1,6 @@
 <script lang="ts">
 /* eslint-disable no-unused-vars */
+import type { TImportFailedColumn } from '@/components/base/BaseImportModal.vue'
 import type { TFilterCheckboxProps } from '@/components/filter/FilterCheckbox.vue'
 import type { TFilterDateProps } from '@/components/filter/FilterDate.vue'
 import type { TFilterInputProps } from '@/components/filter/FilterInput.vue'
@@ -84,6 +85,17 @@ export type TBaseCrudModal = {
   form?: (v: { mode: TFormMode }) => ModalProps
 }
 
+export type TBaseCrudImport = {
+  importUrl: string
+  exampleUrl: string
+  title?: string
+  description?: string
+  entityLabel?: string
+  dropzoneDescription?: string
+  failedColumns?: TImportFailedColumn[]
+  buttonLabel?: string
+}
+
 type TQuery = {
   page?: number
   perPage?: number
@@ -106,6 +118,7 @@ const props = withDefaults(
     patchUrl?: string | ((state: TFormState) => string)
     formItem?: Record<string, unknown>
     exportUrl?: string
+    importConfig?: TBaseCrudImport
     formClass?: string
     gridClass?: string
     leftClass?: string
@@ -585,6 +598,12 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
   })
   exportOpen.value = false
 }
+
+// Import
+const importOpen = ref(false)
+const onImportDone = () => {
+  refetch()
+}
 //
 </script>
 
@@ -668,6 +687,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             <UTooltip text="Clear selection">
               <UButton
                 icon="i-lucide-list-todo"
+                size="sm"
                 color="error"
                 variant="subtle"
                 :ui="{ leadingIcon: 'size-4' }"
@@ -679,6 +699,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
             <!-- <slot name="bulk-actions" /> -->
             <UButton
               label="Delete"
+              size="sm"
               color="error"
               variant="subtle"
               icon="i-lucide-trash"
@@ -686,7 +707,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
               @click="onDeleteSelected"
             >
               <template #trailing>
-                <UKbd>
+                <UKbd size="sm">
                   {{ getSelectedRowItems().length }}
                 </UKbd>
               </template>
@@ -702,8 +723,7 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
               <UButton
                 icon="i-lucide-download"
                 size="sm"
-                color="primary"
-                variant="solid"
+                color="neutral"
                 label="Export"
               />
             </UTooltip>
@@ -763,6 +783,22 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
               </UForm>
             </template>
           </UPopover>
+          <UTooltip
+            v-if="importConfig"
+            :text="importConfig.buttonLabel || 'Bulk Import'"
+          >
+            <UButton
+              icon="i-lucide-upload"
+              size="sm"
+              color="neutral"
+              :label="importConfig.buttonLabel || 'Import'"
+              @click="
+                () => {
+                  importOpen = true
+                }
+              "
+            />
+          </UTooltip>
           <slot
             v-if="showAddButton"
             name="actions"
@@ -1012,5 +1048,18 @@ const onSubmitExport = async (_values: FormSubmitEvent<typeof exportState.value>
         </div>
       </template>
     </UModal>
+    <BaseImportModal
+      v-if="importConfig"
+      v-model:open="importOpen"
+      :title="importConfig.title"
+      :description="importConfig.description"
+      :import-url="importConfig.importUrl"
+      :example-url="importConfig.exampleUrl"
+      :entity-label="importConfig.entityLabel"
+      :dropzone-description="importConfig.dropzoneDescription"
+      :failed-columns="importConfig.failedColumns"
+      @success="onImportDone"
+      @failed="onImportDone"
+    />
   </ClientOnly>
 </template>

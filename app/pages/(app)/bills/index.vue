@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type {
+  TBaseCrudImport,
   TBaseCrudModal,
   TColumn,
   TField,
@@ -470,6 +471,22 @@ const getPostBody = (v: Record<string, any>) => ({
   amount: Number(v.amount || 0),
   purpose: typeof v.purpose === 'string' && v.purpose.trim() ? v.purpose.trim() : null
 })
+
+const importConfig: TBaseCrudImport = {
+  importUrl: '/api/bills/import',
+  exampleUrl: '/api/bills/import/example',
+  title: 'Bulk Import Conveyance Bills',
+  description: 'Upload a CSV or Excel file. Identify each employee by userId or email.',
+  entityLabel: 'bill',
+  dropzoneDescription: 'CSV or Excel (.xlsx, .xls) — employee via userId or email',
+  failedColumns: [
+    { key: 'userId', label: 'User ID' },
+    { key: 'email', label: 'Email' },
+    { key: 'type', label: 'Type' },
+    { key: 'date', label: 'Date' },
+    { key: 'amount', label: 'Amount' }
+  ]
+}
 </script>
 
 <template>
@@ -486,7 +503,9 @@ const getPostBody = (v: Record<string, any>) => ({
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
+    :import-config="importConfig"
   />
+
   <UModal
     v-model:open="statusModalOpen"
     title="Apply Bill Transition"
@@ -532,7 +551,11 @@ const getPostBody = (v: Record<string, any>) => ({
         <UButton
           color="neutral"
           variant="ghost"
-          @click="statusModalOpen = false"
+          @click="
+            () => {
+              statusModalOpen = false
+            }
+          "
         >
           Close
         </UButton>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type {
+  TBaseCrudImport,
   TBaseCrudModal,
   TColumn,
   TField,
@@ -292,10 +293,18 @@ const getPostBody = (v: Record<string, unknown>) => ({
     typeof v.addressLine1 === 'string' && v.addressLine1.trim() ? v.addressLine1.trim() : null
 })
 
-const importOpen = ref(false)
-
-const onImportDone = () => {
-  crudRef.value?.refetch()
+const importConfig: TBaseCrudImport = {
+  importUrl: '/api/customers/import',
+  exampleUrl: '/api/customers/import/example',
+  title: 'Bulk Import Customers',
+  description: 'Upload a CSV or Excel file to create multiple customers at once',
+  entityLabel: 'customer',
+  dropzoneDescription: 'CSV or Excel (.xlsx, .xls) — one customer per row',
+  failedColumns: [
+    { key: 'name', label: 'Name' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'email', label: 'Email' }
+  ]
 }
 </script>
 
@@ -312,40 +321,6 @@ const onImportDone = () => {
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
-  >
-    <template #actions>
-      <UTooltip text="Bulk import customers">
-        <UButton
-          icon="i-lucide-upload"
-          size="sm"
-          color="neutral"
-          variant="subtle"
-          @click="
-            () => {
-              importOpen = true
-            }
-          "
-        >
-          Bulk Import
-        </UButton>
-      </UTooltip>
-      <UTooltip text="Add new item">
-        <UButton
-          icon="i-lucide-plus"
-          size="sm"
-          color="primary"
-          variant="solid"
-          @click="() => crudRef?.onAddNew()"
-        >
-          Add New
-        </UButton>
-      </UTooltip>
-    </template>
-  </BaseCrud>
-
-  <CustomerImportModal
-    v-model:open="importOpen"
-    @success="onImportDone"
-    @failed="onImportDone"
+    :import-config="importConfig"
   />
 </template>
