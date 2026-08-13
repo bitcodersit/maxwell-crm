@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type {
+  TBaseCrudImport,
   TBaseCrudModal,
   TColumn,
   TField,
@@ -312,6 +313,20 @@ const getPostBody = (v: Record<string, unknown>) => {
   if (pwd) body.password = pwd
   return body
 }
+
+const importConfig: TBaseCrudImport = {
+  importUrl: '/api/users/import',
+  exampleUrl: '/api/users/import/example',
+  title: 'Bulk Import Users',
+  description: 'Upload a CSV or Excel file to create multiple users at once',
+  entityLabel: 'user',
+  dropzoneDescription: 'CSV or Excel (.xlsx, .xls) — roles by name or id (comma-separated)',
+  failedColumns: [
+    { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
+    { key: 'roles', label: 'Roles' }
+  ]
+}
 </script>
 
 <template>
@@ -328,5 +343,6 @@ const getPostBody = (v: Record<string, unknown>) => {
     :get-actions="getActions"
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
+    :import-config="importConfig"
   />
 </template>

@@ -266,7 +266,6 @@ const getPostBody = (v: Record<string, any>) => ({
     ref="crudRef"
     get-url="/api/roles"
     post-url="/api/roles"
-    export-url="/api/roles/export"
     delete-url="/api/roles/{id}"
     :fields="fields"
     :columns="columns"
