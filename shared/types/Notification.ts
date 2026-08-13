@@ -1,6 +1,6 @@
 import type { TMaybe, TPrettify } from '.'
-import type { NotificationType, NotificationSubjectType } from '~~/prisma/client/enums'
 import type { TUser } from './User'
+import type { NotificationType, NotificationSubjectType } from '~~/prisma/client/enums'
 
 export type TNotificationInboxItem = {
   id: number

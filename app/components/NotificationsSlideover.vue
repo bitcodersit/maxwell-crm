@@ -1,16 +1,9 @@
 <script setup lang="ts">
-import { formatTimeAgo } from '@vueuse/core'
 import type { TNotificationInboxItem } from '~~/shared/types'
+import { formatTimeAgo } from '@vueuse/core'
 
 const { isNotificationsOpen } = useDashboard()
-const {
-  notifications,
-  hasUnread,
-  pending,
-  refresh,
-  markRead,
-  markAllRead
-} = useNotifications()
+const { notifications, hasUnread, pending, refresh, markRead, markAllRead } = useNotifications()
 const { getAttachment } = useGetAttachment()
 const router = useRouter()
 

@@ -36,7 +36,11 @@ export const mapNotificationInboxItem = (row: TNotificationInboxRow) => {
 
   let href = hrefFromData
   if (!href && notification.subjectType === 'LEAD') {
-    href = sid ? `/leads/${sid}` : notification.subjectId ? `/leads/${notification.subjectId}` : null
+    href = sid
+      ? `/leads/${sid}`
+      : notification.subjectId
+        ? `/leads/${notification.subjectId}`
+        : null
   }
   if (!href && notification.subjectType === 'PROPERTY' && notification.subjectId) {
     href = `/properties/${notification.subjectId}`
@@ -59,5 +63,3 @@ export const mapNotificationInboxItem = (row: TNotificationInboxRow) => {
     createdAt: row.createdAt.toISOString()
   }
 }
-
-export type TNotificationInboxItem = ReturnType<typeof mapNotificationInboxItem>
