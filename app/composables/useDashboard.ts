@@ -64,6 +64,10 @@ const titlesMap = [
     title: 'Leads'
   },
   {
+    path: '/deals',
+    title: 'Deals'
+  },
+  {
     path: '/properties',
     title: 'Property Inventory'
   },
