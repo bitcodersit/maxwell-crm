@@ -16,33 +16,10 @@ export const postBillTransition = async (
 ) => {
   const user = await getCurrentUser(event)
   const input = await getInput(event, zPostBillTransition, options)
+  const payload = await getBillTransitionPayload(input.id, user)
+  if (!payload) throw err.notFound()
 
-  const bill = await prisma.bill.findUnique({
-    where: {
-      id: input.id
-    },
-    select: {
-      id: true,
-      date: true,
-      amount: true,
-      status: true,
-      purpose: true,
-      userId: true,
-      user: selectUserForEmail,
-      type: {
-        select: {
-          name: true
-        }
-      }
-    }
-  })
-
-  if (!bill) throw err.notFound()
-  const transition = billTransitions.init(bill.status, {
-    user,
-    bill: bill as TBill
-  })
-
+  const transition = billTransitions.init(payload.bill.status, payload)
   const [error] = await transition.apply(input.transition)
   if (error) {
     return createError({

@@ -150,11 +150,15 @@ async function seedPermissions(conn) {
     'properties',
     'bills'
   ]
-  const subjects = ['any', 'own']
+  const subjects = ['any', 'own', 'team']
 
-  const names = operations.flatMap(op =>
-    modules.flatMap(mod => subjects.map(sub => `${op}-${sub}-${mod}`))
-  )
+  const names = [
+    ...operations.flatMap(op =>
+      modules.flatMap(mod => subjects.map(sub => `${op}-${sub}-${mod}`))
+    ),
+    'approve-any-bills',
+    'reject-any-bills'
+  ]
 
   const values = names.map(() => '(?, NOW(3), NOW(3))').join(', ')
   await conn.query(

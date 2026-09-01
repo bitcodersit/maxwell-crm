@@ -266,15 +266,19 @@ async function main() {
     'visits',
     'comments'
   ]
-  const subjects = ['any', 'own']
+  const subjects = ['any', 'own', 'team']
 
-  const permissionsData = operations.flatMap(operation =>
-    modules.flatMap(module =>
-      subjects.map(subject => ({
-        name: `${operation}-${subject}-${module}`
-      }))
-    )
-  )
+  const permissionsData = [
+    ...operations.flatMap(operation =>
+      modules.flatMap(module =>
+        subjects.map(subject => ({
+          name: `${operation}-${subject}-${module}`
+        }))
+      )
+    ),
+    { name: 'approve-any-bills' },
+    { name: 'reject-any-bills' }
+  ]
 
   const permissions = await Promise.all(
     permissionsData.map(permission =>

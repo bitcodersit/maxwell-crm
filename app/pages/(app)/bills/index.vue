@@ -18,13 +18,15 @@ const UBadge = resolveComponent('UBadge')
 const { confirm } = useConfirm()
 const { user } = useCurrentUser()
 
-const isAdmin = computed(() => !!user.value?.updateAnyBills)
+const canAssignEmployee = computed(
+  () => !!(user.value?.createAnyBills || user.value?.createTeamBills)
+)
 
 const statusColorMap: Record<string, 'neutral' | 'success' | 'warning' | 'error'> = {
   New: 'neutral',
   Pending: 'warning',
   Approved: 'success',
-  Cancelled: 'neutral',
+  Cancelled: 'error',
   Rejected: 'error'
 }
 
@@ -93,34 +95,63 @@ const canUpdateBill = (item: TBill) => {
   const workflowCanUpdate = getWorkflowMeta(item).canUpdate
   if (typeof workflowCanUpdate === 'boolean') return workflowCanUpdate
   const status = String(item.status || '')
-  return (
-    isAdmin.value ||
-    (item.author?.id === user.value?.id && ['New', 'Cancelled', 'Rejected'].includes(status))
-  )
+  const isOwn = item.author?.id === user.value?.id || item.user?.id === user.value?.id
+  if (status === 'New' || status === 'Cancelled') {
+    return !!(
+      isOwn &&
+      (user.value?.updateAnyBills || user.value?.updateOwnBills || user.value?.updateTeamBills)
+    )
+  }
+  const editable = ['Rejected'].includes(status)
+  if (user.value?.updateAnyBills) return true
+  if (user.value?.updateTeamBills && editable) return true
+  return !!(isOwn && editable)
 }
 
 const canDeleteBill = (item: TBill) => {
   const workflowCanDelete = getWorkflowMeta(item).canDelete
   if (typeof workflowCanDelete === 'boolean') return workflowCanDelete
   const status = String(item.status || '')
-  return (
-    isAdmin.value || (item.author?.id === user.value?.id && ['New', 'Cancelled'].includes(status))
-  )
+  const isOwn = item.author?.id === user.value?.id || item.user?.id === user.value?.id
+  if (status === 'New' || status === 'Cancelled') {
+    return !!(
+      isOwn &&
+      (user.value?.deleteAnyBills || user.value?.deleteOwnBills || user.value?.deleteTeamBills)
+    )
+  }
+  return !!user.value?.deleteAnyBills
+}
+
+const previewOpen = ref(false)
+const previewBill = ref<TMaybe<TBill>>()
+
+const onOpenPreview = (item: TBill) => {
+  previewBill.value = item
+  previewOpen.value = true
+}
+
+const approvalNames = (item: TBill) => {
+  return (item.approvals || []).map(approval => approval.user?.name).filter(Boolean)
 }
 
 const statusModalOpen = ref(false)
 const statusModalBill = ref<TMaybe<TBill>>()
 
-const { data: transitions } = useQuery({
+const { data: transitions, refetch: refetchTransitions } = useQuery({
   enabled: computed(() => {
-    return statusModalOpen.value && !!statusModalBill.value?.id
+    return !!(
+      (statusModalOpen.value && statusModalBill.value?.id) ||
+      (previewOpen.value && previewBill.value?.id)
+    )
   }),
   queryKey: computed(() => {
-    return [`/api/bills/${statusModalBill.value?.id}/transitions`] as const
+    const id = statusModalOpen.value ? statusModalBill.value?.id : previewBill.value?.id
+    const status = statusModalOpen.value ? statusModalBill.value?.status : previewBill.value?.status
+    return [`/api/bills/${id}/transitions`, status] as const
   }),
   initialData: () => [],
   queryFn: ({ queryKey: [url] }) => {
-    return $fetch<Array<any>>(url)
+    return $fetch<Array<any>>(String(url))
   }
 })
 
@@ -129,25 +160,56 @@ const onOpenStatusModal = (item: TBill) => {
   statusModalOpen.value = true
 }
 
-const onChangeStatusFromModal = async (transition: any) => {
-  const id = statusModalBill.value?.id
-  if (!id) return
+const statusModalTransitions = ref<any[]>([])
+watch(
+  [statusModalOpen, transitions],
+  ([open, list]) => {
+    if (open) statusModalTransitions.value = (list as any[]) || []
+  },
+  { immediate: true }
+)
+
+const refreshPreviewBill = async (id?: number) => {
+  const billId = id ?? previewBill.value?.id
+  if (!billId || !previewOpen.value) return
+  if (previewBill.value?.id && previewBill.value.id !== billId) return
+  const updated = await $fetch<TBill>(`/api/bills/${billId}`)
+  previewBill.value = updated
+  if (statusModalOpen.value && statusModalBill.value?.id === billId) statusModalBill.value = updated
+  refetchTransitions()
+}
+
+const onFormSuccess = async (_item: unknown, mode: 'create' | 'update') => {
+  if (mode !== 'update') return
+  await refreshPreviewBill()
+}
+
+const applyBillTransition = async (id: number, transition: any) => {
+  const isRevokeLeader = transition.name === 'revokeLeader'
   confirm({
-    title: 'Change Status',
-    description: `Change status for bill #${id} to ${transition.to}?`,
+    title: isRevokeLeader ? 'Cancel approval' : 'Change Status',
+    description: isRevokeLeader
+      ? `Remove your approval from bill #${id}? The bill will stay pending.`
+      : `Change status for bill #${id} to ${transition.to}?`,
     onConfirm: async () => {
       return $fetch(`/api/bills/${id}/transitions`, {
         method: 'POST',
         body: {
           transition: transition.name
         }
-      }).then(() => {
+      }).then(async () => {
         statusModalOpen.value = false
-        statusModalBill.value = null
         crudRef.value?.refetch()
+        await refreshPreviewBill(id)
       })
     }
   })
+}
+
+const onChangeStatusFromModal = async (transition: any) => {
+  const id = statusModalBill.value?.id || previewBill.value?.id
+  if (!id) return
+  return applyBillTransition(id, transition)
 }
 
 const fields = computed<TField[]>(() => [
@@ -155,7 +217,7 @@ const fields = computed<TField[]>(() => [
     name: 'userId',
     type: 'select-menu',
     label: 'Employee',
-    hidden: !user.value.createAnyBills,
+    hidden: !canAssignEmployee.value,
     props: {
       api: '/api/users',
       query: {
@@ -178,10 +240,10 @@ const fields = computed<TField[]>(() => [
   },
   {
     name: 'date',
-    type: 'input',
+    type: 'date',
     label: 'Bill Date',
     props: {
-      type: 'date'
+      placeholder: 'Pick a date'
     }
   },
   {
@@ -191,7 +253,8 @@ const fields = computed<TField[]>(() => [
     props: {
       type: 'number',
       step: 0.01,
-      min: 0
+      min: 0,
+      placeholder: '0.00'
     }
   },
   {
@@ -246,21 +309,33 @@ const columns = computed<TColumn<TBill>[]>(() => [
     header: 'Status',
     sortBy: 'status',
     cell: ({ row }) =>
-      h(UBadge, {
-        label: row.original.status,
-        color: statusColorMap[row.original.status] || 'neutral',
-        variant: 'soft',
-        class: 'cursor-pointer',
-        onClick: (() => {
-          onOpenStatusModal(row.original)
-        }) as any
-      })
+      h(
+        'div',
+        {
+          class: 'w-fit',
+          'data-stop-row-click': ''
+        },
+        [
+          h(UBadge, {
+            label: row.original.status,
+            color: statusColorMap[row.original.status] || 'neutral',
+            variant: 'soft',
+            class: 'cursor-pointer w-fit',
+            onClick: ((e: Event) => {
+              e.stopPropagation()
+              onOpenStatusModal(row.original)
+            }) as any
+          })
+        ]
+      )
   },
   {
-    accessorKey: 'reviewer',
-    header: 'Reviewer',
-    sortBy: 'reviewerId',
-    cell: ({ row }) => row.original.reviewer?.name || '—'
+    accessorKey: 'approvals',
+    header: 'Approved By',
+    cell: ({ row }) => {
+      const names = approvalNames(row.original)
+      return names.length ? names.join(', ') : '—'
+    }
   },
   {
     accessorKey: 'author',
@@ -296,33 +371,7 @@ const columns = computed<TColumn<TBill>[]>(() => [
   }
 ])
 
-const filters: TFilter[] = [
-  // {
-  //   name: 'q',
-  //   type: 'inline-input',
-  //   props: {
-  //     placeholder: 'Search purpose...'
-  //   }
-  // },
-  // {
-  //   name: 'id',
-  //   type: 'input',
-  //   props: {
-  //     label: 'ID',
-  //     placeholder: 'eg 1 or 1,2,3 or 1-10'
-  //   }
-  // },
-  // {
-  //   name: 'status',
-  //   type: 'checkbox-api',
-  //   props: {
-  //     label: 'Status',
-  //     api: '/api/enums',
-  //     query: {
-  //       type: 'BillStatus'
-  //     }
-  //   }
-  // },
+const filters = computed<TFilter[]>(() => [
   {
     name: 'status',
     type: 'tabs',
@@ -355,7 +404,6 @@ const filters: TFilter[] = [
       }
     }
   },
-
   {
     name: 'date',
     type: 'date',
@@ -363,21 +411,7 @@ const filters: TFilter[] = [
       label: 'Date'
     }
   }
-  // {
-  //   name: 'createdAt',
-  //   type: 'date',
-  //   props: {
-  //     label: 'Created'
-  //   }
-  // },
-  // {
-  //   name: 'updatedAt',
-  //   type: 'date',
-  //   props: {
-  //     label: 'Updated'
-  //   }
-  // }
-]
+])
 
 const modal: TBaseCrudModal = {
   form: ({ mode }) => ({
@@ -385,7 +419,7 @@ const modal: TBaseCrudModal = {
     description:
       mode === 'create' ? 'Create a conveyance bill entry' : 'Update conveyance bill details',
     ui: {
-      content: 'max-w-2xl'
+      content: 'max-w-lg'
     }
   })
 }
@@ -396,13 +430,7 @@ const getActions: TGetActions<TBill> = (item, v) => [
       ...actions.view,
       hidden: v?.view,
       onSelect() {
-        crudRef.value?.onView(item, {
-          modal: {
-            ui: {
-              content: 'max-w-2xl'
-            }
-          }
-        })
+        onOpenPreview(item)
       }
     },
     {
@@ -454,9 +482,16 @@ const getActions: TGetActions<TBill> = (item, v) => [
   ].filter((action: any) => !action.hidden)
 ]
 
+const previewActions = computed(() => {
+  if (!previewBill.value) return []
+  return getActions(previewBill.value, { view: true })
+    .flat()
+    .filter(action => action.label !== 'Change Status')
+})
+
 const getFormState = (v?: TBill) => ({
   id: v?.id,
-  userId: user.value.createAnyBills ? v?.user?.id : user.value.id,
+  userId: canAssignEmployee.value ? v?.user : user.value,
   typeId: v?.type,
   date: toYmd(v?.date || new Date()),
   amount: v?.amount != null ? Number(v.amount) : undefined,
@@ -465,7 +500,7 @@ const getFormState = (v?: TBill) => ({
 
 const getPostBody = (v: Record<string, any>) => ({
   id: v.id,
-  userId: user.value.createAnyBills ? v.userId?.id : user.value.id,
+  userId: canAssignEmployee.value ? v.userId?.id : user.value.id,
   typeId: v.typeId?.id,
   date: toDate(v.date),
   amount: Number(v.amount || 0),
@@ -504,6 +539,16 @@ const importConfig: TBaseCrudImport = {
     :get-post-body="getPostBody"
     :get-form-state="getFormState"
     :import-config="importConfig"
+    :on-row-click="onOpenPreview"
+    :on-form-success="onFormSuccess"
+  />
+
+  <BillPreviewSlideover
+    v-model:open="previewOpen"
+    :bill="previewBill"
+    :actions="previewActions"
+    :transitions="transitions"
+    @transition="onChangeStatusFromModal"
   />
 
   <UModal
@@ -519,7 +564,7 @@ const importConfig: TBaseCrudImport = {
     <template #body>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <UButton
-          v-for="transition in transitions"
+          v-for="transition in statusModalTransitions"
           :key="transition.name"
           :color="transition.meta?.color || 'neutral'"
           block
@@ -540,7 +585,7 @@ const importConfig: TBaseCrudImport = {
         </UButton>
       </div>
       <p
-        v-if="!transitions.length"
+        v-if="!statusModalTransitions.length"
         class="text-sm text-muted text-center py-6"
       >
         No transitions available for current status.

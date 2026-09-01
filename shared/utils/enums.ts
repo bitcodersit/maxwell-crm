@@ -8,6 +8,7 @@ import {
   BoardModule,
   VisitStatus,
   BillStatus,
+  BillApprovalStage,
   PropertyStatus,
   FollowUpType,
   FollowUpStatus
@@ -23,6 +24,7 @@ export {
   BoardModule,
   VisitStatus,
   BillStatus,
+  BillApprovalStage,
   PropertyStatus,
   FollowUpType,
   FollowUpStatus

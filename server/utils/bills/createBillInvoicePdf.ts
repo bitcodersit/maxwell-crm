@@ -115,8 +115,15 @@ export const createBillInvoicePdf = async (bill: TBill) => {
   page.setFont(helvetica)
 
   line(page, 684, { label: 'Employee', value: bill.user?.name || '—' })
-  line(page, 666, { label: 'Reviewer', value: bill.reviewer?.name || '—' })
-  line(page, 648, { label: 'Prepared by', value: bill.author?.name || '—' })
+  line(page, 666, { label: 'Prepared by', value: bill.author?.name || '—' })
+  line(page, 648, {
+    label: 'Approved By',
+    value:
+      (bill.approvals || [])
+        .map(approval => approval.user?.name)
+        .filter(Boolean)
+        .join(', ') || '—'
+  })
 
   page.setFont(helveticaBold)
   page.drawText('Bill Details', {

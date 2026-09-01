@@ -6,7 +6,7 @@ export const zExportBills = zGetBills.and(zExportable())
 
 export const exportBills = async (event: H3Event, options?: { input?: TZExportBills }) => {
   const user = await getCurrentUser(event)
-  if (!user.exportAnyBills) {
+  if (!user.exportAnyBills && !user.exportTeamBills && !user.exportOwnBills) {
     throw err.denied()
   }
 
@@ -57,8 +57,12 @@ export const exportBills = async (event: H3Event, options?: { input?: TZExportBi
       purpose: true,
       type: v => v.type?.name || '',
       user: v => v.user?.name || '',
-      reviewer: v => v.reviewer?.name || '',
       author: v => v.author?.name || '',
+      'Approved By': v =>
+        (v.approvals || [])
+          .map(approval => approval.user?.name)
+          .filter(Boolean)
+          .join(', '),
       createdAt: v => new Date(v.createdAt as Date).toISOString(),
       updatedAt: v => new Date(v.updatedAt as Date).toISOString()
     }

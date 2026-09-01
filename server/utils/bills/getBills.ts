@@ -8,12 +8,15 @@ export const zGetBills = z
     id: zIds(),
     userId: zIds(),
     authorId: zIds(),
-    reviewerId: zIds(),
     typeId: zIds(),
     status: zArray(z.array(z.enum(BillStatus)).nullish()),
     date: zDateObject().nullish(),
     createdAt: zDateObject().nullish(),
     updatedAt: zDateObject().nullish(),
+    awaiting: z.preprocess(
+      v => (v === 'leader' || v === 'accountant' ? v : undefined),
+      z.enum(['leader', 'accountant']).optional()
+    ),
     options: zBoolean().default(false),
     orderBy: zOrderByRecord([
       'id',
@@ -22,7 +25,6 @@ export const zGetBills = z
       'status',
       'userId',
       'authorId',
-      'reviewerId',
       'typeId',
       'createdAt',
       'updatedAt'
@@ -38,11 +40,15 @@ export const zGetBills = z
 
 export const getBills = async (event: H3Event, options?: { input?: TZGetBills }) => {
   const user = await getCurrentUser(event)
-  if (!user.readAnyBills && !user.readOwnBills) {
+  if (!canReadBills(user)) {
     throw err.denied()
   }
 
   const input = options?.input ?? (await validate(getQuery(event), zGetBills))
+  const awaiting =
+    user.readAnyBills && !user.approveAnyBills && !user.rejectAnyBills && !user.readTeamBills
+      ? 'accountant'
+      : undefined
 
   const orderBy = getOrderBy2(input.orderBy, {
     userId(order) {
@@ -55,13 +61,6 @@ export const getBills = async (event: H3Event, options?: { input?: TZGetBills })
     authorId(order) {
       return {
         author: {
-          name: order
-        }
-      }
-    },
-    reviewerId(order) {
-      return {
-        reviewer: {
           name: order
         }
       }
@@ -79,7 +78,6 @@ export const getBills = async (event: H3Event, options?: { input?: TZGetBills })
     .id('id')
     .id('userId')
     .id('authorId')
-    .id('reviewerId')
     .id('typeId')
     .text('q', ['purpose'])
     .date('date')
@@ -93,7 +91,8 @@ export const getBills = async (event: H3Event, options?: { input?: TZGetBills })
               in: input.status
             }
           } as any)
-        : {})
+        : {}),
+      ...(awaitingPendingWhere(awaiting) || {})
     })
     .scope(v => getScopedBill(v, user))
     .get()

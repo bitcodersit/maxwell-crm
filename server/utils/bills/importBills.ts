@@ -188,7 +188,7 @@ const findDuplicateBill = async (input: TZCreateBill) => {
 
 export const importBills = async (event: H3Event): Promise<TBillImportResult> => {
   const currentUser = await getCurrentUser(event)
-  if (!currentUser.createAnyBills && !currentUser.createOwnBills) {
+  if (!currentUser.createAnyBills && !currentUser.createTeamBills && !currentUser.createOwnBills) {
     throw err.denied()
   }
 

@@ -2,8 +2,8 @@ import type { TMaybe } from '.'
 import type { TUserRole } from './UserRole'
 import type { Attachment, User } from '~~/prisma/client/client'
 
-type TScope = 'Any' | 'Own'
-type TOperation = 'create' | 'read' | 'update' | 'delete' | 'export'
+type TScope = 'Any' | 'Own' | 'Team'
+type TOperation = 'create' | 'read' | 'update' | 'delete' | 'export' | 'approve' | 'reject'
 
 type TModule =
   | 'Users'

@@ -45,9 +45,9 @@ model User {
     tasksReviewed  Task[]     @relation("TaskReviewer")
     tasksSubmitted Task[]     @relation("TaskSubmitter")
 
-    bills           Bill[] @relation("BillUser")
-    billsAsAuthor   Bill[] @relation("BillAuthor")
-    billsAsReviewer Bill[] @relation("BillReviewer")
+    bills         Bill[]         @relation("BillUser")
+    billsAsAuthor Bill[]         @relation("BillAuthor")
+    billApprovals BillApproval[] @relation("BillApprovalUser")
 
     assignableUsers           AssignableUser[] @relation("AssignableUser")
     assignableUsersAsAssigner AssignableUser[] @relation("AssignableUserAssigner")
@@ -621,6 +621,13 @@ enum BillStatus {
     Rejected
 }
 
+enum BillApprovalStage {
+    Leader
+    Accountant
+    Admin
+    Reject
+}
+
 model Lead {
     id  Int    @id @default(autoincrement())
     sid String @unique @db.VarChar(32)
@@ -770,9 +777,6 @@ model Bill {
     authorId Int?
     author   User? @relation("BillAuthor", fields: [authorId], references: [id], onDelete: SetNull)
 
-    reviewerId Int?
-    reviewer   User? @relation("BillReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
-
     typeId Int
     type   Option @relation("BillTypeOption", fields: [typeId], references: [id], onDelete: Restrict)
 
@@ -783,16 +787,36 @@ model Bill {
 
     reviewedAt DateTime?
 
+    approvals BillApproval[]
+
     createdAt DateTime  @default(now())
     updatedAt DateTime  @default(now()) @updatedAt
     deletedAt DateTime?
 
     @@index([userId, date])
     @@index([authorId, date])
-    @@index([reviewerId])
     @@index([typeId])
     @@index([status])
     @@map("bills")
+}
+
+model BillApproval {
+    id Int @id @default(autoincrement())
+
+    billId Int
+    userId Int
+    stage  BillApprovalStage
+
+    bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+    user User @relation("BillApprovalUser", fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    @@index([billId])
+    @@index([userId])
+    @@index([stage])
+    @@map("bill_approvals")
 }
 
 enum PropertyStatus {

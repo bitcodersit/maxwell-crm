@@ -8,7 +8,7 @@ export const zGetBill = z.object({
 
 export const getBill = async (event: H3Event, options?: { input?: TZGetBill }) => {
   const user = await getCurrentUser(event)
-  if (!user.readAnyBills && !user.readOwnBills) {
+  if (!canReadBills(user)) {
     throw err.denied()
   }
 

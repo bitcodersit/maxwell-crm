@@ -175,7 +175,7 @@ const links = computed(() => {
         icon: 'i-lucide-receipt-text',
         to: '/bills',
         active: isNavActive('/bills'),
-        visible: !!(user.value?.readAnyBills || user.value?.readOwnBills),
+        visible: !!(user.value?.readAnyBills || user.value?.readTeamBills || user.value?.readOwnBills),
         onSelect: () => {
           open.value = false
         }

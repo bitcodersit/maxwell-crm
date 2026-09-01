@@ -14,24 +14,9 @@ export const getBillTransitions = async (
   }
 ) => {
   const input = await getInput(event, zGetBillTransitions, options)
-  const bill = await prisma.bill.findUnique({
-    where: {
-      id: input.id
-    },
-    select: {
-      status: true,
-      userId: true
-    }
-  })
-
-  if (!bill) throw err.notFound()
-
   const user = await getCurrentUser(event)
-  return billTransitions.list(
-    {
-      user,
-      bill: bill as TBill
-    },
-    bill.status
-  )
+  const payload = await getBillTransitionPayload(input.id, user)
+  if (!payload) throw err.notFound()
+
+  return billTransitions.list(payload, payload.bill.status)
 }

@@ -2,7 +2,8 @@
 type TItem = Record<string, any>
 
 export type TFilterTabsProps<Item extends TItem = TItem> = {
-  api: string
+  api?: string
+  items?: Item[]
   query?: Record<string, any>
   getLabel?: (item: Item) => string
   getValue?: (item: Item) => number | string
@@ -25,17 +26,19 @@ const queryKey = computed(() => {
 })
 
 const { data } = useQuery({
+  enabled: computed(() => !!props.api),
   queryKey,
   initialData: () => toPaginated<Item>(),
   queryFn: ({ queryKey: [api, query] }) => {
-    return $fetch<TPaginated<Item>>(api, { query })
+    return $fetch<TPaginated<Item>>(api!, { query })
   }
 })
 
 const items = computed(() => {
+  const rows = props.items?.length ? props.items : data.value.data
   return [
     { label: 'All', value: '' },
-    ...data.value.data.map(item => {
+    ...rows.map(item => {
       return {
         label: props.getLabel(item),
         value: props.getValue(item)

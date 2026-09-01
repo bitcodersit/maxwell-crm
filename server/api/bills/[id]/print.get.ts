@@ -1,6 +1,6 @@
 export default defineEventHandler(async event => {
   const user = await getCurrentUser(event)
-  if (!user.readAnyBills && !user.readOwnBills) {
+  if (!canReadBills(user)) {
     throw err.denied()
   }
 

@@ -39,10 +39,16 @@ export const upsertBill = async (event: H3Event, options?: { input?: TZUpsertBil
         date: true,
         amount: true,
         purpose: true,
-        authorId: true
+        authorId: true,
+        status: true
       }
     })
     if (!bill) throw err.notFound()
+    if (!(await canUpdateBillRecord(user, bill))) throw err.denied()
+
+    if (input.userId && input.userId !== bill.userId) {
+      if (!(await canCreateBillForUser(user, input.userId))) throw err.denied()
+    }
 
     const data: Prisma.BillUpdateInput = {}
 
@@ -77,6 +83,8 @@ export const upsertBill = async (event: H3Event, options?: { input?: TZUpsertBil
       message: 'Bill updated successfully'
     }
   }
+
+  if (!(await canCreateBillForUser(user, input.userId))) throw err.denied()
 
   await prisma.bill.create({
     data: {

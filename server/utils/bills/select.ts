@@ -21,11 +21,21 @@ export const selectBillForTable = {
     updatedAt: true,
     user: selectUserForDisplay,
     author: selectUserForDisplay,
-    reviewer: selectUserForDisplay,
     type: {
       select: {
         id: true,
         name: true
+      }
+    },
+    approvals: {
+      orderBy: {
+        createdAt: 'asc' as const
+      },
+      select: {
+        id: true,
+        stage: true,
+        createdAt: true,
+        user: selectUserForDisplay
       }
     }
   }

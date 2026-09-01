@@ -6,6 +6,7 @@ import type { TFilterDateProps } from '@/components/filter/FilterDate.vue'
 import type { TFilterInputProps } from '@/components/filter/FilterInput.vue'
 import type { TFilterTabsProps } from '@/components/filter/FilterTabs.vue'
 import type { TFormAutocompleteProps } from '@/components/form/FormAutocomplete.vue'
+import type { TFormDateProps } from '@/components/form/FormDate.vue'
 import type { TFormSelectMenuProps } from '@/components/form/FormSelectMenu.vue'
 import type {
   TableData,
@@ -66,6 +67,7 @@ export type TField =
       | { type: 'textarea'; props?: TextareaProps }
       | { type: 'autocomplete'; props: TFormAutocompleteProps }
       | { type: 'select-menu'; props: TFormSelectMenuProps }
+      | { type: 'date'; props?: TFormDateProps }
       | { type: 'team-members'; props?: Record<string, any> }
       | {
           type: 'attachments'
@@ -133,6 +135,8 @@ const props = withDefaults(
     getPatchBody?: TFormBodyGetter
     getFormState?: (item?: T) => TFormState
     showAddButton?: boolean
+    onRowClick?: (item: T) => void
+    onFormSuccess?: (item: any, mode: TFormMode) => void
   }>(),
   {
     showAddButton: true,
@@ -270,51 +274,77 @@ const getInfoPopup = (options: TInfoPopup) => {
   )
 }
 
+const wrapRowClick = (columnId: string | undefined, rendered: unknown, item: T) => {
+  if (!props.onRowClick || columnId === 'select' || columnId === 'action') {
+    return rendered
+  }
+  return h(
+    'div',
+    {
+      class: 'cursor-pointer min-h-full',
+      onClick: (e: MouseEvent) => {
+        const target = e.target as HTMLElement | null
+        if (target?.closest('button, a, input, [role="checkbox"], [data-stop-row-click]')) return
+        props.onRowClick?.(item)
+      }
+    },
+    [rendered as any]
+  )
+}
+
 const mColumns = computed<TableColumn<T>[]>(() => {
   return columns.value.map(({ pinned, cell, sortBy, header, display, ...item }) => {
+    const columnId = String(item.id ?? (item as any).accessorKey ?? '')
     return {
       ...item,
-      cell: display
-        ? ctx => {
-            const getValue = (v?: unknown) => {
-              return typeof cell === 'function'
-                ? cell({ ...ctx, ...(v as Record<string, unknown>) })
-                : !cell
-                  ? ctx.row.original[(item as any).accessorKey]
-                  : cell
-            }
-            if (display.type === 'text') {
-              const text = getValue()
-              if (typeof text !== 'string' || !text) return text
-              return h('div', { class: ['flex items-center', display.class] }, [
-                h('div', { class: 'truncate' }, text),
-                text.length > display.length
-                  ? getInfoPopup({
-                      class: display.class,
-                      label: 'more',
-                      content: () => text
-                    })
-                  : null
-              ])
-            }
-            if (display.type === 'array') {
-              const items = getValue()
-              if (!Array.isArray(items) || !items.length) return items
-              const visible = items.slice(0, display.slice)
-              const hidden = items.length - visible.length
-              return h('div', { class: 'flex items-center' }, [
-                ...visible,
-                hidden > 0
-                  ? getInfoPopup({
-                      class: display.class,
-                      label: `+${hidden} more`,
-                      content: () => getValue({ modal: true })
-                    })
-                  : null
-              ])
-            }
+      cell: ctx => {
+        const getValue = (v?: unknown) => {
+          return typeof cell === 'function'
+            ? cell({ ...ctx, ...(v as Record<string, unknown>) })
+            : !cell
+              ? ctx.row.original[(item as any).accessorKey]
+              : cell
+        }
+        let rendered: unknown
+        if (display?.type === 'text') {
+          const text = getValue()
+          if (typeof text !== 'string' || !text) {
+            rendered = text
+          } else {
+            rendered = h('div', { class: ['flex items-center', display.class] }, [
+              h('div', { class: 'truncate' }, text),
+              text.length > display.length
+                ? getInfoPopup({
+                    class: display.class,
+                    label: 'more',
+                    content: () => text
+                  })
+                : null
+            ])
           }
-        : cell,
+        } else if (display?.type === 'array') {
+          const items = getValue()
+          if (!Array.isArray(items) || !items.length) {
+            rendered = items
+          } else {
+            const visible = items.slice(0, display.slice)
+            const hidden = items.length - visible.length
+            rendered = h('div', { class: 'flex items-center' }, [
+              ...visible,
+              hidden > 0
+                ? getInfoPopup({
+                    class: display.class,
+                    label: `+${hidden} more`,
+                    content: () => getValue({ modal: true })
+                  })
+                : null
+            ])
+          }
+        } else {
+          rendered = getValue()
+        }
+        return wrapRowClick(columnId, rendered, ctx.row.original)
+      },
       header({ column, ...rest }) {
         if (pinned && !column.getIsPinned()) {
           column.pin(pinned)
@@ -436,6 +466,7 @@ const onSubmit = async (event: FormSubmitEvent<TFormState>) => {
       formOpen.value = false
       selected.value = {}
       refetch()
+      props.onFormSuccess?.(item, formMode.value)
       if (viewModal.value && viewItem.value) {
         onView(item as T)
       }
@@ -1093,6 +1124,11 @@ const onImportDone = () => {
                 />
                 <FormSelectMenu
                   v-else-if="row.type === 'select-menu'"
+                  v-model="formState[row.name]"
+                  v-bind="{ ...formItem, ...row.props }"
+                />
+                <FormDate
+                  v-else-if="row.type === 'date'"
                   v-model="formState[row.name]"
                   v-bind="{ ...formItem, ...row.props }"
                 />
