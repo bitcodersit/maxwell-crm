@@ -50,6 +50,16 @@ const links = computed(() => {
         }
       },
       {
+        label: 'Deals',
+        icon: 'i-lucide-kanban',
+        to: '/deals',
+        active: isNavActive('/deals'),
+        visible: !!(user.value?.readAnyLeads || user.value?.readOwnLeads),
+        onSelect: () => {
+          open.value = false
+        }
+      },
+      {
         label: 'Properties',
         icon: 'i-lucide-building-2',
         to: '/properties',

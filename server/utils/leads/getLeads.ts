@@ -76,6 +76,8 @@ const zGetLeadsFilter = z
     createdAtMode: zDateMode,
     updatedAt: zOptionalText,
     updatedAtMode: zDateMode,
+    // true = only leads already on a board (deals), false = only leads not on any board
+    boardItems: zBoolean().optional(),
     options: z.preprocess(
       value => (value === undefined ? false : isTrue(value)),
       z.boolean().default(false)
@@ -280,6 +282,9 @@ export const getLeadWhere = (input: TZGetLeads): Prisma.LeadWhereInput => {
   if (input.updatedAt) {
     const updatedAt = getDateFilter(input.updatedAt, input.updatedAtMode)
     if (updatedAt) and.push({ updatedAt })
+  }
+  if (input.boardItems !== undefined) {
+    and.push(input.boardItems ? { boardItems: { some: {} } } : { boardItems: { none: {} } })
   }
   if (input.q) {
     const filter = getTextFilter(input.q, 'contains')
