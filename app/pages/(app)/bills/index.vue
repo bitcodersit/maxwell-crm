@@ -21,6 +21,9 @@ const { user } = useCurrentUser()
 const canAssignEmployee = computed(
   () => !!(user.value?.createAnyBills || user.value?.createTeamBills)
 )
+const canReadUsers = computed(
+  () => !!(user.value?.readAnyUsers || user.value?.readTeamUsers || user.value?.readOwnUsers)
+)
 
 const statusColorMap: Record<string, 'neutral' | 'success' | 'warning' | 'error'> = {
   New: 'neutral',
@@ -382,17 +385,21 @@ const filters = computed<TFilter[]>(() => [
       }
     }
   },
-  {
-    name: 'userId',
-    type: 'checkbox-api',
-    props: {
-      label: 'User',
-      api: '/api/users',
-      query: {
-        options: true
-      }
-    }
-  },
+  ...(canReadUsers.value
+    ? ([
+        {
+          name: 'userId',
+          type: 'checkbox-api',
+          props: {
+            label: 'User',
+            api: '/api/users',
+            query: {
+              options: true
+            }
+          }
+        }
+      ] as TFilter[])
+    : []),
   {
     name: 'typeId',
     type: 'checkbox-api',

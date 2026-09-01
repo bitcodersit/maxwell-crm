@@ -136,7 +136,7 @@ const links = computed(() => {
         icon: 'i-lucide-users',
         to: '/users',
         active: isNavActive('/users'),
-        visible: !!(user.value?.readAnyUsers || user.value?.readOwnUsers),
+        visible: !!(user.value?.readAnyUsers || user.value?.readTeamUsers || user.value?.readOwnUsers),
         onSelect: () => {
           open.value = false
         }

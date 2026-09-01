@@ -8,6 +8,29 @@ const isPrivateBillStatus = (status?: string) => {
   return privateStatuses.includes(String(status || '') as (typeof privateStatuses)[number])
 }
 
+export const usersShareTeam = async (userId: number, otherUserId: number) => {
+  if (userId === otherUserId) return true
+  const found = await prisma.teamMember.findFirst({
+    where: {
+      userId,
+      deletedAt: null,
+      team: {
+        deletedAt: null,
+        members: {
+          some: {
+            userId: otherUserId,
+            deletedAt: null
+          }
+        }
+      }
+    },
+    select: {
+      id: true
+    }
+  })
+  return !!found
+}
+
 export const userLeadsBillEmployee = async (leaderId: number, employeeId: number) => {
   const found = await prisma.teamMember.findFirst({
     where: {
@@ -42,6 +65,25 @@ export const ledTeamMemberBillWhere = (userId: number): Prisma.BillWhereInput =>
             some: {
               userId,
               role: TeamMemberRole.LEADER,
+              deletedAt: null
+            }
+          }
+        }
+      }
+    }
+  }
+})
+
+export const sameTeamMemberBillWhere = (userId: number): Prisma.BillWhereInput => ({
+  user: {
+    teamMembers: {
+      some: {
+        deletedAt: null,
+        team: {
+          deletedAt: null,
+          members: {
+            some: {
+              userId,
               deletedAt: null
             }
           }
@@ -156,7 +198,7 @@ export const canSeeBillRecord = async (
   if (isPrivateBillStatus(bill.status)) return isOwnBill(user, bill)
   if (user.readAnyBills) return true
   if (user.readOwnBills && isOwnBill(user, bill)) return true
-  if (user.readTeamBills && (await userLeadsBillEmployee(user.id, bill.userId))) return true
+  if (user.readTeamBills && (await usersShareTeam(user.id, bill.userId))) return true
   return false
 }
 
@@ -187,7 +229,7 @@ export const getScopedBill: TScopeFn<Prisma.BillWhereInput> = (where, user) => {
       access.push(ownBillWhere(user.id))
     }
     if (user.readTeamBills) {
-      access.push(ledTeamMemberBillWhere(user.id))
+      access.push(sameTeamMemberBillWhere(user.id))
     }
     if (access.length) {
       otherBills.push({

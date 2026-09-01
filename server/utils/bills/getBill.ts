@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import z from 'zod'
+import { canReadBills, getScopedBill } from './utils'
 
 export type TZGetBill = z.infer<typeof zGetBill>
 export const zGetBill = z.object({

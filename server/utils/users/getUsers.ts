@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import z from 'zod'
+import { canReadUsers, getScopedUser } from './utils'
 
 export type TZGetUsers = z.infer<typeof zGetUsers>
 export const zGetUsers = z
@@ -44,8 +45,8 @@ export const getUsers = async (
   }
 ) => {
   const user = await getCurrentUser(event)
-  if (!user.readAnyUsers && !user.readOwnUsers) {
-    return err.denied()
+  if (!canReadUsers(user)) {
+    throw err.denied()
   }
 
   const input = options?.input ?? (await validate(getQuery(event), zGetUsers))
