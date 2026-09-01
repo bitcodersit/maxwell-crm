@@ -20,9 +20,8 @@ logs
 
 # Local env files
 .env
-.env.*
-/env
-!.env.example
+.env.local
+.env.*.local
 
 prisma/client
 
