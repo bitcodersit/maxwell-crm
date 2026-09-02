@@ -330,166 +330,169 @@ const getActions: TGetActions<TTask> = (item, v) => [
 
 <template>
   <TargetFormModal v-model:open="formOpen" />
-  <BaseCrud
-    ref="crudRef"
-    get-url="/api/targets"
-    delete-url="/api/targets/{id}"
-    :filters="filters"
-    :columns="columns"
-    :get-actions="getActions"
-    :initial-query="initialQuery"
-    grid-class="grid grid-cols-12 gap-4"
-    left-class="col-span-9"
-  >
-    <template #actions>
-      <UButton
-        trailing-icon="i-lucide-chevron-right"
-        label="Manage"
-        color="neutral"
-        variant="subtle"
-        to="/targets/0"
-      />
-      <UButton
-        icon="i-lucide-plus"
-        label="Create Target"
-        @click="formOpen = true"
-      />
-    </template>
-    <template #top>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <UCard
-          v-for="card in overviewCards"
-          :key="card.icon"
-        >
-          <div class="space-y-3">
-            <div class="flex items-start justify-between">
-              <div>
-                <div
-                  class="rounded-md flex items-center justify-center size-10"
-                  :class="`bg-${card.color}/10`"
-                >
-                  <UIcon
-                    :name="card.icon"
-                    class="size-5"
-                    :class="`text-${card.color}`"
-                  />
+  <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
+    <BaseCrud
+      ref="crudRef"
+      get-url="/api/targets"
+      delete-url="/api/targets/{id}"
+      :filters="filters"
+      :columns="columns"
+      :get-actions="getActions"
+      :initial-query="initialQuery"
+      grid-class="grid grid-cols-12 gap-4 min-h-0"
+      left-class="col-span-9 min-h-0"
+      right-class="col-span-3 min-h-0"
+    >
+      <template #actions>
+        <UButton
+          trailing-icon="i-lucide-chevron-right"
+          label="Manage"
+          color="neutral"
+          variant="subtle"
+          to="/targets/0"
+        />
+        <UButton
+          icon="i-lucide-plus"
+          label="Create Target"
+          @click="formOpen = true"
+        />
+      </template>
+      <template #top>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <UCard
+            v-for="card in overviewCards"
+            :key="card.icon"
+          >
+            <div class="space-y-3">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div
+                    class="rounded-md flex items-center justify-center size-10"
+                    :class="`bg-${card.color}/10`"
+                  >
+                    <UIcon
+                      :name="card.icon"
+                      class="size-5"
+                      :class="`text-${card.color}`"
+                    />
+                  </div>
                 </div>
-              </div>
-              <!-- <UBadge
+                <!-- <UBadge
                 v-if="card.trend"
                 :color="card.tone"
                 variant="soft"
               >
                 {{ card.trend }}
               </UBadge> -->
-            </div>
-            <div class="flex items-end gap-1">
-              <div
-                v-for="(item, index) in card.items"
-                :key="item.name"
-                class="flex-1"
-              >
+              </div>
+              <div class="flex items-end gap-1">
                 <div
-                  class="text-xs uppercase tracking-wide"
-                  :class="[
-                    `text-${item.color}`,
-                    {
-                      'opacity-60': !!index
-                    }
-                  ]"
+                  v-for="(item, index) in card.items"
+                  :key="item.name"
+                  class="flex-1"
                 >
-                  {{ item.name }}
-                </div>
-                <UTooltip :text="item.tooltip">
                   <div
+                    class="text-xs uppercase tracking-wide"
                     :class="[
                       `text-${item.color}`,
                       {
-                        'text-3xl font-bold': !index,
-                        'text-2xl font-semibold opacity-60': !!index
+                        'opacity-60': !!index
                       }
                     ]"
                   >
-                    {{ item.value }}
+                    {{ item.name }}
                   </div>
-                </UTooltip>
+                  <UTooltip :text="item.tooltip">
+                    <div
+                      :class="[
+                        `text-${item.color}`,
+                        {
+                          'text-3xl font-bold': !index,
+                          'text-2xl font-semibold opacity-60': !!index
+                        }
+                      ]"
+                    >
+                      {{ item.value }}
+                    </div>
+                  </UTooltip>
+                </div>
               </div>
             </div>
-          </div>
-        </UCard>
-      </div>
-    </template>
-    <template #right>
-      <div class="space-y-4 col-span-3">
-        <UCard>
-          <template #header>
-            <h3 class="text-lg font-semibold">Goal Performance</h3>
-          </template>
-          <div class="space-y-5">
-            <div class="space-y-1">
-              <div class="flex items-center justify-between text-sm">
-                <span>This Week</span>
-                <span class="font-semibold">{{ data.weekly.percent }}%</span>
+          </UCard>
+        </div>
+      </template>
+      <template #right>
+        <div class="space-y-4">
+          <UCard>
+            <template #header>
+              <h3 class="text-lg font-semibold">Goal Performance</h3>
+            </template>
+            <div class="space-y-5">
+              <div class="space-y-1">
+                <div class="flex items-center justify-between text-sm">
+                  <span>This Week</span>
+                  <span class="font-semibold">{{ data.weekly.percent }}%</span>
+                </div>
+                <UProgress :model-value="data.weekly.percent" />
+                <div class="flex items-center justify-between text-xs text-muted">
+                  <span>{{ data.weekly.done }} / {{ data.weekly.total }} completed</span>
+                  <span>{{ Math.max(data.weekly.total - data.weekly.done, 0) }} remaining</span>
+                </div>
               </div>
-              <UProgress :model-value="data.weekly.percent" />
-              <div class="flex items-center justify-between text-xs text-muted">
-                <span>{{ data.weekly.done }} / {{ data.weekly.total }} completed</span>
-                <span>{{ Math.max(data.weekly.total - data.weekly.done, 0) }} remaining</span>
+              <div class="space-y-1">
+                <div class="flex items-center justify-between text-sm">
+                  <span>This Month</span>
+                  <span class="font-semibold">{{ data.monthly.percent }}%</span>
+                </div>
+                <UProgress
+                  :model-value="data.monthly.percent"
+                  color="warning"
+                />
+                <div class="flex items-center justify-between text-xs text-muted">
+                  <span
+                    >{{ data.monthly.completed.toLocaleString() }} /
+                    {{ data.monthly.target.toLocaleString() }} completed</span
+                  >
+                  <span>
+                    {{ Math.max(data.monthly.target - data.monthly.completed, 0).toLocaleString() }}
+                    remaining
+                  </span>
+                </div>
               </div>
             </div>
-            <div class="space-y-1">
-              <div class="flex items-center justify-between text-sm">
-                <span>This Month</span>
-                <span class="font-semibold">{{ data.monthly.percent }}%</span>
-              </div>
-              <UProgress
-                :model-value="data.monthly.percent"
-                color="warning"
-              />
-              <div class="flex items-center justify-between text-xs text-muted">
-                <span
-                  >{{ data.monthly.completed.toLocaleString() }} /
-                  {{ data.monthly.target.toLocaleString() }} completed</span
-                >
-                <span>
-                  {{ Math.max(data.monthly.target - data.monthly.completed, 0).toLocaleString() }}
-                  remaining
-                </span>
-              </div>
-            </div>
-          </div>
-        </UCard>
+          </UCard>
 
-        <UCard>
-          <template #header>
-            <h3 class="text-lg font-semibold">Top Performers</h3>
-          </template>
-          <div class="space-y-3">
-            <div
-              v-for="member in performers"
-              :key="member.name"
-              class="flex items-center justify-between rounded-md border border-default p-2"
-            >
-              <div>
-                <p class="font-medium">{{ member.name }}</p>
-                <p class="text-xs text-muted">{{ member.role }} · {{ member.active }} active</p>
+          <UCard>
+            <template #header>
+              <h3 class="text-lg font-semibold">Top Performers</h3>
+            </template>
+            <div class="space-y-3">
+              <div
+                v-for="member in performers"
+                :key="member.name"
+                class="flex items-center justify-between rounded-md border border-default p-2"
+              >
+                <div>
+                  <p class="font-medium">{{ member.name }}</p>
+                  <p class="text-xs text-muted">{{ member.role }} · {{ member.active }} active</p>
+                </div>
+                <UBadge
+                  color="success"
+                  variant="soft"
+                  :label="`${member.hitRate}%`"
+                />
               </div>
-              <UBadge
-                color="success"
-                variant="soft"
-                :label="`${member.hitRate}%`"
-              />
+              <UButton
+                block
+                variant="subtle"
+                color="neutral"
+              >
+                View Leaderboard
+              </UButton>
             </div>
-            <UButton
-              block
-              variant="subtle"
-              color="neutral"
-            >
-              View Leaderboard
-            </UButton>
-          </div>
-        </UCard>
-      </div>
-    </template>
-  </BaseCrud>
+          </UCard>
+        </div>
+      </template>
+    </BaseCrud>
+  </div>
 </template>

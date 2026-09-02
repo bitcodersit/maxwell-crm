@@ -124,6 +124,7 @@ const props = withDefaults(
     formClass?: string
     gridClass?: string
     leftClass?: string
+    rightClass?: string
     deleteUrl?: string | ((item: T | T[]) => string)
     restoreUrl?: string | ((item: T | T[]) => string)
     permanentDelete?: boolean
@@ -141,6 +142,7 @@ const props = withDefaults(
   {
     showAddButton: true,
     leftClass: 'col-span-1',
+    rightClass: '',
     gridClass: 'grid grid-cols-1',
     fields: () => [],
     filters: () => [],
@@ -551,10 +553,7 @@ const onDeleteSelected = () => {
   onDelete(items)
 }
 
-const resolveItemUrl = (
-  url: string | ((item: T | T[]) => string),
-  item: T | T[]
-) => {
+const resolveItemUrl = (url: string | ((item: T | T[]) => string), item: T | T[]) => {
   return typeof url === 'function'
     ? url(item)
     : url.replace('{id}', Array.isArray(item) ? item.map(x => x.id).join(',') : item.id)
@@ -711,7 +710,7 @@ const onImportDone = () => {
 
 <template>
   <ClientOnly>
-    <div class="flex-1 flex flex-col gap-4 overflow-hidden">
+    <div class="flex-1 flex flex-col gap-4 overflow-hidden min-h-0 h-full">
       <div class="flex items-center justify-between gap-2 flex-wrap flex-none">
         <div class="flex items-center gap-2 flex-wrap">
           <template
@@ -936,25 +935,30 @@ const onImportDone = () => {
           </slot>
         </div>
       </div>
-      <slot name="top" />
+      <div
+        v-if="$slots.top"
+        class="flex-none"
+      >
+        <slot name="top" />
+      </div>
       <div
         :class="gridClass"
-        class="flex-1 overflow-hidden"
+        class="flex-1 overflow-hidden min-h-0"
       >
         <div
           :class="leftClass"
-          class="flex flex-col overflow-hidden"
+          class="flex flex-col overflow-hidden min-h-0"
         >
           <UTable
             ref="table"
             v-model:row-selection="selected"
-            class="flex-1"
+            class="flex-1 min-h-0"
             :sticky="true"
             :data="data.data"
             :columns="mColumns"
             :loading="isFetching"
             :ui="{
-              root: 'scrollbar',
+              root: 'overflow-auto scrollbar',
               base: 'table-fixed border-separate border-spacing-0',
               thead: '[&>tr]:after:content-none bg-default',
               tbody: '[&>tr]:last:[&>td]:border-b-0',
@@ -996,7 +1000,7 @@ const onImportDone = () => {
             </template>
           </UTable>
           <div
-            class="flex-none flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4"
+            class="flex-none flex flex-wrap items-center justify-between gap-3 border-t border-default pt-3 pb-1"
           >
             <div
               v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
@@ -1031,7 +1035,13 @@ const onImportDone = () => {
             </div>
           </div>
         </div>
-        <slot name="right" />
+        <div
+          v-if="$slots.right"
+          :class="rightClass"
+          class="min-h-0 h-full overflow-y-scroll overscroll-contain scrollbar"
+        >
+          <slot name="right" />
+        </div>
       </div>
     </div>
     <UModal
