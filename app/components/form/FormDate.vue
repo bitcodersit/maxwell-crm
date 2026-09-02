@@ -13,6 +13,7 @@ export type TFormDateProps = Omit<CalendarProps, 'modelValue' | 'placeholder'> &
     outputFormat?: string
     displayFormat?: string
     closeOnSelect?: boolean
+    disabled?: boolean
   }
 
 const props = withDefaults(defineProps<TFormDateProps>(), {
@@ -126,7 +127,7 @@ watch(mode, v => {
 
 <template>
   <UPopover
-    :open="disabled ? false : open"
+    :open="props.disabled ? false : open"
     :arrow="true"
     :ui="{ content: 'p-3 flex flex-col gap-3' }"
     :content="{ align: 'start', side: 'bottom' }"
@@ -140,6 +141,7 @@ watch(mode, v => {
           :ui="{ base: 'text-left' }"
           :size="size"
           :placeholder="placeholder"
+          :disabled="props.disabled"
           class="w-full cursor-pointer"
         />
       </span>

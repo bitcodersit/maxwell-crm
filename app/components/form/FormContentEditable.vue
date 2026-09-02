@@ -1,5 +1,5 @@
 <script setup lang="ts">
-withDefaults(
+const props = withDefaults(
   defineProps<{
     tag?: string
     class?: string
@@ -14,13 +14,20 @@ const model = defineModel<string>({
 })
 
 const emit = defineEmits<{
-  (e: 'blur'): void
+  (e: 'blur', value: string): void
 }>()
 
+const ready = ref(false)
+onMounted(() => {
+  ready.value = true
+})
+
+const isEditable = computed(() => ready.value && !props.disabled)
+
 const onBlur = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  model.value = input.textContent.trim()
-  emit('blur')
+  const next = (event.target as HTMLElement).textContent?.trim() || ''
+  model.value = next
+  emit('blur', next)
 }
 
 const element = useTemplateRef<HTMLElement>('contentEditable')
@@ -36,7 +43,9 @@ watch(model, value => {
     ref="contentEditable"
     :is="tag"
     :class="class"
-    :contenteditable="!disabled"
+    :role="isEditable ? 'textbox' : undefined"
+    :aria-label="isEditable ? 'Target name' : undefined"
+    :contenteditable="isEditable ? 'true' : 'false'"
     @blur="onBlur"
   >
     {{ model }}

@@ -1,6 +1,6 @@
 import z from 'zod'
 import type { Prisma } from '~~/prisma/client/client'
-import { TargetFrequency, TaskItemStatus, TaskKind, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
+import { TargetFrequency, TargetStatus, TaskItemStatus, TaskKind, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
 export type TZTaskItem = z.infer<typeof zTaskItems>
 const zTaskItems = z.object({
@@ -59,7 +59,6 @@ export type TZTargetPost = z.infer<typeof zTargetPost>
 export const zTargetPost = zTaskCommon
   .extend({
     name: zName('Target name is required!'),
-    status: z.enum(TaskStatus).optional().default(TaskStatus.TODO),
     priority: z.enum(TaskPriority).optional().default(TaskPriority.MEDIUM),
     frequency: z.enum(TargetFrequency),
     intervalDays: z.number().int().positive().nullish(),
@@ -75,13 +74,6 @@ export const zTargetPost = zTaskCommon
         message: 'Range end must be on or after range start'
       })
     }
-    if (data.frequency === TargetFrequency.CUSTOM && (!data.intervalDays || data.intervalDays < 1)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['intervalDays'],
-        message: 'Interval days is required for custom frequency'
-      })
-    }
     if (data.endsAt && data.endsAt < data.rangeStart) {
       ctx.addIssue({
         code: 'custom',
@@ -92,8 +84,15 @@ export const zTargetPost = zTaskCommon
   })
 
 export type TZTargetPatch = z.infer<typeof zTargetPatch>
-export const zTargetPatch = zTaskPatch
+export const zTargetPatch = zTaskCommon
   .extend({
+    name: zName('Target name is required!').optional(),
+    startsAt: z.coerce.date().nullish(),
+    dueAt: z.coerce.date().nullish(),
+    targetStatus: z.enum(TargetStatus).nullish(),
+    priority: z.enum(TaskPriority).nullish(),
+    users: z.array(zTaskUser).optional(),
+    teams: z.array(zTaskTeam).optional(),
     frequency: z.enum(TargetFrequency).nullish(),
     intervalDays: z.number().int().positive().nullish(),
     rangeStart: z.coerce.date().nullish(),
@@ -101,13 +100,6 @@ export const zTargetPatch = zTaskPatch
     endsAt: z.coerce.date().nullish()
   })
   .superRefine((data, ctx) => {
-    if (data.frequency === TargetFrequency.CUSTOM && data.intervalDays != null && data.intervalDays < 1) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['intervalDays'],
-        message: 'Interval days must be at least 1'
-      })
-    }
     if (data.rangeStart && data.rangeEnd && data.rangeEnd < data.rangeStart) {
       ctx.addIssue({
         code: 'custom',
@@ -204,6 +196,22 @@ export const TaskInclude = {
 
 export const TargetInclude = {
   ...TaskInclude,
+  users: {
+    select: {
+      id: true,
+      userId: true,
+      user: {
+        select: {
+          ...UserSelectForOptions,
+          avatar: {
+            select: {
+              path: true
+            }
+          }
+        }
+      }
+    }
+  },
   recurrence: true,
   parent: {
     select: {

@@ -1,31 +1,11 @@
 import type { Prisma } from '~~/prisma/client/client'
-import { TaskItemStatus, TaskKind } from '~~/prisma/client/enums'
-
-export type TTargetCycleFillUp = {
-  totalItems: number
-  completedItems: number
-  fillUpPercent: number
-  isFilledUp: boolean
-}
-
-export const getTargetFillUp = (
-  items: { status: TaskItemStatus }[] | null | undefined
-): TTargetCycleFillUp => {
-  const list = items || []
-  const totalItems = list.length
-  const completedItems = list.filter(item => item.status === TaskItemStatus.COMPLETED).length
-  const fillUpPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0
-  return {
-    totalItems,
-    completedItems,
-    fillUpPercent,
-    isFilledUp: totalItems > 0 && completedItems === totalItems
-  }
-}
+import { TaskKind } from '~~/prisma/client/enums'
+import { canReadTargets } from '~~/server/utils/targets'
+import { getTargetFillUp } from '~~/shared/utils/targetWindows'
 
 export const getTargetHistory = async (event: any, occurrenceId: number) => {
   const user = await getCurrentUser(event)
-  if (!user.readAnyTargets || !user.readOwnTargets) {
+  if (!canReadTargets(user)) {
     throw err.denied()
   }
 
@@ -74,11 +54,11 @@ export const getTargetHistory = async (event: any, occurrenceId: number) => {
     return {
       id: row.id,
       name: row.name,
-      status: row.status,
+      status: row.targetStatus,
+      targetStatus: row.targetStatus,
+      startsAt: row.startsAt,
       dueAt: row.dueAt,
       createdAt: row.createdAt,
-      reviewedAt: row.reviewedAt,
-      submittedAt: row.submittedAt,
       ...fillUp,
       items: row.items
     }

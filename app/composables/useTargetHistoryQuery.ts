@@ -1,11 +1,11 @@
 export type TTargetHistoryCycle = {
   id: number
   name: string
-  status: TaskStatus
+  status: TTargetStatus | null
+  targetStatus: TTargetStatus | null
+  startsAt: Date | string | null
   dueAt: Date | string | null
   createdAt: Date | string
-  reviewedAt?: Date | string | null
-  submittedAt?: Date | string | null
   totalItems: number
   completedItems: number
   fillUpPercent: number
@@ -13,7 +13,7 @@ export type TTargetHistoryCycle = {
   items: {
     id: number
     name: string
-    status: TaskItemStatus
+    status: TTaskItemStatus
     completedAt: Date | string | null
   }[]
 }

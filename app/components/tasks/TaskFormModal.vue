@@ -40,7 +40,9 @@ const newForm = (v?: Partial<TTask>): TTask => {
     submittedAt: v?.submittedAt ?? null,
     submitterId: v?.submitterId ?? null,
     parentId: v?.parentId ?? null,
-    attachableId: v?.attachableId ?? null
+    attachableId: v?.attachableId ?? null,
+    targetStatus: v?.targetStatus ?? null,
+    startsAt: v?.startsAt ?? null
   }
 }
 

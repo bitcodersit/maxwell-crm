@@ -16,6 +16,7 @@ defineProps<{
     :class="{ 'text-muted': status === TaskStatus.COMPLETED }"
     variant="soft"
     class="cursor-pointer"
+    :aria-label="`Priority ${capitalize(priority.split('_').join(' ').toLowerCase())}`"
   >
     <UIcon name="i-lucide-flag" />
     {{ capitalize(priority.split('_').join(' ').toLowerCase()) }}

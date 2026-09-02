@@ -19,9 +19,7 @@ const label = computed(() => {
   if (!props.frequency) return 'No recurrence'
   const freq = capitalize(props.frequency.toLowerCase())
   const custom =
-    props.frequency === 'CUSTOM' && props.intervalDays
-      ? ` every ${props.intervalDays}d`
-      : ''
+    props.frequency === 'CUSTOM' && props.intervalDays ? ` every ${props.intervalDays}d` : ''
   const range =
     props.rangeStart && props.rangeEnd
       ? ` · ${$dfc(props.rangeStart, 'dd MMM')}–${$dfc(props.rangeEnd, 'dd MMM yyyy')}`

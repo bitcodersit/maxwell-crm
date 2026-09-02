@@ -22,6 +22,15 @@ export const useTargetPatchMutation = (id: MaybeRefOrGetter<number>) => {
       queryClient.invalidateQueries({
         queryKey: keys.targets()
       })
+      queryClient.invalidateQueries({
+        queryKey: keys.targetsOverview()
+      })
+      queryClient.invalidateQueries({
+        queryKey: keys.targetsLeaderboard()
+      })
+      queryClient.invalidateQueries({
+        queryKey: keys.targetHistory(id)
+      })
     },
     onError(error) {
       const { message, errors } = parseError(error)

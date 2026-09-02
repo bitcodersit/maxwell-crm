@@ -1,9 +1,10 @@
 import type { Prisma } from '~~/prisma/client/client'
 import { TaskKind } from '~~/prisma/client/enums'
+import { canReadTargets, ensureTargetOccurrences } from '~~/server/utils/targets'
 
 export default defineEventHandler(async event => {
   const user = await getCurrentUser(event)
-  if (!user.readAnyTargets || !user.readOwnTargets) {
+  if (!canReadTargets(user)) {
     throw err.denied()
   }
 

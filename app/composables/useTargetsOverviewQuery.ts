@@ -1,39 +1,42 @@
 type TTargetsOverview = typeof initialData
 const initialData = {
   summary: {
-    total: 0,
-    todo: 0,
-    inReview: 0,
-    failed: 0,
-    cancelled: 0,
-    inProgress: 0,
-    completed: 0,
-    goalEligible: 0,
-    goalHit: 0,
-    goalFail: 0,
-    goalHitRate: 0,
-    goalFailRate: 0
+    running: 0,
+    paused: 0,
+    new: 0,
+    achievedMonth: 0,
+    missedMonth: 0,
+    skippedMonth: 0,
+    fillUpPercent: 0,
+    hitRate: 0,
+    missRate: 0,
+    hitEligible: 0
   },
   weekly: {
-    done: 0,
-    total: 0,
+    achieved: 0,
+    missed: 0,
+    skipped: 0,
     remaining: 0,
-    percent: 0,
-    changePercent: 0,
-    volumeChangePercent: 0
+    total: 0,
+    percent: 0
   },
   monthly: {
-    completed: 0,
-    target: 0,
+    achieved: 0,
+    missed: 0,
+    skipped: 0,
     remaining: 0,
-    percent: 0,
-    changePercent: 0,
-    volumeChangePercent: 0
+    total: 0,
+    percent: 0
   },
-  trends: {
-    completedWeekOverWeek: 0,
-    completedMonthOverMonth: 0
-  }
+  performers: [] as {
+    userId: number
+    name: string
+    avatar: { path: string } | null
+    active: number
+    assigned: number
+    achieved: number
+    hitRate: number
+  }[]
 }
 
 export const useTargetsOverviewQuery = () => {

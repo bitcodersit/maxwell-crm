@@ -1,5 +1,5 @@
 import { capitalize } from 'vue'
-import { LeadStatus, TargetFrequency, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
+import { LeadStatus, TargetFrequency, TargetStatus, TaskPriority, TaskStatus } from '~~/prisma/client/enums'
 
 const allowedStatuses: TaskStatus[] = [
   TaskStatus.TODO,
@@ -40,12 +40,20 @@ export const useTaskPriorityItems = (onSelect?: (value: TaskPriority) => void) =
   })
 }
 
-export const useTargetStatusItems = (onSelect?: (value: TaskStatus) => void) => {
+const allowedTargetStatuses: TargetStatus[] = [
+  TargetStatus.RUNNING,
+  TargetStatus.PAUSED,
+  TargetStatus.SKIPPED
+]
+
+export const useTargetStatusItems = (onSelect?: (value: TargetStatus) => void) => {
   const { user } = useCurrentUser()
   return computed(() => {
-    const values = Object.values(TaskStatus)
+    const values = Object.values(TargetStatus)
     return (
-      user.value?.updateAnyTargets ? values : values.filter(v => allowedStatuses.includes(v))
+      user.value?.updateAnyTargets
+        ? values
+        : values.filter(v => allowedTargetStatuses.includes(v))
     ).map(value => ({
       value,
       label: capitalize(value.split('_').join(' ').toLowerCase()),

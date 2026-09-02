@@ -1,7 +1,14 @@
 import type { Prisma } from '~~/prisma/client/client'
 import type { TZTaskItem } from '~~/server/utils/tasks'
-import { TaskItemStatus, TaskKind, TaskStatus, TargetFrequency } from '~~/prisma/client/enums'
-import { advanceRecurrenceWindow } from '~~/server/utils/targets'
+import { TaskItemStatus, TaskKind, TargetFrequency, TargetStatus } from '~~/prisma/client/enums'
+import { startOfDay } from 'date-fns'
+import {
+  canEditTargetCycle,
+  getTargetStatusFromChecklist,
+  isPastTargetCycle,
+  stopTargetSeries
+} from '~~/server/utils/targets'
+import { advanceTargetWindow, isTargetSeriesEndStatus } from '~~/shared/utils/targetWindows'
 
 export default defineEventHandler(async event => {
   const user = await getCurrentUser(event)
@@ -25,30 +32,46 @@ export default defineEventHandler(async event => {
 
   const existing = await prisma.task.findFirst({
     where,
-    select: {
-      id: true,
-      name: true,
-      dueAt: true,
-      status: true,
-      priority: true,
-      reviewedAt: true,
-      submittedAt: true,
-      description: true,
-      reviewerId: true,
-      submitterId: true,
-      parentId: true
+    include: {
+      items: {
+        where: { deletedAt: null },
+        select: { id: true, status: true }
+      }
     }
   })
   if (!existing) throw err.notFound()
 
   const input = await validate(await readBody(event), zTargetPatch)
+  const canUpdateAny = !!user.updateAnyTargets
+  const past = isPastTargetCycle(existing)
 
-  if (!user.updateAnyTargets && input.status && input.status !== existing.status) {
-    const statuses: TaskStatus[] = [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW]
-    if (!statuses.includes(input.status)) {
+  if (past && !canUpdateAny) {
+    throw err.denied()
+  }
+
+  if (!canEditTargetCycle(user, existing) && !canUpdateAny) {
+    throw err.denied()
+  }
+
+  const seriesEndRequested = input.targetStatus && isTargetSeriesEndStatus(input.targetStatus)
+  if (seriesEndRequested && !canUpdateAny) {
+    throw err.unprocessable({
+      targetStatus: {
+        errors: ['You are not allowed to stop or cancel this target']
+      }
+    })
+  }
+
+  if (!canUpdateAny && input.targetStatus && input.targetStatus !== existing.targetStatus) {
+    const allowed: TargetStatus[] = [
+      TargetStatus.RUNNING,
+      TargetStatus.PAUSED,
+      TargetStatus.SKIPPED
+    ]
+    if (!allowed.includes(input.targetStatus)) {
       throw err.unprocessable({
-        status: {
-          errors: [`You are not allowed to update the status to ${input.status}`]
+        targetStatus: {
+          errors: [`You are not allowed to update the status to ${input.targetStatus}`]
         }
       })
     }
@@ -60,21 +83,31 @@ export default defineEventHandler(async event => {
     completedById: item.status === TaskItemStatus.COMPLETED ? item.completedById || user.id : null
   })
 
-  const canUpdateAny = !!user.updateAnyTargets
+  const itemsForStatus = input.items?.length
+    ? input.items.map(item => ({ status: item.status }))
+    : existing.items
+
+  let nextStatus = existing.targetStatus
+  if (input.targetStatus) {
+    nextStatus = input.targetStatus
+  } else if (input.items?.length && existing.targetStatus !== TargetStatus.PAUSED) {
+    nextStatus = getTargetStatusFromChecklist(
+      itemsForStatus,
+      existing.targetStatus,
+      input.startsAt ?? existing.startsAt,
+      input.dueAt ?? existing.dueAt
+    )
+  }
+
   const data: Prisma.TaskUpdateInput = {
     ...(canUpdateAny && input.name !== undefined
       ? { name: input.name.trim() || existing.name }
       : {}),
     ...(canUpdateAny && input.dueAt !== undefined ? { dueAt: input.dueAt } : {}),
-    ...(input.status ? { status: input.status } : {}),
-    ...(input.status && input.status !== existing.status && canUpdateAny
-      ? { reviewedAt: new Date(), reviewerId: user.id }
-      : {}),
-    ...(input.status && input.status !== existing.status && !canUpdateAny
-      ? { submittedAt: new Date(), submitterId: user.id }
-      : {}),
+    ...(canUpdateAny && input.startsAt !== undefined ? { startsAt: input.startsAt } : {}),
+    ...(nextStatus ? { targetStatus: nextStatus } : {}),
     ...(canUpdateAny && input.priority ? { priority: input.priority } : {}),
-    ...(canUpdateAny && input.description ? { description: input.description } : {}),
+    ...(canUpdateAny && input.description !== undefined ? { description: input.description } : {}),
     ...(canUpdateAny && input.items?.length
       ? {
           items: {
@@ -162,11 +195,14 @@ export default defineEventHandler(async event => {
       : {})
   }
 
-  const updated = await prisma.task.update({
+  await prisma.task.update({
     where: { id },
-    data,
-    include: TargetInclude
+    data
   })
+
+  if (nextStatus && isTargetSeriesEndStatus(nextStatus) && existing.parentId) {
+    await stopTargetSeries(existing.parentId)
+  }
 
   const hasRecurrencePatch =
     canUpdateAny &&
@@ -187,15 +223,14 @@ export default defineEventHandler(async event => {
         frequency === TargetFrequency.CUSTOM
           ? (input.intervalDays ?? recurrence.intervalDays)
           : null
-      const rangeStart = input.rangeStart ?? recurrence.rangeStart
-      const rangeEnd = input.rangeEnd ?? recurrence.rangeEnd
+      const rangeStart = startOfDay(input.rangeStart ?? recurrence.rangeStart)
+      const rangeEnd = startOfDay(input.rangeEnd ?? recurrence.rangeEnd)
 
-      // If the caller provided a new current window, advance it to become nextRunAt
       let nextRangeStart = rangeStart
       let nextRangeEnd = rangeEnd
       let nextRunAt = recurrence.nextRunAt
       if (input.rangeStart != null || input.rangeEnd != null || input.frequency != null) {
-        const advanced = advanceRecurrenceWindow({
+        const advanced = advanceTargetWindow({
           frequency,
           intervalDays,
           rangeStart,
@@ -221,7 +256,7 @@ export default defineEventHandler(async event => {
   }
 
   return prisma.task.findFirstOrThrow({
-    where: { id: updated.id },
+    where: { id },
     include: TargetInclude
   })
 })

@@ -1,4 +1,7 @@
 import type { H3Event } from 'h3'
+import { startOfDay } from 'date-fns'
+import { TargetStatus } from '~~/prisma/client/enums'
+import { canReadTargets } from '~~/server/utils/targets'
 
 const getTargetScopedWhere = (user: TUser, where: Prisma.TaskWhereInput) => {
   if (user.readAnyTargets) return where
@@ -7,9 +10,18 @@ const getTargetScopedWhere = (user: TUser, where: Prisma.TaskWhereInput) => {
   } satisfies Prisma.TaskWhereInput
 }
 
+const toStatusList = (value: unknown): TargetStatus[] => {
+  const values = Array.isArray(value)
+    ? value
+    : (value || '').toString().trim().split(',').filter(Boolean)
+  return values.filter((status): status is TargetStatus =>
+    Object.values(TargetStatus).includes(status as TargetStatus)
+  )
+}
+
 export const getTargets = async (event: H3Event, query = getQuery(event)) => {
   const user = await getCurrentUser(event)
-  if (!user.readAnyTargets || !user.readOwnTargets) {
+  if (!canReadTargets(user)) {
     return {
       error: err.denied()
     }
@@ -17,18 +29,36 @@ export const getTargets = async (event: H3Event, query = getQuery(event)) => {
 
   await ensureTargetOccurrences(user.id)
 
+  const requestedStatuses = toStatusList(query.targetStatus ?? query.status)
+  const applyCurrentWindow =
+    !requestedStatuses.length ||
+    requestedStatuses.every(
+      status => status === TargetStatus.RUNNING || status === TargetStatus.PAUSED
+    )
+
+  const today = startOfDay(new Date())
   const where = getWhere<Prisma.TaskWhereInput>(query, {
     deletedAt: null,
-    ...targetOccurrenceWhere()
+    ...targetOccurrenceWhere(),
+    ...(applyCurrentWindow
+      ? {
+          startsAt: { lte: today },
+          dueAt: { gte: today }
+        }
+      : {})
   })
     .id('id')
     .text('name')
     .text('description')
-    .array('status')
+    .array('targetStatus')
+    .array('status', values => ({
+      targetStatus: { in: values as TargetStatus[] }
+    }))
     .array('priority')
     .id('creatorId')
     .id('reviewerId')
     .id('submitterId')
+    .date('startsAt')
     .date('dueAt')
     .date('createdAt')
     .date('updatedAt')
@@ -51,9 +81,13 @@ export const getTargets = async (event: H3Event, query = getQuery(event)) => {
     }))
     .get()
 
+  if (!requestedStatuses.length && applyCurrentWindow) {
+    where.targetStatus = { in: [TargetStatus.RUNNING, TargetStatus.PAUSED, TargetStatus.NEW] }
+  }
+
   const scopedWhere = getTargetScopedWhere(user, where)
   const { take, skip, paginate } = getPagination(query)
-  const { orderBy } = getOrderBy(query, { createdAt: 'desc' })
+  const { orderBy } = getOrderBy(query, { dueAt: 'asc' })
 
   if (isTrue(query.options)) {
     const [total, rows] = await prisma.$transaction([

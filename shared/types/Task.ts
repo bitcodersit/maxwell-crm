@@ -8,7 +8,8 @@ import type {
   TaskPriority,
   TaskItemStatus,
   TaskRecurrence,
-  TargetFrequency
+  TargetFrequency,
+  TargetStatus
 } from '~~/prisma/client/client'
 
 export type TTaskItem = TaskItem & {
@@ -48,3 +49,4 @@ export type TTaskStatus = TaskStatus
 export type TTaskPriority = TaskPriority
 export type TTaskItemStatus = TaskItemStatus
 export type TTargetFrequency = TargetFrequency
+export type TTargetStatus = TargetStatus

@@ -1,5 +1,7 @@
 import { TaskItemStatus, TaskKind, TaskStatus } from '~~/prisma/client/enums'
-import { advanceRecurrenceWindow, createTargetOccurrence } from '~~/server/utils/targets'
+import { startOfDay } from 'date-fns'
+import { createTargetOccurrence } from '~~/server/utils/targets'
+import { advanceTargetWindow, getOpenTargetStatusForWindow } from '~~/shared/utils/targetWindows'
 
 export default defineEventHandler(async event => {
   const user = await getCurrentUser(event)
@@ -9,13 +11,17 @@ export default defineEventHandler(async event => {
 
   const body = await readBody(event)
   const input = await validate(body, zTargetPost)
+  const rangeStart = startOfDay(input.rangeStart)
+  const rangeEnd = startOfDay(input.rangeEnd)
 
-  const next = advanceRecurrenceWindow({
+  const next = advanceTargetWindow({
     frequency: input.frequency,
     intervalDays: input.intervalDays,
-    rangeStart: input.rangeStart,
-    rangeEnd: input.rangeEnd
+    rangeStart,
+    rangeEnd
   })
+
+  const firstStatus = getOpenTargetStatusForWindow(rangeStart, rangeEnd)
 
   const template = await prisma.task.create({
     data: {
@@ -23,11 +29,11 @@ export default defineEventHandler(async event => {
       description: input.description,
       kind: TaskKind.TARGET,
       status: TaskStatus.TODO,
+      targetStatus: firstStatus,
       priority: input.priority,
-      dueAt: input.rangeEnd,
+      startsAt: rangeStart,
+      dueAt: rangeEnd,
       creatorId: user.id,
-      reviewerId: user.id,
-      reviewedAt: new Date(),
       items: {
         createMany: {
           data: (input.items || []).map((item, sortOrder) => ({
@@ -70,17 +76,9 @@ export default defineEventHandler(async event => {
       users: template.users,
       teams: template.teams
     },
-    input.rangeEnd,
+    { rangeStart, rangeEnd },
     user.id
   )
-
-  // Apply requested status to the first occurrence
-  if (input.status && input.status !== TaskStatus.TODO) {
-    await prisma.task.update({
-      where: { id: occurrence.id },
-      data: { status: input.status }
-    })
-  }
 
   return prisma.task.findFirstOrThrow({
     where: { id: occurrence.id },

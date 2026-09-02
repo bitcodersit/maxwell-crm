@@ -1,15 +1,17 @@
 <script setup lang="ts">
+import { TargetStatus } from '~~/prisma/client/enums'
+
 const formOpen = ref(false)
 const query = ref<Record<string, any>>({
   perPage: 10,
-  status: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.FAILED],
+  status: [TargetStatus.RUNNING, TargetStatus.PAUSED],
   orderBy: {
     dueAt: 'asc'
   }
 })
 
 const queryFormatted = computed(() => {
-  return calendarFormatDates(query.value, ['dueAt'], {
+  return calendarFormatDates(query.value, ['dueAt', 'startsAt'], {
     formatStr: 'yyyy-MM-dd'
   })
 })
@@ -68,7 +70,7 @@ const onScroll = (event: Event) => {
             <FilterDate
               v-model="query.dueAt"
               dense
-              label="Due"
+              label="Range"
             />
           </div>
           <div class="flex-1 flex items-center justify-end gap-1">
@@ -80,9 +82,9 @@ const onScroll = (event: Event) => {
               <BaseOrderByDropdown
                 v-model="query.orderBy"
                 :items="[
-                  { label: 'Status', value: 'status' },
+                  { label: 'Status', value: 'targetStatus' },
                   { label: 'Priority', value: 'priority' },
-                  { label: 'Due', value: 'dueAt' }
+                  { label: 'Range end', value: 'dueAt' }
                 ]"
               />
             </UButton>
@@ -104,8 +106,8 @@ const onScroll = (event: Event) => {
             :key="index"
             :ref="el => onRef(el, target)"
           >
-            <TaskListItem
-              :task="target"
+            <TargetListItem
+              :target="target"
               @click="item = target"
             />
           </div>

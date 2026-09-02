@@ -14,6 +14,9 @@ export const useTargetPostMutation = () => {
       queryClient.invalidateQueries({
         queryKey: keys.targetsOverview()
       })
+      queryClient.invalidateQueries({
+        queryKey: keys.targetsLeaderboard()
+      })
     }
   })
 }

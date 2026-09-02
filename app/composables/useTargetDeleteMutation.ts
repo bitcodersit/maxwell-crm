@@ -13,6 +13,9 @@ export const useTargetDeleteMutation = (id: MaybeRefOrGetter<number>) => {
       queryClient.invalidateQueries({
         queryKey: keys.targetsOverview()
       })
+      queryClient.invalidateQueries({
+        queryKey: keys.targetsLeaderboard()
+      })
       queryClient.removeQueries({
         queryKey: keys.target(id)
       })

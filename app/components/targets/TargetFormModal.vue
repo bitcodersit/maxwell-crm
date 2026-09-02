@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { TargetFrequency } from '~~/prisma/client/enums'
+import { TargetFrequency, TaskPriority } from '~~/prisma/client/enums'
+import { getWindowForFrequency } from '~~/shared/utils/targetWindows'
 
 type TTargetForm = {
   name: string
   description: string
-  status: TaskStatus
   priority: TaskPriority
   frequency: TargetFrequency
-  intervalDays: number | null
   rangeStart: Date | null
   rangeEnd: Date | null
   endsAt: Date | null
@@ -34,18 +33,22 @@ const newTaskItem = (v?: Partial<TTaskItem>): TTaskItem => {
   }
 }
 
+const applyFrequencyWindow = (frequency: TargetFrequency, formState: TTargetForm) => {
+  const window = getWindowForFrequency(frequency)
+  formState.rangeStart = window.rangeStart
+  formState.rangeEnd = window.rangeEnd
+}
+
 const newForm = (v?: Partial<TTargetForm>): TTargetForm => {
-  const start = v?.rangeStart ?? new Date()
-  const end = v?.rangeEnd ?? new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000)
+  const frequency = v?.frequency ?? TargetFrequency.WEEKLY
+  const window = getWindowForFrequency(frequency)
   return {
     name: v?.name ?? '',
     description: v?.description ?? '',
-    status: v?.status ?? TaskStatus.TODO,
     priority: v?.priority ?? TaskPriority.MEDIUM,
-    frequency: v?.frequency ?? TargetFrequency.WEEKLY,
-    intervalDays: v?.intervalDays ?? 7,
-    rangeStart: start,
-    rangeEnd: end,
+    frequency,
+    rangeStart: v?.rangeStart ?? window.rangeStart,
+    rangeEnd: v?.rangeEnd ?? window.rangeEnd,
     endsAt: v?.endsAt ?? null,
     items: v?.items?.length ? v.items : [newTaskItem()]
   }
@@ -53,10 +56,21 @@ const newForm = (v?: Partial<TTargetForm>): TTargetForm => {
 
 const form = ref(newForm())
 const formRef = useTemplateRef('formRef')
+const rangeLocked = computed(
+  () =>
+    form.value.frequency === TargetFrequency.WEEKLY ||
+    form.value.frequency === TargetFrequency.MONTHLY
+)
 
-const taskStatuses = useTargetStatusItems()
 const taskPriorities = useTargetPriorityItems()
 const frequencies = useTargetFrequencyItems()
+
+watch(
+  () => form.value.frequency,
+  frequency => {
+    applyFrequencyWindow(frequency, form.value)
+  }
+)
 
 const onReset = () => {
   form.value = newForm()
@@ -65,12 +79,7 @@ const onReset = () => {
 
 const { mutate, isPending } = useTargetPostMutation()
 const onSubmit = (event: FormSubmitEvent<TTargetForm>) => {
-  const payload = {
-    ...event.data,
-    intervalDays:
-      event.data.frequency === TargetFrequency.CUSTOM ? event.data.intervalDays : null
-  }
-  mutate(payload, {
+  mutate(event.data, {
     onSuccess(data) {
       onReset()
       navigateTo(`/targets/${data.id}`)
@@ -101,8 +110,8 @@ const onSubmit = (event: FormSubmitEvent<TTargetForm>) => {
           <div>
             <h4 class="text-2xl font-semibold">New Target</h4>
             <p class="mt-2 text-sm text-muted">
-              Create a recurring target with a weekly, monthly, or custom date range. Each period
-              becomes a trackable occurrence.
+              Create a cycling target with a weekly, monthly, or custom date range. Each period
+              becomes its own snapshot.
             </p>
           </div>
           <div class="space-y-4 text-sm">
@@ -112,9 +121,9 @@ const onSubmit = (event: FormSubmitEvent<TTargetForm>) => {
                 class="mt-0.5 size-5 text-primary"
               />
               <p>
-                <span class="font-medium text-default">Recurring windows</span><br />
+                <span class="font-medium text-default">Independent cycles</span><br />
                 <span class="text-muted"
-                  >Occurrences generate automatically when a new period starts.</span
+                  >When a window ends, a new cycle is created without changing past ones.</span
                 >
               </p>
             </div>
@@ -126,7 +135,7 @@ const onSubmit = (event: FormSubmitEvent<TTargetForm>) => {
               <p>
                 <span class="font-medium text-default">Date range</span><br />
                 <span class="text-muted"
-                  >Set the first window; later periods advance by frequency.</span
+                  >Weekly is Saturday–Thursday. Monthly is the full calendar month.</span
                 >
               </p>
             </div>
@@ -164,19 +173,6 @@ const onSubmit = (event: FormSubmitEvent<TTargetForm>) => {
             />
           </UFormField>
           <UFormField
-            label="Status"
-            name="status"
-            class="col-span-4"
-          >
-            <USelect
-              v-model="form.status"
-              :items="taskStatuses"
-              size="lg"
-              class="w-full"
-              placeholder="Select status..."
-            />
-          </UFormField>
-          <UFormField
             label="Priority"
             name="priority"
             class="col-span-4"
@@ -204,30 +200,26 @@ const onSubmit = (event: FormSubmitEvent<TTargetForm>) => {
             />
           </UFormField>
           <UFormField
-            v-if="form.frequency === TargetFrequency.CUSTOM"
-            required
-            name="intervalDays"
-            label="Every N days"
+            name="endsAt"
+            label="Stop cycling after"
             class="col-span-4"
           >
-            <UInput
-              v-model.number="form.intervalDays"
-              type="number"
-              min="1"
+            <FormDate
+              v-model="form.endsAt"
               size="lg"
-              class="w-full"
-              placeholder="e.g. 14"
+              placeholder="Optional..."
             />
           </UFormField>
           <UFormField
             required
             name="rangeStart"
             label="Range start"
-            class="col-span-4"
+            class="col-span-6"
           >
             <FormDate
               v-model="form.rangeStart"
               size="lg"
+              :disabled="rangeLocked"
               placeholder="Start date..."
             />
           </UFormField>
@@ -235,23 +227,13 @@ const onSubmit = (event: FormSubmitEvent<TTargetForm>) => {
             required
             name="rangeEnd"
             label="Range end"
-            class="col-span-4"
+            class="col-span-6"
           >
             <FormDate
               v-model="form.rangeEnd"
               size="lg"
+              :disabled="rangeLocked"
               placeholder="End date..."
-            />
-          </UFormField>
-          <UFormField
-            name="endsAt"
-            label="Ends at (optional)"
-            class="col-span-4"
-          >
-            <FormDate
-              v-model="form.endsAt"
-              size="lg"
-              placeholder="Stop recurring..."
             />
           </UFormField>
           <UFormField
@@ -270,7 +252,11 @@ const onSubmit = (event: FormSubmitEvent<TTargetForm>) => {
             name="items"
             class="col-span-12"
           >
-            <TaskItems v-model="form.items" />
+            <TaskItems
+              v-model="form.items"
+              :can-edit="true"
+              :can-complete="true"
+            />
           </UFormField>
           <div class="flex justify-end gap-2 col-span-12">
             <UButton

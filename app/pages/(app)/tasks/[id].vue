@@ -156,7 +156,7 @@ const attachments = computed<TAttachment[]>({
           :disabled="!user?.updateAnyTasks"
           tag="h1"
           class="text-xl font-semibold outline-none focus:ring-1 focus:ring-primary rounded-lg focus:px-4 focus:py-2 transition-all"
-          @blur="onMutate({ name: task.name })"
+          @blur="(name: string) => onMutate({ name })"
         />
         <div class="flex flex-wrap items-center gap-2">
           <UDropdownMenu :items="statusItems">

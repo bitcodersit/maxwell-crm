@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import { TargetStatus } from '~~/prisma/client/enums'
+import {
+  getTargetFillUp,
+  isPastTargetWindow,
+  isTargetSeriesEndStatus
+} from '~~/shared/utils/targetWindows'
+
 definePageMeta({
   layout: 'targets'
 })
@@ -19,25 +26,38 @@ const { data, isFetching } = useTargetQuery(id, v => {
   task.value = { ...v }
 })
 
+const tab = ref('details')
+const { data: history } = useTargetHistoryQuery(id, true)
+
 const canDelete = computed(() => !!(user.value?.deleteAnyTargets || user.value?.deleteOwnTargets))
-const canUpdate = computed(() => !!user.value?.updateAnyTargets)
+const canUpdateAny = computed(() => !!user.value?.updateAnyTargets)
+const canUpdateOwn = computed(() => !!user.value?.updateOwnTargets)
+const isSeriesEnded = computed(() => isTargetSeriesEndStatus(task.value?.targetStatus))
+const isWindowPast = computed(() => isPastTargetWindow(task.value?.dueAt))
+const isPast = computed(() => isWindowPast.value || isSeriesEnded.value)
+const isReadOnly = computed(() => isPast.value && !canUpdateAny.value)
+const canEditStructure = computed(() => canUpdateAny.value && !isReadOnly.value)
+const canCompleteChecklist = computed(
+  () => (canUpdateAny.value || canUpdateOwn.value) && !isReadOnly.value
+)
 
 const recurrence = computed(() => task.value?.parent?.recurrence || task.value?.recurrence)
 
-const historyOpen = ref(false)
+const fillUp = computed(() => getTargetFillUp(task.value?.items))
 
-const fillUp = computed(() => {
-  const items = task.value?.items || []
-  const totalItems = items.length
-  const completedItems = items.filter(item => item.status === TaskItemStatus.COMPLETED).length
-  const fillUpPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0
-  return {
-    totalItems,
-    completedItems,
-    fillUpPercent,
-    isFilledUp: totalItems > 0 && completedItems === totalItems
+const tabItems = computed(() => [
+  {
+    label: 'Details',
+    value: 'details',
+    icon: 'i-lucide-layout-dashboard'
+  },
+  {
+    label: 'History',
+    value: 'history',
+    icon: 'i-lucide-history',
+    badge: history.value?.length || undefined
   }
-})
+])
 
 const onDelete = async () => {
   if (!(await confirm('Are you sure you want to delete this target?'))) return
@@ -63,16 +83,36 @@ const onDelete = async () => {
 }
 
 const onMutate = (update: Partial<TTask> & Record<string, any>) => {
+  if (isReadOnly.value) return
   const diff = getDeepDiff(task.value, data.value)
   const updateKeys = Object.keys(update)
-  if (updateKeys.some(key => key in diff) || updateKeys.some(k => ['frequency', 'intervalDays', 'rangeStart', 'rangeEnd', 'endsAt'].includes(k))) {
+  if (
+    updateKeys.some(key => key in diff) ||
+    updateKeys.some(k =>
+      [
+        'frequency',
+        'intervalDays',
+        'rangeStart',
+        'rangeEnd',
+        'endsAt',
+        'targetStatus',
+        'startsAt',
+        'items',
+        'name',
+        'priority',
+        'description',
+        'users',
+        'teams'
+      ].includes(k)
+    )
+  ) {
     mutate(update)
   }
 }
 
 const statusItems = useTargetStatusItems(status => {
-  task.value.status = status
-  onMutate({ status })
+  task.value.targetStatus = status
+  onMutate({ targetStatus: status })
 })
 
 const priorityItems = useTargetPriorityItems(priority => {
@@ -109,9 +149,9 @@ const onChangeDescription = useDebounceFn((value: TMaybe<string>) => {
   onMutate({ description: value || null })
 }, 1000)
 
-const onChangeDueAt = (value: unknown) => {
-  task.value.dueAt = value as any
-  onMutate({ dueAt: (value as Date | null) ?? null })
+const onChangeStartsAt = (value: unknown) => {
+  task.value.startsAt = value as any
+  onMutate({ startsAt: (value as Date | null) ?? null })
 }
 
 const onChangeUsers = useDebounceFn(() => {
@@ -121,6 +161,15 @@ const onChangeUsers = useDebounceFn(() => {
 const onChangeTeams = useDebounceFn(() => {
   onMutate({ teams: task.value.teams })
 }, 1000)
+
+const onStopOrCancel = async (status: 'STOPPED' | 'CANCELLED') => {
+  const label = status === 'STOPPED' ? 'stop' : 'cancel'
+  if (!(await confirm(`This will ${label} the target and stop future cycles. Continue?`))) {
+    return
+  }
+  task.value.targetStatus = status
+  onMutate({ targetStatus: status })
+}
 
 const attachments = computed<TAttachment[]>({
   get() {
@@ -155,15 +204,24 @@ const attachments = computed<TAttachment[]>({
             variant="link"
             label="Go Back"
             class="flex-none -ml-1 p-0"
-            @click="router.push('/targets')"
+            @click="() => router.push('/targets')"
           />
           <div class="flex items-center gap-2">
             <UButton
-              icon="i-lucide-history"
-              label="Cycle history"
+              v-if="canUpdateAny && !isTargetSeriesEndStatus(task.targetStatus)"
+              icon="i-lucide-octagon-x"
+              label="Stop target"
               color="neutral"
               variant="subtle"
-              @click="historyOpen = true"
+              @click="onStopOrCancel(TargetStatus.STOPPED)"
+            />
+            <UButton
+              v-if="canUpdateAny && !isTargetSeriesEndStatus(task.targetStatus)"
+              icon="i-lucide-ban"
+              label="Cancel target"
+              color="error"
+              variant="outline"
+              @click="onStopOrCancel(TargetStatus.CANCELLED)"
             />
             <UButton
               v-if="canDelete"
@@ -176,41 +234,69 @@ const attachments = computed<TAttachment[]>({
             />
           </div>
         </div>
+        <UAlert
+          v-if="isSeriesEnded"
+          color="neutral"
+          variant="subtle"
+          :title="task.targetStatus === TargetStatus.CANCELLED ? 'Target cancelled' : 'Target stopped'"
+          :description="
+            isReadOnly
+              ? 'This series has ended and is read-only. You do not have permission to edit it.'
+              : 'This series has ended. No further cycles will be generated.'
+          "
+        />
+        <UAlert
+          v-else-if="isWindowPast"
+          color="neutral"
+          variant="subtle"
+          title="This cycle is past"
+          :description="
+            isReadOnly
+              ? 'Past cycles are read-only. You do not have permission to edit them.'
+              : 'This cycle is past. Edits will not change other cycles.'
+          "
+        />
         <FormContentEditable
           v-model="task.name"
-          :disabled="!user?.updateAnyTargets"
+          :disabled="!canEditStructure"
           tag="h1"
           class="text-xl font-semibold outline-none focus:ring-1 focus:ring-primary rounded-lg focus:px-4 focus:py-2 transition-all"
-          @blur="onMutate({ name: task.name })"
+          @blur="(name: string) => onMutate({ name })"
         />
         <div class="flex flex-wrap items-center gap-2">
-          <UDropdownMenu :items="statusItems">
-            <TaskStatusBadge
+          <UDropdownMenu
+            :items="statusItems"
+            :disabled="isReadOnly"
+          >
+            <TargetStatusBadge
               size="lg"
-              :task="task"
+              :status="task.targetStatus"
             />
           </UDropdownMenu>
           <UDropdownMenu
             :items="priorityItems"
-            :disabled="!priorityItems.length"
+            :disabled="!priorityItems.length || isReadOnly"
           >
             <TaskPriorityBadge
               :size="'lg'"
-              :status="task.status"
+              :status="
+                task.targetStatus === TargetStatus.ACHIEVED ? TaskStatus.COMPLETED : TaskStatus.TODO
+              "
               :priority="task.priority"
             />
           </UDropdownMenu>
           <FormDate
-            v-model="task.dueAt"
+            v-model="task.startsAt"
             :show-mode="false"
-            :disabled="!user?.updateAnyTargets"
-            @update:model-value="onChangeDueAt"
+            :disabled="!canEditStructure"
+            @update:model-value="onChangeStartsAt"
           >
             <template #trigger>
-              <TaskDueDateBadge
+              <TargetRangeBadge
                 :size="'lg'"
+                :starts-at="task.startsAt"
                 :due-at="task.dueAt"
-                :status="task.status"
+                :status="task.targetStatus"
               />
             </template>
           </FormDate>
@@ -218,6 +304,7 @@ const attachments = computed<TAttachment[]>({
             v-if="recurrence"
             size="lg"
             :frequency="recurrence.frequency"
+            :range-start="task.startsAt"
             :range-end="task.dueAt"
             :interval-days="recurrence.intervalDays"
           />
@@ -225,7 +312,9 @@ const attachments = computed<TAttachment[]>({
             v-if="fillUp.totalItems"
             size="lg"
             variant="subtle"
-            :color="fillUp.isFilledUp ? 'success' : fillUp.fillUpPercent > 0 ? 'warning' : 'neutral'"
+            :color="
+              fillUp.isFilledUp ? 'success' : fillUp.fillUpPercent > 0 ? 'warning' : 'neutral'
+            "
             :label="
               fillUp.isFilledUp
                 ? `Filled up · ${fillUp.completedItems}/${fillUp.totalItems}`
@@ -248,50 +337,64 @@ const attachments = computed<TAttachment[]>({
           />
         </div>
       </div>
-      <FormEditor
-        :model-value="task.description || ''"
-        :editable="!!user?.updateAnyTargets"
-        :border-class="!user?.updateAnyTargets ? 'border-none' : 'border-default'"
-        :content-class="!user?.updateAnyTargets ? '[&>div]:px-0 [&>div]:py-0' : ''"
-        placeholder="Add short target details..."
-        content-type="markdown"
-        min-height-class="min-h-32"
-        @update:model-value="onChangeDescription"
+      <UTabs
+        v-model="tab"
+        :items="tabItems"
+        variant="pill"
+        size="sm"
+        :content="false"
+        class="w-full"
       />
-      <TaskItems
-        v-model="task.items"
-        @change="onMutate({ items: task.items })"
+      <template v-if="tab === 'details'">
+        <FormEditor
+          :model-value="task.description || ''"
+          :editable="canEditStructure"
+          :border-class="!canEditStructure ? 'border-none' : 'border-default'"
+          :content-class="!canEditStructure ? '[&>div]:px-0 [&>div]:py-0' : ''"
+          placeholder="Add short target details..."
+          content-type="markdown"
+          min-height-class="min-h-32"
+          @update:model-value="onChangeDescription"
+        />
+        <ClientOnly>
+          <TaskItems
+            v-model="task.items"
+            :can-edit="canEditStructure"
+            :can-complete="canCompleteChecklist"
+            @change="onMutate({ items: task.items })"
+          />
+        </ClientOnly>
+      </template>
+      <TargetHistoryPanel
+        v-else
+        :target-id="id"
       />
     </div>
     <div class="space-y-4 w-96 flex-none border-l border-default p-4 overflow-auto scrollbar">
       <UFormField label="Assigned users">
         <FormUsersCardPicker
           v-model="taskUsers"
-          :disabled="!canUpdate"
+          :disabled="!canEditStructure"
           @update:model-value="onChangeUsers"
         />
       </UFormField>
       <UFormField label="Assigned teams">
         <FormTeamsCardPicker
           v-model="taskTeams"
-          :disabled="!canUpdate"
+          :disabled="!canEditStructure"
           @update:model-value="onChangeTeams"
         />
       </UFormField>
       <UFormField>
         <FormAttachments
           v-model="attachments"
-          :folder="'tasks'"
+          :folder="'targets'"
           :attachable-id="data?.attachableId"
           :attachable-model-id="id"
           :attachable-model-type="'task'"
         />
       </UFormField>
     </div>
-    <TargetHistorySlideover
-      v-model:open="historyOpen"
-      :target-id="id"
-    />
   </div>
   <div
     v-else-if="isNaN(id) || id <= 0"

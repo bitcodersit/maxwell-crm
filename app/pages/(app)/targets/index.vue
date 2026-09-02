@@ -1,74 +1,73 @@
 <script setup lang="ts">
 import type { TColumn, TFilter, TGetActions } from '@/components/base/BaseCrud.vue'
+import { TargetStatus } from '~~/prisma/client/enums'
+import { getTargetFillUp } from '~~/shared/utils/targetWindows'
 
 const crudRef = useTemplateRef('crudRef')
 
 const UBadge = resolveComponent('UBadge')
-const TaskStatusBadge = resolveComponent('TaskStatusBadge')
-const TaskDueDateBadge = resolveComponent('TaskDueDateBadge')
 const TaskPriorityBadge = resolveComponent('TaskPriorityBadge')
 const TargetRecurrenceBadge = resolveComponent('TargetRecurrenceBadge')
+const TargetStatusBadge = resolveComponent('TargetStatusBadge')
+const TargetRangeBadge = resolveComponent('TargetRangeBadge')
 
 const { data, refetch } = useTargetsOverviewQuery()
-
-const performers = [
-  { name: 'Vielka Mooney', role: 'Senior Salesman', active: 42, hitRate: 115 },
-  { name: 'India Oliver', role: 'Mid Salesman', active: 28, hitRate: 92 },
-  { name: 'Taylor Wynn', role: 'Account Manager', active: 15, hitRate: 78 }
-]
+const { getAttachment } = useGetAttachment()
 
 const overviewCards = computed(() => {
+  const s = data.value.summary
   return [
     {
-      icon: 'i-lucide-clipboard-list',
-      color: 'secondary',
-      items: [
-        {
-          name: 'Total Targets',
-          color: 'secondary',
-          value: data.value.summary.total.toLocaleString()
-        },
-        {
-          name: 'Todo',
-          color: 'neutral',
-          value: data.value.summary.todo.toLocaleString()
-        }
-      ]
-    },
-    {
-      icon: 'i-lucide-git-branch',
+      icon: 'i-lucide-activity',
       color: 'primary',
       items: [
         {
-          name: 'In Progress',
+          name: 'Running',
           color: 'primary',
-          value: data.value.summary.inProgress.toLocaleString()
+          value: s.running.toLocaleString()
         },
         {
-          name: 'In Review',
+          name: 'Paused',
           color: 'warning',
-          value: data.value.summary.inReview.toLocaleString()
+          value: s.paused.toLocaleString()
+        },
+        {
+          name: 'New',
+          color: 'neutral',
+          value: s.new.toLocaleString()
         }
       ]
     },
     {
-      icon: 'i-lucide-circle-check-big',
+      icon: 'i-lucide-gauge',
       color: 'success',
       items: [
         {
-          name: 'Completed',
+          name: 'Achieved this month',
           color: 'success',
-          value: data.value.summary.completed.toLocaleString()
+          value: s.achievedMonth.toLocaleString()
         },
         {
-          name: 'Failed',
+          name: 'Avg fill-up',
+          color: 'primary',
+          tooltip: 'Average checklist completion for currently running targets',
+          value: `${s.fillUpPercent}%`
+        }
+      ]
+    },
+    {
+      icon: 'i-lucide-circle-x',
+      color: 'error',
+      items: [
+        {
+          name: 'Missed this month',
           color: 'error',
-          value: data.value.summary.failed.toLocaleString()
+          value: s.missedMonth.toLocaleString()
         },
         {
-          name: 'Cancelled',
-          color: 'error',
-          value: data.value.summary.cancelled.toLocaleString()
+          name: 'Skipped',
+          color: 'secondary',
+          value: s.skippedMonth.toLocaleString()
         }
       ]
     },
@@ -77,16 +76,16 @@ const overviewCards = computed(() => {
       color: 'warning',
       items: [
         {
-          name: 'Success Rate',
+          name: 'Hit rate',
           color: 'success',
-          tooltip: `${data.value.summary.goalHit.toLocaleString()} of ${data.value.summary.goalEligible.toLocaleString()} targets completed on/before due date`,
-          value: `${data.value.summary.goalHitRate}%`
+          tooltip: `${s.achievedMonth.toLocaleString()} of ${s.hitEligible.toLocaleString()} closed cycles achieved this month (skipped/stopped/cancelled excluded)`,
+          value: `${s.hitRate}%`
         },
         {
-          name: 'Failure Rate',
+          name: 'Miss rate',
           color: 'error',
-          tooltip: `${data.value.summary.goalFail.toLocaleString()} of ${data.value.summary.goalEligible.toLocaleString()} targets are overdue and not completed`,
-          value: `${data.value.summary.goalFailRate}%`
+          tooltip: `${s.missedMonth.toLocaleString()} of ${s.hitEligible.toLocaleString()} closed cycles missed this month`,
+          value: `${s.missRate}%`
         }
       ]
     }
@@ -96,7 +95,7 @@ const overviewCards = computed(() => {
 const formOpen = ref(false)
 const initialQuery = ref<Record<string, any>>({
   perPage: 10,
-  status: [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.FAILED],
+  status: [TargetStatus.RUNNING, TargetStatus.PAUSED],
   orderBy: {
     dueAt: 'asc'
   }
@@ -127,12 +126,12 @@ const columns = computed<TColumn<TTask>[]>(() => [
     }
   },
   {
-    accessorKey: 'status',
+    accessorKey: 'targetStatus',
     header: 'Status',
-    sortBy: 'status',
+    sortBy: 'targetStatus',
     cell: ({ row }) =>
-      h(TaskStatusBadge, {
-        task: row.original
+      h(TargetStatusBadge, {
+        status: row.original.targetStatus
       })
   },
   {
@@ -141,30 +140,22 @@ const columns = computed<TColumn<TTask>[]>(() => [
     sortBy: 'priority',
     cell: ({ row }) =>
       h(TaskPriorityBadge, {
-        status: row.original.status,
+        status:
+          row.original.targetStatus === TargetStatus.ACHIEVED
+            ? TaskStatus.COMPLETED
+            : TaskStatus.TODO,
         priority: row.original.priority
       })
   },
-  // {
-  //   accessorKey: 'statusUpdater',
-  //   header: 'Status updater',
-  //   sortBy: 'statusUpdaterId',
-  //   cell: ({ row }) => row.original.statusUpdater?.name || '—'
-  // },
-  // {
-  //   accessorKey: 'creator',
-  //   header: 'Creator',
-  //   sortBy: 'creatorId',
-  //   cell: ({ row }) => row.original.creator?.name || '—'
-  // },
   {
     accessorKey: 'dueAt',
-    header: 'Due',
+    header: 'Range',
     sortBy: 'dueAt',
     cell: ({ row }) =>
-      h(TaskDueDateBadge, {
+      h(TargetRangeBadge, {
+        startsAt: row.original.startsAt,
         dueAt: row.original.dueAt,
-        status: row.original.status
+        status: row.original.targetStatus
       })
   },
   {
@@ -175,9 +166,23 @@ const columns = computed<TColumn<TTask>[]>(() => [
       if (!recurrence) return '—'
       return h(TargetRecurrenceBadge, {
         frequency: recurrence.frequency,
+        rangeStart: row.original.startsAt,
         rangeEnd: row.original.dueAt,
         intervalDays: recurrence.intervalDays,
         size: 'sm'
+      })
+    }
+  },
+  {
+    accessorKey: 'items',
+    header: 'Fill-up',
+    cell: ({ row }) => {
+      const fillUp = getTargetFillUp(row.original.items)
+      if (!fillUp.totalItems) return '—'
+      return h(UBadge, {
+        variant: 'subtle',
+        color: fillUp.isFilledUp ? 'success' : fillUp.fillUpPercent > 0 ? 'warning' : 'neutral',
+        label: `${fillUp.completedItems}/${fillUp.totalItems} · ${fillUp.fillUpPercent}%`
       })
     }
   },
@@ -217,18 +222,6 @@ const columns = computed<TColumn<TTask>[]>(() => [
       )
     }
   },
-  // {
-  //   accessorKey: 'createdAt',
-  //   header: 'Created',
-  //   sortBy: 'createdAt',
-  //   cell: ({ row }) => $dfc(row.original.createdAt)
-  // },
-  // {
-  //   accessorKey: 'updatedAt',
-  //   header: 'Updated',
-  //   sortBy: 'updatedAt',
-  //   cell: ({ row }) => $dfc(row.original.updatedAt)
-  // },
   {
     id: 'action',
     pinned: 'right'
@@ -277,7 +270,7 @@ const filters: TFilter[] = [
     name: 'dueAt',
     type: 'date',
     props: {
-      label: 'Due date'
+      label: 'Range end'
     }
   },
   {
@@ -354,7 +347,7 @@ const getActions: TGetActions<TTask> = (item, v) => [
         <UButton
           icon="i-lucide-plus"
           label="Create Target"
-          @click="formOpen = true"
+          @click="() => (formOpen = true)"
         />
       </template>
       <template #top>
@@ -377,13 +370,6 @@ const getActions: TGetActions<TTask> = (item, v) => [
                     />
                   </div>
                 </div>
-                <!-- <UBadge
-                v-if="card.trend"
-                :color="card.tone"
-                variant="soft"
-              >
-                {{ card.trend }}
-              </UBadge> -->
               </div>
               <div class="flex items-end gap-1">
                 <div
@@ -430,13 +416,23 @@ const getActions: TGetActions<TTask> = (item, v) => [
             <div class="space-y-5">
               <div class="space-y-1">
                 <div class="flex items-center justify-between text-sm">
-                  <span>This Week</span>
+                  <span>This Week (Sat–Thu)</span>
                   <span class="font-semibold">{{ data.weekly.percent }}%</span>
                 </div>
                 <UProgress :model-value="data.weekly.percent" />
                 <div class="flex items-center justify-between text-xs text-muted">
-                  <span>{{ data.weekly.done }} / {{ data.weekly.total }} completed</span>
-                  <span>{{ Math.max(data.weekly.total - data.weekly.done, 0) }} remaining</span>
+                  <span
+                    >{{ data.weekly.achieved }} /
+                    {{ data.weekly.achieved + data.weekly.missed + data.weekly.remaining }}
+                    achieved</span
+                  >
+                  <span>{{ data.weekly.remaining }} remaining</span>
+                </div>
+                <div
+                  v-if="data.weekly.skipped"
+                  class="text-xs text-muted"
+                >
+                  {{ data.weekly.skipped }} skipped
                 </div>
               </div>
               <div class="space-y-1">
@@ -450,13 +446,23 @@ const getActions: TGetActions<TTask> = (item, v) => [
                 />
                 <div class="flex items-center justify-between text-xs text-muted">
                   <span
-                    >{{ data.monthly.completed.toLocaleString() }} /
-                    {{ data.monthly.target.toLocaleString() }} completed</span
+                    >{{ data.monthly.achieved.toLocaleString() }} /
+                    {{
+                      (
+                        data.monthly.achieved +
+                        data.monthly.missed +
+                        data.monthly.remaining
+                      ).toLocaleString()
+                    }}
+                    achieved</span
                   >
-                  <span>
-                    {{ Math.max(data.monthly.target - data.monthly.completed, 0).toLocaleString() }}
-                    remaining
-                  </span>
+                  <span>{{ data.monthly.remaining.toLocaleString() }} remaining</span>
+                </div>
+                <div
+                  v-if="data.monthly.skipped"
+                  class="text-xs text-muted"
+                >
+                  {{ data.monthly.skipped }} skipped
                 </div>
               </div>
             </div>
@@ -466,15 +472,34 @@ const getActions: TGetActions<TTask> = (item, v) => [
             <template #header>
               <h3 class="text-lg font-semibold">Top Performers</h3>
             </template>
-            <div class="space-y-3">
+            <div
+              v-if="!data.performers.length"
+              class="text-sm text-muted py-4 text-center"
+            >
+              No assignee performance yet this month.
+            </div>
+            <div
+              v-else
+              class="space-y-3"
+            >
               <div
-                v-for="member in performers"
-                :key="member.name"
+                v-for="member in data.performers"
+                :key="member.userId"
                 class="flex items-center justify-between rounded-md border border-default p-2"
               >
-                <div>
-                  <p class="font-medium">{{ member.name }}</p>
-                  <p class="text-xs text-muted">{{ member.role }} · {{ member.active }} active</p>
+                <div class="flex items-center gap-2 min-w-0">
+                  <UAvatar
+                    size="xs"
+                    :src="getAttachment(member.avatar?.path)"
+                    :alt="member.name"
+                  />
+                  <div class="min-w-0">
+                    <p class="font-medium truncate">{{ member.name }}</p>
+                    <p class="text-xs text-muted">
+                      {{ member.active }} active · {{ member.achieved }}/{{ member.assigned }}
+                      achieved
+                    </p>
+                  </div>
                 </div>
                 <UBadge
                   color="success"
@@ -482,14 +507,16 @@ const getActions: TGetActions<TTask> = (item, v) => [
                   :label="`${member.hitRate}%`"
                 />
               </div>
-              <UButton
-                block
-                variant="subtle"
-                color="neutral"
-              >
-                View Leaderboard
-              </UButton>
             </div>
+            <UButton
+              block
+              variant="subtle"
+              color="neutral"
+              class="mt-3"
+              to="/targets/leaderboard"
+            >
+              View Leaderboard
+            </UButton>
           </UCard>
         </div>
       </template>

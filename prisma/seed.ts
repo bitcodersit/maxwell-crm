@@ -341,6 +341,8 @@ async function main() {
 
   await seedBoards()
   await seedOptions()
+  const { seedTargets } = await import('./seed-targets')
+  await seedTargets(prisma)
 }
 main()
   .then(async () => {

@@ -10,6 +10,14 @@ type TModel = Pick<
 const { user } = useCurrentUser()
 const { getAttachment } = useGetAttachment()
 
+const props = withDefaults(
+  defineProps<{
+    canEdit?: boolean
+    canComplete?: boolean
+  }>(),
+  {}
+)
+
 const model = defineModel<TModel[]>({
   default: () => []
 })
@@ -18,9 +26,12 @@ const emit = defineEmits<{
   change: []
 }>()
 
+const canEditItems = computed(() => props.canEdit ?? !!user.value?.updateAnyTasks)
+const canCompleteItems = computed(() => props.canComplete ?? true)
+
 const listRef = ref<HTMLElement | null>(null)
 useSortable(listRef, model, {
-  disabled: !user.value?.updateAnyTasks,
+  disabled: !canEditItems.value,
   filter: '.task-items__disabled',
   handle: '.task-items__handle',
   animation: 150,
@@ -91,7 +102,7 @@ const completion = computed(() => {
         </span>
       </div>
       <UButton
-        v-if="!!user?.updateAnyTasks"
+        v-if="canEditItems"
         icon="i-lucide-plus"
         size="xs"
         variant="ghost"
@@ -121,7 +132,7 @@ const completion = computed(() => {
           <UButton
             v-if="item.status !== TaskItemStatus.COMPLETED"
             :ui="{ leadingIcon: 'text-muted/50' }"
-            :disabled="!user?.updateAnyTasks"
+            :disabled="!canEditItems"
             size="sm"
             icon="i-lucide-grip-vertical"
             color="neutral"
@@ -134,12 +145,12 @@ const completion = computed(() => {
           class="flex flex-1 gap-4 items-center rounded-md border border-default bg-default/30 p-3"
         >
           <UCheckbox
-            :disabled="!item.name.trim().length"
+            :disabled="!canCompleteItems || !item.name.trim().length"
             :model-value="item.status === TaskItemStatus.COMPLETED"
             @update:model-value="onChangeCheckbox(item, $event)"
           />
           <UInput
-            v-if="item.status !== TaskItemStatus.COMPLETED && !!user?.updateAnyTasks"
+            v-if="item.status !== TaskItemStatus.COMPLETED && canEditItems"
             v-model="item.name"
             placeholder="Add next requirement..."
             class="flex-1"
@@ -169,7 +180,7 @@ const completion = computed(() => {
           </UTooltip>
           <UButton
             v-if="
-              model.length && item.status !== TaskItemStatus.COMPLETED && !!user?.updateAnyTasks
+              model.length && item.status !== TaskItemStatus.COMPLETED && canEditItems
             "
             icon="i-lucide-x"
             color="neutral"

@@ -20,6 +20,9 @@ export const keys = {
   targetsOverview() {
     return ['/api/targets/overview']
   },
+  targetsLeaderboard(query?: MaybeRefOrGetter<Record<string, any>>) {
+    return query ? ['/api/targets/leaderboard', query] : ['/api/targets/leaderboard']
+  },
   lead(id: MaybeRefOrGetter<string>) {
     return ['/api/leads/{id}', id]
   },

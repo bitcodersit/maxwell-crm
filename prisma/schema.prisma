@@ -411,15 +411,27 @@ enum TargetFrequency {
     CUSTOM
 }
 
+enum TargetStatus {
+    NEW
+    RUNNING
+    PAUSED
+    ACHIEVED
+    MISSED
+    SKIPPED
+    STOPPED
+    CANCELLED
+}
+
 model Task {
     id Int @id @default(autoincrement())
 
     name        String  @db.Text
     description String? @db.Text
 
-    kind     TaskKind     @default(TASK)
-    status   TaskStatus   @default(TODO)
-    priority TaskPriority @default(MEDIUM)
+    kind         TaskKind      @default(TASK)
+    status       TaskStatus    @default(TODO)
+    targetStatus TargetStatus?
+    priority     TaskPriority  @default(MEDIUM)
 
     creatorId    Int?
     reviewerId   Int?
@@ -427,6 +439,7 @@ model Task {
     attachableId Int? @unique
     parentId     Int?
 
+    startsAt    DateTime?
     dueAt       DateTime?
     reviewedAt  DateTime?
     submittedAt DateTime?
@@ -449,8 +462,11 @@ model Task {
     deletedAt DateTime?
 
     @@index([status, priority])
+    @@index([targetStatus])
     @@index([dueAt])
+    @@index([startsAt])
     @@index([kind, dueAt])
+    @@index([kind, targetStatus])
     @@index([parentId])
     @@index([creatorId])
     @@index([reviewerId])
