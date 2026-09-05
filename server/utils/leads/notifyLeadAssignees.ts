@@ -10,12 +10,12 @@ type TActor = Pick<TUser, 'id' | 'name'>
 
 const leadHref = (lead: TLeadNotifyTarget) => `/leads/${lead.sid}`
 
-export const notifyLeadCreated = async (lead: TLeadNotifyTarget, actor: TActor) => {
+export const notifyLeadCreated = async (lead: TLeadNotifyTarget, actor?: TActor | null) => {
   return createNotification({
     type: 'LEAD_CREATED',
     title: 'New lead created',
-    body: `${actor.name} created lead ${lead.sid}`,
-    actorId: actor.id,
+    body: `${actor?.name || 'System'} created lead ${lead.sid}`,
+    actorId: actor?.id ?? 0,
     subjectType: 'LEAD',
     subjectId: lead.id,
     assignableId: lead.assignableId,

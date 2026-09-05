@@ -90,8 +90,8 @@ export const createLead = async (input: TZCreateLead, user?: TUser | null) => {
   })
 
   // Assign lead to the default board
-  const boardItem = await assignLeadToTheBoard(lead.id)
-  if (boardItem) lead.boardItems = [boardItem]
+  // const boardItem = await assignLeadToTheBoard(lead.id)
+  // if (boardItem) lead.boardItems = [boardItem]
 
   try {
     await notifyLeadCreated(lead, user)

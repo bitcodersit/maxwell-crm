@@ -173,7 +173,7 @@ const getActions: TGetActions<TLead> = (item, v) => [
       }
     },
     {
-      label: 'Convert to Lead',
+      label: 'Convert to Deals',
       icon: 'i-lucide-repeat-2',
       onSelect() {
         convertLead(item)
