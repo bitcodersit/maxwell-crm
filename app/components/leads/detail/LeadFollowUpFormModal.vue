@@ -6,10 +6,7 @@ const open = defineModel<boolean>('open', { default: false })
 
 const props = defineProps<{
   lead: TLead
-  followUp?: TFollowUp | null
 }>()
-
-const isEditMode = computed(() => !!props.followUp)
 
 const emit = defineEmits<{
   success: []
@@ -50,28 +47,9 @@ function resetForm() {
   }
 }
 
-function populateFormFromFollowUp(followUp: TFollowUp) {
-  form.value = {
-    type: followUp.type,
-    date: toDatetimeLocalValue(followUp.date),
-    nextDate: toDatetimeLocalValue(followUp.nextDate),
-    outcome: followUp.outcome ?? '',
-    status: followUp.status
-  }
-}
-
 watch(open, isOpen => {
-  if (!isOpen) return
-  if (props.followUp) populateFormFromFollowUp(props.followUp)
-  else resetForm()
+  if (isOpen) resetForm()
 })
-
-watch(
-  () => props.followUp,
-  followUp => {
-    if (open.value && followUp) populateFormFromFollowUp(followUp)
-  }
-)
 
 const { mutate, isPending } = useMutation({
   mutationFn: (body: Record<string, unknown>) =>
@@ -83,23 +61,18 @@ const { mutate, isPending } = useMutation({
 
 const onSubmit = (event: FormSubmitEvent<typeof form.value>) => {
   const payload: Record<string, unknown> = {
+    leadId: props.lead.id,
     type: event.data.type,
     status: event.data.status,
     outcome: event.data.outcome?.trim() || undefined
   }
-
-  if (isEditMode.value && props.followUp) payload.id = props.followUp.id
-  else payload.leadId = props.lead.id
 
   if (event.data.date) payload.date = event.data.date
   if (event.data.nextDate) payload.nextDate = event.data.nextDate
 
   mutate(payload, {
     onSuccess() {
-      toast.add({
-        title: isEditMode.value ? 'Follow-up updated' : 'Follow-up created',
-        color: 'success'
-      })
+      toast.add({ title: 'Follow-up created', color: 'success' })
       open.value = false
       emit('success')
     },
@@ -115,12 +88,8 @@ const onSubmit = (event: FormSubmitEvent<typeof form.value>) => {
 <template>
   <UModal
     v-model:open="open"
-    :title="isEditMode ? 'Edit follow-up' : 'Add follow-up'"
-    :description="
-      isEditMode
-        ? 'Update this follow-up record.'
-        : 'Schedule a call, visit, or message for this lead.'
-    "
+    title="Add follow-up"
+    description="Schedule a call, visit, or message for this lead."
     :ui="{ content: 'max-w-lg w-full' }"
   >
     <template #body>
@@ -205,10 +174,10 @@ const onSubmit = (event: FormSubmitEvent<typeof form.value>) => {
           </UButton>
           <UButton
             type="submit"
-            :icon="isEditMode ? 'i-lucide-save' : 'i-lucide-phone-forwarded'"
+            icon="i-lucide-phone-forwarded"
             :loading="isPending"
           >
-            {{ isEditMode ? 'Update follow-up' : 'Save follow-up' }}
+            Save follow-up
           </UButton>
         </div>
       </UForm>

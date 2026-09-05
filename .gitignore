@@ -19,19 +19,13 @@ logs
 .idea
 
 # Local env files
-.env
-.env.local
-.env.*.local
-
-# Local agent demo login (do not commit)
-.cursor/rules/local-demo-login.mdc
+!.env.example
 
 prisma/client
-
-# Deployment package artifacts
-deploy
-maxwell-crm-deploy.zip
 
 # Local uploads (filesystem storage default)
 storage/uploads
 config.bat
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat

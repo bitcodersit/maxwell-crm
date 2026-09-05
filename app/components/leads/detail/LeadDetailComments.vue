@@ -10,25 +10,11 @@ const emit = defineEmits<{
 
 const formRef = useTemplateRef('formRef')
 const toast = useToast()
-const { confirm } = useConfirm()
-const { user } = useCurrentUser()
-
 const draft = ref('')
-const editingId = ref<number | null>(null)
-const editDraft = ref('')
-const deletingId = ref<number | null>(null)
 
 const items = computed(() => props.comments.data)
 
-function canEdit(_item: TComment) {
-  return canEditLeadDetailRecord(user.value)
-}
-
-function canDelete(item: TComment) {
-  return canDeleteLeadDetailRecord(user.value, item.authorId, user.value?.deleteAnyComments)
-}
-
-const { mutate: createComment, isPending: isCreating } = useMutation({
+const { mutate, isPending } = useMutation({
   mutationFn: (text: string) =>
     $fetch('/api/comments', {
       method: 'POST',
@@ -40,29 +26,11 @@ const { mutate: createComment, isPending: isCreating } = useMutation({
     })
 })
 
-const { mutate: updateComment, isPending: isUpdating } = useMutation({
-  mutationFn: ({ id, text }: { id: number; text: string }) =>
-    $fetch('/api/comments', {
-      method: 'POST',
-      body: { id, text }
-    })
-})
-
-function startEdit(comment: TComment) {
-  editingId.value = comment.id
-  editDraft.value = comment.text
-}
-
-function cancelEdit() {
-  editingId.value = null
-  editDraft.value = ''
-}
-
-function onSubmit() {
+const onSubmit = () => {
   const text = draft.value.trim()
   if (!text) return
 
-  createComment(text, {
+  mutate(text, {
     onSuccess() {
       toast.add({ title: 'Comment posted', color: 'success' })
       draft.value = ''
@@ -74,51 +42,6 @@ function onSubmit() {
       else formRef.value?.setErrors([{ name: 'text', message }])
     }
   })
-}
-
-function onSaveEdit(commentId: number) {
-  const text = editDraft.value.trim()
-  if (!text) return
-
-  updateComment(
-    { id: commentId, text },
-    {
-      onSuccess() {
-        toast.add({ title: 'Comment updated', color: 'success' })
-        cancelEdit()
-        emit('refresh')
-      },
-      onError(error) {
-        const { message } = parseError(error)
-        toast.add({
-          title: 'Failed to update comment',
-          description: message,
-          color: 'error'
-        })
-      }
-    }
-  )
-}
-
-async function onDelete(comment: TComment) {
-  if (!(await confirm('Delete this comment?'))) return
-
-  deletingId.value = comment.id
-  try {
-    await $fetch(`/api/comments/${comment.id}`, { method: 'DELETE' })
-    toast.add({ title: 'Comment deleted', color: 'success' })
-    if (editingId.value === comment.id) cancelEdit()
-    emit('refresh')
-  } catch (error) {
-    const { message } = parseError(error)
-    toast.add({
-      title: 'Failed to delete comment',
-      description: message,
-      color: 'error'
-    })
-  } finally {
-    deletingId.value = null
-  }
 }
 </script>
 
@@ -151,72 +74,17 @@ async function onDelete(comment: TComment) {
           class="shrink-0 mt-0.5"
         />
         <div class="flex-1 min-w-0">
-          <div class="flex flex-wrap items-baseline justify-between gap-2">
-            <div class="flex flex-wrap items-baseline gap-2">
-              <span class="text-sm font-medium text-highlighted">
-                {{ comment.author?.name || 'Unknown' }}
-              </span>
-              <span class="text-xs text-muted">
-                {{ $dfc(comment.createdAt) }}
-              </span>
-            </div>
-            <div
-              v-if="editingId !== comment.id && (canEdit(comment) || canDelete(comment))"
-              class="flex items-center gap-1 shrink-0"
-            >
-              <UButton
-                v-if="canEdit(comment)"
-                icon="i-lucide-pencil"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                @click="startEdit(comment)"
-              />
-              <UButton
-                v-if="canDelete(comment)"
-                icon="i-lucide-trash-2"
-                color="error"
-                variant="ghost"
-                size="xs"
-                :loading="deletingId === comment.id"
-                @click="onDelete(comment)"
-              />
-            </div>
+          <div class="flex flex-wrap items-baseline gap-2">
+            <span class="text-sm font-medium text-highlighted">
+              {{ comment.author?.name || 'Unknown' }}
+            </span>
+            <span class="text-xs text-muted">
+              {{ $dfc(comment.createdAt) }}
+            </span>
           </div>
-
-          <template v-if="editingId === comment.id">
-            <UTextarea
-              v-model="editDraft"
-              :rows="3"
-              :disabled="isUpdating"
-              class="w-full mt-2"
-            />
-            <div class="flex justify-end gap-2 mt-2">
-              <UButton
-                label="Cancel"
-                color="neutral"
-                variant="subtle"
-                size="xs"
-                :disabled="isUpdating"
-                @click="cancelEdit"
-              />
-              <UButton
-                label="Save"
-                icon="i-lucide-save"
-                size="xs"
-                :loading="isUpdating"
-                :disabled="!editDraft.trim()"
-                @click="onSaveEdit(comment.id)"
-              />
-            </div>
-          </template>
-          <p
-            v-else
-            class="mt-1 text-sm text-default whitespace-pre-wrap"
-          >
+          <p class="mt-1 text-sm text-default whitespace-pre-wrap">
             {{ comment.text }}
           </p>
-
           <div
             v-if="comment.attachable?.attachments?.length"
             class="mt-2 flex flex-wrap gap-2"
@@ -247,7 +115,7 @@ async function onDelete(comment: TComment) {
             v-model="draft"
             placeholder="Write an internal comment..."
             :rows="3"
-            :disabled="isCreating"
+            :disabled="isPending"
             class="w-full"
           />
         </UFormField>
@@ -255,7 +123,7 @@ async function onDelete(comment: TComment) {
           <UButton
             label="Post comment"
             icon="i-lucide-send"
-            :loading="isCreating"
+            :loading="isPending"
             :disabled="!draft.trim()"
             type="submit"
           />

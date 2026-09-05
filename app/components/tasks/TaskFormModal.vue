@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { TaskKind } from '~~/prisma/client/enums'
 
 const open = defineModel<boolean>('open', {
   default: false
@@ -26,7 +25,6 @@ const newForm = (v?: Partial<TTask>): TTask => {
     id: v?.id ?? -Date.now(),
     name: v?.name ?? '',
     description: v?.description ?? '',
-    kind: v?.kind ?? TaskKind.TASK,
     dueAt: v?.dueAt ?? null,
     status: v?.status ?? TaskStatus.TODO,
     priority: v?.priority ?? TaskPriority.MEDIUM,
@@ -38,11 +36,7 @@ const newForm = (v?: Partial<TTask>): TTask => {
     reviewedAt: v?.reviewedAt ?? null,
     reviewerId: v?.reviewerId ?? null,
     submittedAt: v?.submittedAt ?? null,
-    submitterId: v?.submitterId ?? null,
-    parentId: v?.parentId ?? null,
-    attachableId: v?.attachableId ?? null,
-    targetStatus: v?.targetStatus ?? null,
-    startsAt: v?.startsAt ?? null
+    submitterId: v?.submitterId ?? null
   }
 }
 

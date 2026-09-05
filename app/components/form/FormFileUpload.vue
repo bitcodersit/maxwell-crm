@@ -26,13 +26,8 @@ const pendingFiles = defineModel<File[]>('pendingFiles', { default: () => [] })
 const inputRef = useTemplateRef('inputRef')
 const isDragging = ref(false)
 const toast = useToast()
-const { confirm } = useConfirm()
-const { user } = useCurrentUser()
 const { getAttachment } = useGetAttachment()
 const { mutateAsync, isPending } = useAttachmentsMutation()
-const { mutateAsync: deleteAttachments, isPending: isDeleting } = useDeleteAttachmentsMutation()
-
-const deletingId = ref<number | null>(null)
 
 const accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.zip'
 
@@ -101,30 +96,6 @@ function onDownload(file: TAttachment) {
   const url = getAttachment(file.path)
   if (url) window.open(url, '_blank')
 }
-
-function canDelete(file: TAttachment) {
-  return canDeleteAttachment(user.value, file)
-}
-
-async function onDelete(file: TAttachment) {
-  if (!(await confirm(`Delete "${file.name || 'this file'}"?`))) return
-
-  deletingId.value = file.id
-  try {
-    await deleteAttachments([file.id])
-    toast.add({ title: 'File deleted', color: 'success' })
-    emit('refresh')
-  } catch (error) {
-    const { message } = parseError(error)
-    toast.add({
-      title: 'Failed to delete file',
-      description: message,
-      color: 'error'
-    })
-  } finally {
-    deletingId.value = null
-  }
-}
 </script>
 
 <template>
@@ -156,7 +127,7 @@ async function onDelete(file: TAttachment) {
       class="hidden"
       :disabled="disabled"
       @change="onInputChange"
-    />
+    >
 
     <div
       class="rounded-lg border border-dashed px-3 py-4 text-center transition-colors"
@@ -173,8 +144,12 @@ async function onDelete(file: TAttachment) {
         name="i-lucide-upload-cloud"
         class="size-5 text-muted mx-auto mb-1"
       />
-      <p class="text-xs text-muted">Drag and drop files here, or click to browse</p>
-      <p class="text-[11px] text-dimmed mt-0.5">Images and PDFs supported</p>
+      <p class="text-xs text-muted">
+        Drag and drop files here, or click to browse
+      </p>
+      <p class="text-[11px] text-dimmed mt-0.5">
+        Images and PDFs supported
+      </p>
     </div>
 
     <div
@@ -236,27 +211,15 @@ async function onDelete(file: TAttachment) {
             {{ formatFileSize(file.size) }}
           </p>
         </div>
-        <div class="flex items-center gap-1 shrink-0">
-          <UButton
-            type="button"
-            icon="i-lucide-download"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            @click="onDownload(file)"
-          />
-          <UButton
-            v-if="canDelete(file)"
-            type="button"
-            icon="i-lucide-trash-2"
-            color="error"
-            variant="ghost"
-            size="xs"
-            :loading="deletingId === file.id"
-            :disabled="isDeleting"
-            @click="onDelete(file)"
-          />
-        </div>
+        <UButton
+          type="button"
+          icon="i-lucide-download"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          class="shrink-0"
+          @click="onDownload(file)"
+        />
       </div>
     </div>
   </div>

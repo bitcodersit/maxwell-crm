@@ -14,31 +14,10 @@ const emit = defineEmits<{
 
 const toast = useToast()
 const { confirm } = useConfirm()
-const { user } = useCurrentUser()
 
 const selected = ref<TProperty | null>(null)
 const isLinking = ref(false)
 const unlinkingId = ref<number | null>(null)
-const editModalOpen = ref(false)
-const editingPropertyId = ref<number | null>(null)
-
-const canUpdateProperty = computed(
-  () =>
-    !!(
-      user.value?.updateAnyProperties
-      || user.value?.updateOwnProperties
-      || user.value?.isSuperAdmin
-    )
-)
-
-function openEditProperty(property: TProperty) {
-  editingPropertyId.value = property.id
-  editModalOpen.value = true
-}
-
-watch(editModalOpen, open => {
-  if (!open) editingPropertyId.value = null
-})
 
 const linkedIds = computed(() => new Set(props.properties.data.map(property => property.id)))
 
@@ -218,26 +197,15 @@ async function onUnlinkProperty(property: TProperty) {
                 </span>
               </p>
             </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <UButton
-                v-if="canUpdateProperty"
-                icon="i-lucide-pencil"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :disabled="isLinking"
-                @click="openEditProperty(property)"
-              />
-              <UButton
-                icon="i-lucide-unlink"
-                color="error"
-                variant="ghost"
-                size="sm"
-                :loading="unlinkingId === property.id"
-                :disabled="isLinking"
-                @click="onUnlinkProperty(property)"
-              />
-            </div>
+            <UButton
+              icon="i-lucide-unlink"
+              color="error"
+              variant="ghost"
+              size="sm"
+              :loading="unlinkingId === property.id"
+              :disabled="isLinking"
+              @click="onUnlinkProperty(property)"
+            />
           </div>
         </UPageCard>
       </div>
@@ -248,12 +216,6 @@ async function onUnlinkProperty(property: TProperty) {
       icon="i-lucide-building-2"
       title="No properties linked"
       description="Search for a property above and click Attach to lead to attach it to this lead."
-    />
-
-    <PropertyEditFormModal
-      v-model:open="editModalOpen"
-      :property-id="editingPropertyId"
-      @success="emit('refresh')"
     />
   </div>
 </template>
