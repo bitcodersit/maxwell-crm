@@ -3,11 +3,6 @@ import type { TColumn, TGetActions } from '@/components/base/BaseCrud.vue'
 import type { TLead } from '~~/shared/types/Lead'
 import { leadListFilters } from '@/utils/leads-filters'
 
-definePageMeta({
-  title: 'Leads',
-  layout: 'leads-layout'
-})
-
 const crudRef = useTemplateRef('crudRef')
 const UBadge = resolveComponent('UBadge')
 const NuxtLink = resolveComponent('NuxtLink')
@@ -197,17 +192,25 @@ const getActions: TGetActions<TLead> = (item, v) => [
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col px-4 pb-4 overflow-hidden">
-    <BaseCrud
-      ref="crudRef"
-      get-url="/api/leads"
-      :initial-query="{ boardItems: false }"
-      delete-url="/api/leads/{id}"
-      :show-add-button="false"
-      :fields="[]"
-      :columns="columns"
-      :filters="leadListFilters"
-      :get-actions="getActions"
-    />
-  </div>
+  <BaseCrud
+    ref="crudRef"
+    get-url="/api/leads"
+    :initial-query="{ boardItems: false }"
+    delete-url="/api/leads/{id}"
+    :show-add-button="false"
+    :fields="[]"
+    :columns="columns"
+    :filters="leadListFilters"
+    :get-actions="getActions"
+  >
+    <template #actions>
+      <UButton
+        icon="i-lucide-plus"
+        size="sm"
+        label="Add Lead"
+        color="primary"
+        to="/leads/new"
+      />
+    </template>
+  </BaseCrud>
 </template>

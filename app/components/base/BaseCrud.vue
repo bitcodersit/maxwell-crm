@@ -917,11 +917,11 @@ const onImportDone = () => {
               "
             />
           </UTooltip>
-          <slot
-            v-if="showAddButton"
-            name="actions"
-          >
-            <UTooltip text="Add new item">
+          <slot name="actions">
+            <UTooltip
+              v-if="showAddButton"
+              text="Add new item"
+            >
               <UButton
                 icon="i-lucide-plus"
                 size="sm"
