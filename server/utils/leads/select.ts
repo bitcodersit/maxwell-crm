@@ -41,6 +41,16 @@ export const selectLeadForBoardCard = {
         include: {
           user: selectUserForDisplay
         }
+      },
+      teams: {
+        include: {
+          team: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
       }
     }
   }

@@ -38,9 +38,8 @@ const props = withDefaults(defineProps<TFormCardPickerProps<Item, Value>>(), {
 })
 
 const model = defineModel<Item[]>({ default: () => [] })
+const open = defineModel<boolean>('open', { default: false })
 const { confirm } = useConfirm()
-
-const open = ref(false)
 const page = ref(1)
 const draft = ref<Item[]>([]) as Ref<Item[]>
 const orderBy = ref<TBaseOrderBy>({})
@@ -140,6 +139,11 @@ const onRemoveItem = async (item: Item) => {
   const value = props.getValue(item)
   model.value = model.value.filter(x => props.getValue(x) !== value)
 }
+
+const openPicker = () => {
+  if (props.disabled) return
+  open.value = true
+}
 </script>
 
 <template>
@@ -147,7 +151,12 @@ const onRemoveItem = async (item: Item) => {
     class="w-full"
     :class="props.class"
   >
-    <div class="grid grid-cols-3 gap-2">
+    <slot
+      name="trigger"
+      :open="openPicker"
+      :disabled="disabled"
+    >
+      <div class="grid grid-cols-3 gap-2">
       <div
         v-for="item in model"
         :key="String(getValue(item))"
@@ -186,7 +195,7 @@ const onRemoveItem = async (item: Item) => {
         v-if="!disabled"
         type="button"
         class="aspect-square rounded-lg border border-dashed border-default hover:border-primary hover:bg-primary/5 transition-colors flex items-center justify-center text-muted hover:text-primary cursor-pointer"
-        @click="open = true"
+        @click="openPicker"
       >
         <slot name="add-card">
           <UIcon
@@ -195,7 +204,8 @@ const onRemoveItem = async (item: Item) => {
           />
         </slot>
       </button>
-    </div>
+      </div>
+    </slot>
 
     <UModal
       v-model:open="open"

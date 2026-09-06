@@ -20,11 +20,17 @@ const model = defineModel<State>({
 const emit = defineEmits<{
   success: [data: any]
   error: [error: any]
+  cancel: []
 }>()
 
 const onSuccess = (data: any) => {
   open.value = false
   emit('success', data)
+}
+
+const onCancel = () => {
+  open.value = false
+  emit('cancel')
 }
 </script>
 
@@ -44,6 +50,7 @@ const onSuccess = (data: any) => {
         :field-props="fieldProps"
         @success="onSuccess"
         @error="emit('error', $event)"
+        @cancel="onCancel"
       />
     </template>
   </UModal>

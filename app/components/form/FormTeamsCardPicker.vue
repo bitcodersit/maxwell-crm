@@ -19,9 +19,10 @@ const props = withDefaults(defineProps<TFormTeamsCardPickerProps>(), {
 })
 
 const model = defineModel<Pick<TTeam, 'id' | 'name'>[]>({ default: () => [] })
+const open = defineModel<boolean>('open', { default: false })
 
 const pickerProps = computed(() => {
-  const { modelValue, ...rest } = props as any
+  const { modelValue, open: _open, ...rest } = props as any
   return rest
 })
 </script>
@@ -29,12 +30,22 @@ const pickerProps = computed(() => {
 <template>
   <FormCardPicker
     v-model="model"
+    v-model:open="open"
     v-bind="pickerProps"
     api="/api/teams"
     :query="{ options: true }"
     :get-value="v => v.id"
     :get-label="v => v.name"
   >
+    <template
+      v-if="$slots.trigger"
+      #trigger="scope"
+    >
+      <slot
+        name="trigger"
+        v-bind="scope"
+      />
+    </template>
     <template #selected-item="{ item }">
       <div class="flex flex-col items-center justify-center gap-1.5 min-w-0 w-full">
         <UAvatar

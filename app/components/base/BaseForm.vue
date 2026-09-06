@@ -52,6 +52,7 @@ const { mutate, isPending } = useMutation({
 const emit = defineEmits<{
   success: [data: any]
   error: [error: any]
+  cancel: []
 }>()
 
 const onSubmit = async (event: FormSubmitEvent<any>) => {
@@ -76,7 +77,7 @@ const onSubmit = async (event: FormSubmitEvent<any>) => {
 }
 
 const onCancel = () => {
-  //
+  emit('cancel')
 }
 </script>
 
