@@ -381,7 +381,7 @@ const menuItems = computed<DropdownMenuItem[][]>(() => {
       </NuxtLink>
 
       <div
-        class="flex items-center justify-between gap-2 mt-3 mx-3 mb-3 pt-2 border-t border-default"
+        class="flex items-center justify-between gap-2 mt-3 mx-3 mb-3 pt-2 border-t border-default overflow-visible"
         @click.stop
       >
         <div class="flex items-center gap-1.5 min-w-0">
@@ -393,52 +393,24 @@ const menuItems = computed<DropdownMenuItem[][]>(() => {
             @update:model-value="onChangeUsers"
           >
             <template #trigger="{ open, disabled }">
-              <div class="flex items-center -space-x-1">
-                <UTooltip
+              <div class="relative flex items-center -space-x-1 hover:z-50">
+                <LeadBoardStackChip
                   v-for="item in visibleUsers"
                   :key="item.id"
-                  :text="item.name || `User #${item.id}`"
-                  :delay-duration="0"
-                >
-                  <button
-                    type="button"
-                    class="group relative inline-flex rounded-full ring-2 ring-inverted/25 hover:z-10"
-                    :disabled="disabled"
-                    :aria-label="`Unassign ${item.name || `User #${item.id}`}`"
-                    @click="onUnassignUser(item)"
-                  >
-                    <UAvatar
-                      :alt="item.name || `User #${item.id}`"
-                      :src="getAttachment(item.avatar?.path || undefined)"
-                      size="xs"
-                      class="bg-elevated"
-                      :ui="{
-                        root: 'bg-elevated',
-                        fallback: 'text-[10px] text-highlighted bg-elevated'
-                      }"
-                    />
-                    <span
-                      v-if="!disabled"
-                      class="absolute -top-0.5 -right-0.5 hidden group-hover:flex size-3.5 items-center justify-center rounded-full bg-error text-inverted ring-2 ring-inverted/25"
-                    >
-                      <UIcon
-                        name="i-lucide-x"
-                        class="size-2.5"
-                      />
-                    </span>
-                  </button>
-                </UTooltip>
+                  :name="item.name || `User #${item.id}`"
+                  :src="getAttachment(item.avatar?.path || undefined)"
+                  :disabled="disabled"
+                  :removable="!disabled"
+                  @click="onUnassignUser(item)"
+                />
                 <UPopover
                   v-if="userOverflow > 0"
                   :content="{ align: 'start', side: 'top' }"
                 >
-                  <button
-                    type="button"
-                    class="relative z-1 inline-flex items-center justify-center size-6 rounded-full bg-elevated text-[10px] font-medium text-highlighted ring-2 ring-inverted/25"
-                    :aria-label="`${userOverflow} more users`"
-                  >
-                    +{{ userOverflow }}
-                  </button>
+                  <LeadBoardStackChip
+                    :name="`${userOverflow} more`"
+                    :count="userOverflow"
+                  />
                   <template #content>
                     <div class="p-1 min-w-44">
                       <button
@@ -467,23 +439,12 @@ const menuItems = computed<DropdownMenuItem[][]>(() => {
                     </div>
                   </template>
                 </UPopover>
-                <UTooltip
+                <LeadBoardStackChip
                   v-if="!disabled"
-                  text="Assign users"
-                  :delay-duration="0"
-                >
-                  <button
-                    type="button"
-                    class="relative z-1 inline-flex items-center justify-center size-6 rounded-full bg-elevated text-highlighted ring-2 ring-inverted/25 hover:bg-primary hover:text-inverted transition-colors"
-                    aria-label="Assign users"
-                    @click="open()"
-                  >
-                    <UIcon
-                      :name="assignedUsers.length ? 'i-lucide-plus' : 'i-lucide-user'"
-                      class="size-3"
-                    />
-                  </button>
-                </UTooltip>
+                  name="Assign users"
+                  :icon="assignedUsers.length ? 'i-lucide-plus' : 'i-lucide-user'"
+                  @click="open()"
+                />
               </div>
             </template>
           </FormUsersCardPicker>
@@ -501,52 +462,24 @@ const menuItems = computed<DropdownMenuItem[][]>(() => {
             @update:model-value="onChangeTeams"
           >
             <template #trigger="{ open, disabled }">
-              <div class="flex items-center -space-x-1">
-                <UTooltip
+              <div class="relative flex items-center -space-x-1 hover:z-50">
+                <LeadBoardStackChip
                   v-for="item in visibleTeams"
                   :key="item.id"
-                  :text="item.name || `Team #${item.id}`"
-                  :delay-duration="0"
-                >
-                  <button
-                    type="button"
-                    class="group relative inline-flex rounded-full ring-2 ring-inverted/25 hover:z-10"
-                    :disabled="disabled"
-                    :aria-label="`Unassign ${item.name || `Team #${item.id}`}`"
-                    @click="onUnassignTeam(item)"
-                  >
-                    <UAvatar
-                      :alt="item.name || `Team #${item.id}`"
-                      icon="i-lucide-users"
-                      size="xs"
-                      class="bg-elevated"
-                      :ui="{
-                        root: 'bg-elevated',
-                        fallback: 'text-[10px] text-highlighted bg-elevated'
-                      }"
-                    />
-                    <span
-                      v-if="!disabled"
-                      class="absolute -top-0.5 -right-0.5 hidden group-hover:flex size-3.5 items-center justify-center rounded-full bg-error text-inverted ring-2 ring-inverted/25"
-                    >
-                      <UIcon
-                        name="i-lucide-x"
-                        class="size-2.5"
-                      />
-                    </span>
-                  </button>
-                </UTooltip>
+                  :name="item.name || `Team #${item.id}`"
+                  icon="i-lucide-users"
+                  :disabled="disabled"
+                  :removable="!disabled"
+                  @click="onUnassignTeam(item)"
+                />
                 <UPopover
                   v-if="teamOverflow > 0"
                   :content="{ align: 'start', side: 'top' }"
                 >
-                  <button
-                    type="button"
-                    class="relative z-1 inline-flex items-center justify-center size-6 rounded-full bg-elevated text-[10px] font-medium text-highlighted ring-2 ring-inverted/25"
-                    :aria-label="`${teamOverflow} more teams`"
-                  >
-                    +{{ teamOverflow }}
-                  </button>
+                  <LeadBoardStackChip
+                    :name="`${teamOverflow} more`"
+                    :count="teamOverflow"
+                  />
                   <template #content>
                     <div class="p-1 min-w-44">
                       <button
@@ -575,23 +508,12 @@ const menuItems = computed<DropdownMenuItem[][]>(() => {
                     </div>
                   </template>
                 </UPopover>
-                <UTooltip
+                <LeadBoardStackChip
                   v-if="!disabled"
-                  text="Assign team"
-                  :delay-duration="0"
-                >
-                  <button
-                    type="button"
-                    class="relative z-1 inline-flex items-center justify-center size-6 rounded-full bg-elevated text-highlighted ring-2 ring-inverted/25 hover:bg-primary hover:text-inverted transition-colors"
-                    aria-label="Assign team"
-                    @click="open()"
-                  >
-                    <UIcon
-                      :name="assignedTeams.length ? 'i-lucide-plus' : 'i-lucide-users'"
-                      class="size-3"
-                    />
-                  </button>
-                </UTooltip>
+                  name="Assign team"
+                  :icon="assignedTeams.length ? 'i-lucide-plus' : 'i-lucide-users'"
+                  @click="open()"
+                />
               </div>
             </template>
           </FormTeamsCardPicker>
