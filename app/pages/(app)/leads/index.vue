@@ -128,33 +128,16 @@ const columns = computed<TColumn<TLead>[]>(() => [
   { id: 'action', pinned: 'right' }
 ])
 
-const toast = useToast()
-const converting = ref(false)
+const convertOpen = ref(false)
+const leadToConvert = ref<TLead | null>(null)
 
-async function convertLead(lead: TLead) {
-  if (converting.value) return
-  converting.value = true
-  try {
-    await $fetch('/api/leads/convert', {
-      method: 'PUT',
-      body: {
-        leadId: lead.id
-      }
-    })
-    toast.add({
-      title: 'Convert to Lead',
-      description: `Request sent for ${lead.sid}.`,
-      color: 'success'
-    })
-  } catch (error: any) {
-    toast.add({
-      title: 'Error',
-      color: 'error',
-      description: error?.data?.message || error?.message
-    })
-  } finally {
-    converting.value = false
-  }
+function openConvert(lead: TLead) {
+  leadToConvert.value = lead
+  convertOpen.value = true
+}
+
+function onConvertSuccess() {
+  crudRef.value?.refetch()
 }
 
 const getActions: TGetActions<TLead> = (item, v) => [
@@ -175,8 +158,9 @@ const getActions: TGetActions<TLead> = (item, v) => [
     {
       label: 'Convert to Deals',
       icon: 'i-lucide-repeat-2',
+      hidden: !!item.boardItems?.length,
       onSelect() {
-        convertLead(item)
+        openConvert(item)
       }
     }
   ].filter(action => !('hidden' in action) || !action.hidden),
@@ -213,4 +197,9 @@ const getActions: TGetActions<TLead> = (item, v) => [
       />
     </template>
   </BaseCrud>
+  <LeadConvertModal
+    v-model:open="convertOpen"
+    :lead="leadToConvert"
+    @success="onConvertSuccess"
+  />
 </template>

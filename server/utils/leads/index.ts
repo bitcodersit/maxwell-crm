@@ -1,6 +1,7 @@
 export * from './utils'
 export * from './select'
 export * from './createLead'
+export * from './convertLead'
 export * from './updateLead'
 export * from './generateLeadSid'
 export * from './getLeadScopedWhere'

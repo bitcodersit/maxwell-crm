@@ -1,16 +1,23 @@
-export const findBoardToAssign = (module: TBoardModule) => {
+export const findBoardToAssign = (module: TBoardModule, columnId?: number) => {
   return prisma.board.findFirst({
     where: {
       module,
-      isDefault: true
+      isDefault: true,
+      deletedAt: null
     },
     select: {
       id: true,
       columns: {
         take: 1,
-        where: {
-          isDefault: true
-        },
+        where: columnId
+          ? {
+              id: columnId,
+              deletedAt: null
+            }
+          : {
+              isDefault: true,
+              deletedAt: null
+            },
         select: {
           id: true,
           items: {

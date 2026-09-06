@@ -1,6 +1,7 @@
-export const assignLeadToTheBoard = async (leadId: number) => {
-  const board = await findBoardToAssign(BoardModule.LEADS)
-  if (board && board.columns.at(-1)?.id) {
+export const assignLeadToTheBoard = async (leadId: number, columnId?: number) => {
+  const board = await findBoardToAssign(BoardModule.LEADS, columnId)
+  const column = board?.columns[0]
+  if (board && column?.id) {
     return prisma.boardItem.upsert({
       where: {
         boardId_leadId: {
@@ -11,8 +12,8 @@ export const assignLeadToTheBoard = async (leadId: number) => {
       create: {
         leadId,
         boardId: board.id,
-        columnId: board.columns.at(-1)!.id,
-        sortOrder: getSortOrder(board.columns.at(-1)?.items.at(-1)?.sortOrder)
+        columnId: column.id,
+        sortOrder: getSortOrder(column.items.at(-1)?.sortOrder)
       },
       update: {}
     })
